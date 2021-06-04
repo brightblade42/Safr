@@ -1,0 +1,70 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Safr.Client", "src\Safr.Client\Safr.Client.fsproj", "{7C716DBC-68B5-462F-9E3D-F9D2D30E480F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "conf", "conf", "{7A504AD6-F1FB-4146-A188-E696B7FC9F5D}"
+ProjectSection(SolutionItems) = preProject
+	postcss.config.js = postcss.config.js
+	tailwind.config.js = tailwind.config.js
+	build.fsx = build.fsx
+	snowpack.config.mjs = snowpack.config.mjs
+	paket.dependencies = paket.dependencies
+	src\Safr.Client\paket.references = src\Safr.Client\paket.references
+EndProjectSection
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Safr.Server", "src\Safr.Server\Safr.Server.fsproj", "{6F17D61A-6C5A-4A09-BC8F-9F626EC25C11}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Safr.Shared", "src\Safr.Shared\Safr.Shared.fsproj", "{203333D1-778D-4F4E-BDCE-E045A7A42808}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "lib", "lib", "{A7EAE284-DEE6-49D7-BAEA-5659A2187AA5}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ParavisionLib", "lib\ParavisionLib\ParavisionLib.fsproj", "{71AC64B6-3BE1-4FA3-BC98-AA69BB178491}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "EyemetricFR", "lib\EyemetricFR\EyemetricFR.fsproj", "{E581E817-9D49-4A70-99B6-55D471ACD2E0}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Safr.Types", "lib\Safr.Types\Safr.Types.fsproj", "{0C34CC86-9137-41DA-86EC-B44997148718}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TPassLib", "lib\TPassLib\TPassLib.fsproj", "{4126FD2D-A99A-42BA-A39A-FA14B7F6B976}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7C716DBC-68B5-462F-9E3D-F9D2D30E480F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C716DBC-68B5-462F-9E3D-F9D2D30E480F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C716DBC-68B5-462F-9E3D-F9D2D30E480F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C716DBC-68B5-462F-9E3D-F9D2D30E480F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F17D61A-6C5A-4A09-BC8F-9F626EC25C11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F17D61A-6C5A-4A09-BC8F-9F626EC25C11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F17D61A-6C5A-4A09-BC8F-9F626EC25C11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F17D61A-6C5A-4A09-BC8F-9F626EC25C11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{203333D1-778D-4F4E-BDCE-E045A7A42808}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{203333D1-778D-4F4E-BDCE-E045A7A42808}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{203333D1-778D-4F4E-BDCE-E045A7A42808}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{203333D1-778D-4F4E-BDCE-E045A7A42808}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71AC64B6-3BE1-4FA3-BC98-AA69BB178491}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71AC64B6-3BE1-4FA3-BC98-AA69BB178491}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71AC64B6-3BE1-4FA3-BC98-AA69BB178491}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71AC64B6-3BE1-4FA3-BC98-AA69BB178491}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E581E817-9D49-4A70-99B6-55D471ACD2E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E581E817-9D49-4A70-99B6-55D471ACD2E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E581E817-9D49-4A70-99B6-55D471ACD2E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E581E817-9D49-4A70-99B6-55D471ACD2E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C34CC86-9137-41DA-86EC-B44997148718}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C34CC86-9137-41DA-86EC-B44997148718}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C34CC86-9137-41DA-86EC-B44997148718}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C34CC86-9137-41DA-86EC-B44997148718}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4126FD2D-A99A-42BA-A39A-FA14B7F6B976}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4126FD2D-A99A-42BA-A39A-FA14B7F6B976}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4126FD2D-A99A-42BA-A39A-FA14B7F6B976}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4126FD2D-A99A-42BA-A39A-FA14B7F6B976}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{71AC64B6-3BE1-4FA3-BC98-AA69BB178491} = {A7EAE284-DEE6-49D7-BAEA-5659A2187AA5}
+		{E581E817-9D49-4A70-99B6-55D471ACD2E0} = {A7EAE284-DEE6-49D7-BAEA-5659A2187AA5}
+		{0C34CC86-9137-41DA-86EC-B44997148718} = {A7EAE284-DEE6-49D7-BAEA-5659A2187AA5}
+		{4126FD2D-A99A-42BA-A39A-FA14B7F6B976} = {A7EAE284-DEE6-49D7-BAEA-5659A2187AA5}
+	EndGlobalSection
+EndGlobal

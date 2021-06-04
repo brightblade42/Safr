@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Include="Server.fs" />
+        <Compile Include="Router.fs" />
+        <Compile Include="SharedView.fs" />
+        <Compile Include="State.fs" />
+        <Compile Include="Components\CameraSettings.fs" />
+        <Compile Include="Components\GoodFaces.fs" />
+        <Compile Include="Components\BadFaces.fs" />
+        <Compile Include="Components\Login.fs" />
+        <Compile Include="Components\FRLog.fs" />
+        <Compile Include="Components\Video.fs" />
+        <Compile Include="Components\VideoList.fs" />
+        <Compile Include="Components\AppBar.fs" />
+        <Compile Include="Pages\Index.fs" />
+        <Compile Include="Pages\FRHistory.fs" />
+        <Compile Include="View.fs" />
+        <Compile Include="App.fs" />
+        <Content Include="public\index.html" />
+        <Content Include="src\avideo.jsx" />
+        <Content Include="src\appbar.jsx" />
+        <Content Include="src\goodface.jsx" />
+        <Content Include="src\badface.jsx" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Safr.Shared\Safr.Shared.fsproj" />
+    </ItemGroup>
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

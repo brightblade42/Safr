@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>Safr.Shared</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Types.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Thoth.Json.Net" Version="5.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\lib\Safr.Types\Safr.Types.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

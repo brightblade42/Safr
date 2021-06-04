@@ -1,0 +1,46 @@
+version 5.257.0
+
+source https://api.nuget.org/v3/index.json
+framework: net5.0, netstandard2.0
+storage: none
+
+nuget Fable.Remoting.Giraffe
+nuget Giraffe
+nuget Fable.SignalR.AspNetCore
+nuget Microsoft.ApplicationInsights.AspNetCore
+
+nuget Fable.Core
+nuget H.Socket.IO
+nuget System.Net.Http
+nuget System.Data.Sqlite
+nuget Dapper
+nuget Thoth.Json
+nuget Thoth.Json.Net
+nuget Thoth.Json.Giraffe
+nuget FSharp.Control.AsyncSeq
+nuget Microsoft.AspNetCore.SignalR.Protocols.MessagePack
+
+
+nuget FSharp.Data
+
+
+nuget Fable.React
+nuget Fable.Remoting.Client
+nuget Fable.SignalR
+nuget Fable.SignalR.Feliz
+nuget Feliz
+nuget Feliz.UseElmish
+nuget Feliz.Router
+nuget Feliz.UseDeferred
+nuget FsToolkit.ErrorHandling.TaskResult
+
+group Build
+    source https://api.nuget.org/v3/index.json
+    framework: netstandard2.0
+    storage: none
+
+    nuget FSharp.Core
+    nuget Fake.Core.ReleaseNotes
+    nuget Fake.Core.Target
+    nuget Fake.DotNet.Cli
+    nuget Fake.IO.FileSystem
