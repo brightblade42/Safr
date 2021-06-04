@@ -14,8 +14,6 @@ open EyemetricFR.Shared.FRHub
 //open Feliz.MaterialUI.MaterialTable
 
 
-
-
 type private RowData = {
     name: string
     address: string
