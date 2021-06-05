@@ -65,7 +65,7 @@ let FRHistoryGrid (props: {| model: Model; dispatch: Dispatch<Msg>; |}) =
     //ss
 
     let rows=[|
-       { id= 0; product= "Nookie"; owner= "DevExpress" }
+       { id= 0; product= "cool cool cool"; owner= "DevExpress" }
        { id= 1; product= "DevExtreme Reactive"; owner= "DevExpress" }
        |]
     let columns= [|
@@ -73,6 +73,7 @@ let FRHistoryGrid (props: {| model: Model; dispatch: Dispatch<Msg>; |}) =
        { name= "product"; title= "Product" }
        { name= "owner"; title= "Owner" }
     |]
+
     let pp = { Rows = rows; Columns=columns }
     FRHistoryGrid' {| model=pp |}
 

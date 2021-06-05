@@ -22,6 +22,7 @@ open TPass.Client.Service
 open Eyemetric.FR.Funcs
 
 
+
 type IFR =
     abstract get_conf : unit -> Configuration option
     abstract stop_streams: unit -> Async<StopStreamingResultList>
@@ -110,7 +111,7 @@ type FRService(config_agent:     ConfigAgent,
       {
         identity = pm.identities.Head.id
         detected_img = detected_img //"" //None //face.Frame //None // Some detected_img
-        matched_face = ""//None
+        matched_face = ""
         name = face.Name
         confidence = pm.identities.Head.confidence
         matched_on = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss") //TODO: face.TimeStamp
@@ -131,6 +132,7 @@ type FRService(config_agent:     ConfigAgent,
     let delete_enrollment (fr_id: string) = async {
         return! (ident_agent, enroll_agent, fr_id) |||> Funcs.delete_enrollment
     }
+
 
     let delete_all_enrollments () = async {
         return! (ident_agent, enroll_agent) ||> Funcs.delete_all_enrollments

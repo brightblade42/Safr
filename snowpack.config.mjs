@@ -48,6 +48,7 @@ export default  {
         upgrade: (req, socket, head) => {
 
             const defaultWSHandler = (err, req, socket, head) => {
+                console.log("HELLO MCFLY..WE want  a socket!");
               if (err) {
                 console.error('proxy error', err);
                 socket.destroy();
