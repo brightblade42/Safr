@@ -19,7 +19,6 @@ module BadFaces =
         | _ -> "out"
 
 
-
     [<ReactComponent(import="BadFace", from="../src/badface.jsx")>]
     let private BadFace' (props: {| model: Model |}) = React.imported()
 
@@ -30,7 +29,6 @@ module BadFaces =
     [<ReactComponent>]
     let private BadFaces' (props: {| m: Model; dispatch: Dispatch<Msg> |}) =
                     let model = props.m
-//<div class="bg-wgray-100 flex overflow-x-scroll p-2 mt-4">
                     Html.div [
                         prop.className ["flex overflow-x-scroll bg-wgray-100 pt-2 pb-6 mt-4 space-x-4"]
                         prop.children [

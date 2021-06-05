@@ -28,7 +28,7 @@ let App () =
             false
 
 
-    (*
+
     let hub = React.useSignalR<Action, Response> (fun hub ->
         hub.withUrl(Endpoints.Root)
             .withAutomaticReconnect()
@@ -64,7 +64,7 @@ let App () =
         { new IDisposable with member this.Dispose() = window.removeEventListener("load", cb) }
 
     React.useEffect((fun _ -> on_loaded) [|  |])
-    *)
+
     if login_status then
         View.AppView {| m=model; dispatch=dispatch |}
     else

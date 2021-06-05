@@ -33,7 +33,7 @@ export default  {
   },
   routes: [
       {
-        src: '/api/*/.*',
+        src: '/api/fr/.*',
         dest: (req, res) => {
 
             return proxy.web(req, res, {
