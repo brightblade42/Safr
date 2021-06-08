@@ -26,6 +26,7 @@
         <Content Include="src\goodface.jsx" />
         <Content Include="src\badface.jsx" />
         <Content Include="src\frhistorygrid.jsx" />
+        <Content Include="src\index.css" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\Safr.Shared\Safr.Shared.fsproj" />

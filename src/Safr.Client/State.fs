@@ -70,7 +70,7 @@ type Model = {
     DisplayDetectedImage: bool
     //Maybe this belongs in its own Elmish thing...
     FRLogs: seq<FRLog>
-
+    //FRLogs: FRLog []
 }
 
 type Msg =

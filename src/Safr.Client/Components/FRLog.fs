@@ -1,6 +1,5 @@
 module Safr.Client.Components.FRLog
 
-open Fable.Core.Experimental
 open Feliz
 open Elmish
 open Safr.Client.State
@@ -10,36 +9,6 @@ open Fable.SignalR.Feliz
 open EyemetricFR.Shared.FRHub
 
 
-    (*
-
-       Html.img [
-           prop.src ("data:image/png;base64," + rd.detected_img)
-           prop.style [
-               style.maxHeight 125
-               style.maxWidth 110
-           ]
-        ]
-
-    *)
-
-
-    (*
-
-
-
-
-               rows={[
-               { id: 0, product: 'DevExtreme', owner: 'DevExpress' },
-               { id: 1, product: 'DevExtreme Reactive', owner: 'DevExpress' },
-               ]}
-               columns={[
-                   { name: 'id', title: 'ID' },
-                   { name: 'product', title: 'Product' },
-                   { name: 'owner', title: 'Owner' },
-
-               ]}
-
-    *)
 type Row = {
     id: int
     product: string
@@ -52,7 +21,8 @@ type Column = {
 }
 
 type GModel = {
-    Rows: Row seq
+    //Rows: Row seq
+    Rows: FRLog seq
     Columns: Column seq
 }
 [<ReactComponent(import="FRHistoryGrid", from="../src/frhistorygrid.jsx")>]
@@ -62,19 +32,13 @@ let private FRHistoryGrid' (props: {| model: GModel |}) = React.imported()
 [<ReactComponent>]
 let FRHistoryGrid (props: {| model: Model; dispatch: Dispatch<Msg>; |}) =
     //we wrap this for when we need extra things from parents without mucking up our component
-    //ss
 
-    let rows=[|
-       { id= 0; product= "cool cool cool"; owner= "DevExpress" }
-       { id= 1; product= "DevExtreme Reactive"; owner= "DevExpress" }
-       |]
-    let columns= [|
-       { name= "id"; title= "ID23" }
-       { name= "product"; title= "Product" }
-       { name= "owner"; title= "Owner" }
-    |]
+    let rows = Seq.toArray props.model.FRLogs
 
-    let pp = { Rows = rows; Columns=columns }
+    //Seq.map
+
+    let pp = { Rows = rows; Columns=[] }
+    //FRHistoryGrid' {| model=props.model |}
     FRHistoryGrid' {| model=pp |}
 
 

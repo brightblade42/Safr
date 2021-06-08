@@ -37,26 +37,6 @@ let FRLogView' (props: {| m: Model; dispatch: Dispatch<Msg>; |}) = // hub: Hub<A
 
     ]
 
-    (*
-    Mui.paper [
-       prop.style [
-           style.marginTop 50
-       ]
-       prop.children [
-          FRLog {| dispatch = dispatch; m=props.m; hub=props.hub |}
-
-          Mui.button [
-              button.variant.contained
-              button.color.primary
-              prop.style [
-                  style.left 5
-              ]
-              prop.text "Load Logs"
-              prop.onClick(fun x -> GetFRLogs |> dispatch)
-          ]
-       ]
-    ] *)
-
 
 
 let FRLogView content = FRLogView' content

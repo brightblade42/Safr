@@ -119,7 +119,7 @@ type FRService(config_agent:     ConfigAgent,
         location = face.Cam
       } |> fr_log_agent.log
 
-    //return top N fr log items
+    //return top N fr log item
     let get_frlog_top (count: Option<int>) = async {
         return! count |> fr_log_agent.get_top
     }
