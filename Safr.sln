@@ -7,9 +7,9 @@ ProjectSection(SolutionItems) = preProject
 	postcss.config.js = postcss.config.js
 	tailwind.config.js = tailwind.config.js
 	build.fsx = build.fsx
-	snowpack.config.mjs = snowpack.config.mjs
 	paket.dependencies = paket.dependencies
 	src\Safr.Client\paket.references = src\Safr.Client\paket.references
+	snowpack.config.mjs = snowpack.config.mjs
 EndProjectSection
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Safr.Server", "src\Safr.Server\Safr.Server.fsproj", "{6F17D61A-6C5A-4A09-BC8F-9F626EC25C11}"

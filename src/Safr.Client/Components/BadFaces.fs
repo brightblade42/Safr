@@ -34,8 +34,8 @@ module BadFaces =
                         prop.children [
                             BadFace {| model=props.m |}
                             BadFace {| model=props.m |}
-                            BadFace {| model=props.m |}
-                            BadFace {| model=props.m |}
+                          //  BadFace {| model=props.m |}
+                          //  BadFace {| model=props.m |}
 
                            (*
                             //for face in model.FRWatchList do

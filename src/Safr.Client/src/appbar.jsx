@@ -9,8 +9,7 @@ export const AppBar = (props) => {
     }
 
     return (
-
-        <div className="flex  justify-between  bg-bgray-700 text-blue-100 p-2">
+        <div className="flex  justify-between  bg-blue-800 text-blue-100 p-2">
             <div className="flex space-x-4">
                 <button className="btn-indigo ml-2"
                         onClick={(e) => handle_nav("index")}>Home</button>

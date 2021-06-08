@@ -27,6 +27,7 @@
         <Content Include="src\badface.jsx" />
         <Content Include="src\frhistorygrid.jsx" />
         <Content Include="src\index.css" />
+        <Content Include="src\camerasettings.jsx" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\Safr.Shared\Safr.Shared.fsproj" />

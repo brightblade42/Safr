@@ -30,7 +30,11 @@ let App () =
 
 
     let hub = React.useSignalR<Action, Response> (fun hub ->
-        hub.withUrl(Endpoints.Root)
+
+        //TODO : Use a dev/prod check. (until snowpack proxies our shit correctly
+        hub.withUrl("http://localhost:8085/socket/fr")
+        //hub.withUrl(Endpoints.Root)
+
             .withAutomaticReconnect()
             .configureLogging(LogLevel.Debug)
             .onMessage <|

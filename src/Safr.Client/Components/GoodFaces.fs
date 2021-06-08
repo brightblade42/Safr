@@ -39,7 +39,7 @@ module GoodFaces =
                             GoodFace {| model=props.m |}
                             GoodFace {| model=props.m |}
 
-                           (*
+                         (*
                             for face in model.MatchedFaces do
 
                                 let f_img  =
@@ -48,7 +48,7 @@ module GoodFaces =
                                    | false -> face.Image
 
                                 GoodFace {| model=props.m |}
-                            *)
+                         *)
 
                         ]
                     ]

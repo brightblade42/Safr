@@ -4,6 +4,7 @@ open System
 open System.IO
 open Eyemetric.FR.Types
 open Microsoft.AspNetCore.Builder
+open Microsoft.AspNetCore.Cors.Infrastructure
 open Microsoft.AspNetCore.Hosting
 open Microsoft.Extensions.DependencyInjection
 open Giraffe
@@ -409,6 +410,7 @@ let serviceFunc (ctx: HttpContext) : Service =
 
 //don't like the _ generic param. Type inference is having a heck of a time
 let mySignalRConfig: SignalR.Settings<_,_> =
+
     {
         EndpointPattern = Endpoints.Root
         Send = FRHub.send
@@ -741,15 +743,19 @@ let add_deps (p: IServiceProvider) =
     let n_hub = p.GetRequiredService<FableHubCaller<FRHub.Action, FRHub.Response>>()
     FRService (n_hub)
 
-let configureApp (app: IApplicationBuilder) =
-        let fho = new ForwardedHeadersOptions() //for the reverse proxy magic
-        fho.ForwardedHeaders <- ForwardedHeaders.XForwardedFor ||| ForwardedHeaders.XForwardedProto
 
+let configCors (builder: CorsPolicyBuilder) =
+    builder.WithOrigins("http://localhost:8080").AllowAnyMethod().AllowAnyHeader() |> ignore
+let configureApp (app: IApplicationBuilder) =
+        //let fho = new ForwardedHeadersOptions() //for the reverse proxy magic
+        //fho.ForwardedHeaders <- ForwardedHeaders.XForwardedFor ||| ForwardedHeaders.XForwardedProto
+        printfn "THIS IS WHERE THE WEB SOCKET CONN HAPPENS"
         app
-            .UseForwardedHeaders(fho)
+          //  .UseForwardedHeaders(fho)
             .UseDefaultFiles()
             .UseStaticFiles()
             .UseRouting()
+
             .UseCors(fun opts ->
                  opts.AllowAnyHeader() |> ignore
                  opts.AllowAnyMethod() |> ignore
@@ -757,14 +763,17 @@ let configureApp (app: IApplicationBuilder) =
                  opts.AllowAnyOrigin() |> ignore
                  ()
                 )
+
             .UseSignalR(mySignalRConfig)
+
+          //  .UseCors(configCors)
             .UseGiraffe webApp
 
 let configureServices (services: IServiceCollection) =
 
         services.AddSingleton<FRService>(add_deps) |> ignore
         services.AddSignalR(mySignalRConfig) |> ignore //.AddMessagePackProtocol() |> ignore
-        services.AddCors() |> ignore
+        services.AddCors()|> ignore
         services.AddGiraffe() |> ignore
         services.AddSingleton(ThothSerializer()) |> ignore
         //services.AddSingleton<Giraffe.Serialization.Json.IJsonSerializer>(ThothSerializer()) |> ignore
