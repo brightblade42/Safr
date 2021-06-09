@@ -1,4 +1,4 @@
-module Safr.Client.Components.FRLog
+module Safr.Client.Components.FRHistory
 
 open Feliz
 open Elmish

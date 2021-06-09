@@ -70,7 +70,7 @@ let App () =
     React.useEffect((fun _ -> on_loaded) [|  |])
 
     if login_status then
-        View.AppView {| m=model; dispatch=dispatch |}
+        View.AppView {| m=model; dispatch=dispatch; hub=hub; |}
     else
         Login.Login {| m=model; dispatch=dispatch |}
 

@@ -33,7 +33,17 @@ const ImageTypeProvider = props => (
 */
 export const CameraSettings = (props) => {
 
+     const on_start_streams = () =>  {
+        console.log("start streams request from jsx");
+        props.funcs.start_all_streams();
+
+    };
     //const [imageColumns] = React.useState(['detected_img','matched_face']);
+    const  on_stop_streams = () => {
+        console.log("stop streams request from jsx");
+        props.funcs.stop_all_streams();
+
+    }
     const [pageSizes] = React.useState([5,10,15, 0]);
     const columns = [
 
@@ -71,8 +81,14 @@ export const CameraSettings = (props) => {
 
            <div className="text-xl py-2 font-semibold text-bgray-600 text-center bg-bgray-200">
                <div className="flex space-x-1 justify-end mr-4">
-                   <button className="btn-indigo text-bgray-200 text-sm font-bold">Start All</button>
-                   <button className="btn-indigo text-bgray-200 text-sm font-bold"> Stop All</button>
+                   <button
+                       className="btn-indigo text-bgray-200 text-sm font-bold"
+                       onClick={() => on_start_streams()}
+                   >Start All</button>
+                   <button
+                       className="btn-indigo text-bgray-200 text-sm font-bold"
+                       onClick={() => on_stop_streams()}
+                   >Stop All</button>
 
                </div>
            </div>

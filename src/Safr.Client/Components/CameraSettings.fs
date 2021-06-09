@@ -33,14 +33,18 @@ type GModel = {
     Rows: Row seq
     Columns: Column seq
 }
+type Funcs = {
+    start_all_streams: unit->unit
+    stop_all_streams: unit->unit
+}
 [<ReactComponent(import="CameraSettings", from="../src/camerasettings.jsx")>]
-let private CameraSettingsGrid' (props: {| model: GModel |}) = React.imported()
+let private CameraSettingsGrid' (props: {| model: GModel; funcs: Funcs  |}) = React.imported()
 
-let CameraSettingsGrid (props: {| model: GModel |}) =
+let CameraSettingsGrid (props: {| model: GModel; funcs: Funcs |}) =
     CameraSettingsGrid' props
 
 [<ReactComponent>]
-let private CameraSettings' (props: {| m: Model; dispatch: Dispatch<Msg>; |}) = // hub: Hub<Action,Response>; |}) =
+let private CameraSettings' (props: {| m: Model; dispatch: Dispatch<Msg>; hub: Hub<Action,Response>; |}) =
 //let private CameraSettings' (props: {| name: string |}) = //(props: {| m: Model; dispatch: Dispatch<Msg> |}) =
 
     let rows = [|
@@ -88,8 +92,16 @@ let private CameraSettings' (props: {| m: Model; dispatch: Dispatch<Msg>; |}) = 
         ]
         //prop.text "Cool CAMERA SETTINGS PLACEHOLDER"
 
+        //let start_streams () =
+        //    props.hub.current.sendNow (Action.StartAllStreams)
+
+        let funcs = {
+            start_all_streams = (fun () -> props.hub.current.sendNow(Action.StartAllStreams))
+            stop_all_streams = (fun () -> props.hub.current.sendNow(Action.StopAllStreams))
+        }
+
         prop.children [
-            CameraSettingsGrid {| model=pp |}
+            CameraSettingsGrid {| model=pp; funcs = funcs |}
         ]
 
     ]

@@ -1,6 +1,6 @@
 module Safr.Client.Pages.FRHistory
 
-open Safr.Client.Components.FRLog //CameraSettings
+open Safr.Client.Components.FRHistory //CameraSettings
 open System
 open Browser.Types
 //open Fable.MaterialUI
@@ -22,7 +22,7 @@ type GItem = {
 }
 
 [<ReactComponent>]
-let FRLogView' (props: {| m: Model; dispatch: Dispatch<Msg>; |}) = // hub: Hub<Action,Response>;  |}) =
+let FRHistoryView' (props: {| m: Model; dispatch: Dispatch<Msg>; |}) = // hub: Hub<Action,Response>;  |}) =
     let dispatch = props.dispatch
 
     Html.div [
@@ -39,7 +39,7 @@ let FRLogView' (props: {| m: Model; dispatch: Dispatch<Msg>; |}) = // hub: Hub<A
 
 
 
-let FRLogView content = FRLogView' content
+let FRHistoryView content = FRHistoryView' content
 
 
 

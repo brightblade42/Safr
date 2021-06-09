@@ -6,6 +6,9 @@ open Feliz.UseElmish
 open Router
 open SharedView
 open Safr.Client.State
+
+open Fable.SignalR.Feliz
+open EyemetricFR.Shared.FRHub
 (*
 type Model = {
     Count: int
@@ -19,7 +22,7 @@ let update (msg:Msg) (model:Model) : Model * Cmd<Msg> =
 *)
 open Safr.Client.Components.AppBar
 [<ReactComponent>]
-let AppView' (props: {| m: Model; dispatch:Dispatch<Msg>; |}) =   //hub: Hub<Action,Response>; |}) =
+let AppView' (props: {| m: Model; dispatch:Dispatch<Msg>; hub: Hub<Action,Response>; |}) =
 
     //in our old version, we got rid of this...
     let navigation =
@@ -29,8 +32,8 @@ let AppView' (props: {| m: Model; dispatch:Dispatch<Msg>; |}) =   //hub: Hub<Act
         Html.div [
            prop.children [
                 match props.m.CurrentPage with
-                | Page.Index -> Safr.Client.Pages.Index.IndexView props //{| dispatch=props.dispatch; m=props.m; |} // hub=hub |}
-                | Page.About -> Safr.Client.Pages.FRHistory.FRLogView props //{| dispatch=props.dispatch; m=props.m |}
+                | Page.Index -> Safr.Client.Pages.Index.IndexView {| dispatch=props.dispatch; m=props.m; |} // hub=hub |}
+                | Page.About -> Safr.Client.Pages.FRHistory.FRHistoryView {| dispatch=props.dispatch; m=props.m |}
                     //Html.text "Very nice, all of us in the same device"
 
                 if props.m.CamSelectionModal then

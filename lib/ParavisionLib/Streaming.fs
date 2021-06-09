@@ -83,7 +83,7 @@ module Streaming =
             let ns = se.Namespace.TrimStart [|'/'|] //name of the stream (cam_name)
 
             printfn "=========== DETECTED FACE RES ============="
-            printfn "%A" se.Value
+            //printfn "%A" se.Value
             printfn "========================"
             printfn ""
 
