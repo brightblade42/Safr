@@ -30,7 +30,7 @@ type Column = {
 
 type GModel = {
     //Rows: Row seq
-    Rows: Row seq
+    Rows: CameraStream seq
     Columns: Column seq
 }
 type Funcs = {
@@ -45,8 +45,12 @@ let CameraSettingsGrid (props: {| model: GModel; funcs: Funcs |}) =
 
 [<ReactComponent>]
 let private CameraSettings' (props: {| m: Model; dispatch: Dispatch<Msg>; hub: Hub<Action,Response>; |}) =
-//let private CameraSettings' (props: {| name: string |}) = //(props: {| m: Model; dispatch: Dispatch<Msg> |}) =
 
+    let rows = props.m.AvailableCameras |> Array.ofList
+
+    //let cs = rs.[0]
+
+   (*
     let rows = [|
         {
             name = "Main Entrance1 "
@@ -77,6 +81,7 @@ let private CameraSettings' (props: {| m: Model; dispatch: Dispatch<Msg>; hub: H
             confidence = 98.0
         }
          |]
+     *)
 
     let pp = { Rows = rows; Columns = [] }
     Html.div [

@@ -48,10 +48,11 @@ export const CameraSettings = (props) => {
     const columns = [
 
         {name: "name", title: "Name"},
-        { name: "address", title: "Address"},
+        { name: "ipaddress", title: "Address"},
         { name: "direction", title: "Direction"},
         { name: "enabled", title: "Enabled"},
-        { name: "confidence", title: "Confidence"},
+        //{ name: "streaming", title: "Streaming"}
+        //{ name: "confidence", title: "Confidence"},
     ]
 
     return (

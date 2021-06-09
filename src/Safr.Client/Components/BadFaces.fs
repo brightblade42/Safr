@@ -33,8 +33,8 @@ module BadFaces =
                         prop.className ["flex overflow-x-scroll bg-wgray-100 pt-2 pb-6 mt-4 space-x-4"]
                         prop.children [
                             BadFace {| model=props.m |}
-                            BadFace {| model=props.m |}
-                          //  BadFace {| model=props.m |}
+                           // BadFace {| model=props.m |}
+                           // BadFace {| model=props.m |}
                           //  BadFace {| model=props.m |}
 
                            (*

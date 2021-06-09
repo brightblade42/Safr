@@ -46,7 +46,7 @@ type Model = {
     Count: int
     MatchedFaces: IdentifiedFace list
     FRWatchList: IdentifiedFace list
-    AvailableCameras: CameraStream list
+    AvailableCameras: CameraStream list //needs to be a seq or array. we'll convert it later
     LocalCameraList: LocalCamera list
     SelectedCamera: int
     EditedCamera: CameraStream option
