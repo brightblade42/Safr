@@ -1,4 +1,4 @@
-module Safr.Client.State
+module Safr.Client.AppState
 
 //module EyemetricFR.Client.State
 open EyemetricFR

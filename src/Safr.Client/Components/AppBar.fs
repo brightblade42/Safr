@@ -1,6 +1,6 @@
 module Safr.Client.Components.AppBar
 open Safr.Client
-open Safr.Client.State
+open Safr.Client.AppState
 open Feliz
 open Elmish
 open Router

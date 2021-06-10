@@ -1,7 +1,7 @@
 module Safr.Client.Components.VideoList
 
 open Safr.Client.Components.Video //.VideoPlayer //yikes
-open Safr.Client.State
+open Safr.Client.AppState
 open Feliz
 open Elmish
 //open Fable.SignalR.Feliz

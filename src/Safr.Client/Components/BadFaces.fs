@@ -1,6 +1,6 @@
 module Safr.Client.Components.BadFaces
 
-open Safr.Client.State
+open Safr.Client.AppState
 open EyemetricFR.Shared
 open Feliz
 open Elmish

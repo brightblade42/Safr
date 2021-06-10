@@ -5,7 +5,7 @@ open Elmish
 open Feliz.UseElmish
 open Router
 open SharedView
-open Safr.Client.State
+open Safr.Client.AppState
 
 open Fable.SignalR.Feliz
 open EyemetricFR.Shared.FRHub

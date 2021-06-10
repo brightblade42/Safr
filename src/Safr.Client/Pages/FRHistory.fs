@@ -9,7 +9,7 @@ open Browser.Types
 open Feliz
 open Elmish
 open Safr.Client.Pages
-open Safr.Client.State
+open Safr.Client.AppState
 open Fable.SignalR
 open Fable.SignalR.Feliz
 open EyemetricFR.Shared.FRHub

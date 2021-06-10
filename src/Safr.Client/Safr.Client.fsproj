@@ -7,7 +7,7 @@
         <Compile Include="Server.fs" />
         <Compile Include="Router.fs" />
         <Compile Include="SharedView.fs" />
-        <Compile Include="State.fs" />
+        <Compile Include="AppState.fs" />
         <Compile Include="Components\CameraSettings.fs" />
         <Compile Include="Components\GoodFaces.fs" />
         <Compile Include="Components\BadFaces.fs" />
@@ -30,6 +30,7 @@
         <Content Include="src\camerasettings.jsx" />
         <Content Include="src\login.jsx" />
         <Folder Include="src\images" />
+        <Content Include="src\index.jsx" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\Safr.Shared\Safr.Shared.fsproj" />

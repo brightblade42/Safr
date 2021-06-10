@@ -5,7 +5,7 @@ open Elmish
 open Feliz.UseDeferred
 open Safr.Client
 open Safr.Client.Components
-open Safr.Client.State
+open Safr.Client.AppState
 
 [<ReactComponent>]
 let IndexView' (props: {| m: Model; dispatch: Dispatch<Msg>; |}) = // hub: Hub<Action,Response>;  |}) =

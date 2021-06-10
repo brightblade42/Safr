@@ -5,7 +5,7 @@ open Fable.Core.Experimental
 open Feliz
 open Feliz.UseElmish
 open Elmish
-open Safr.Client.State
+open Safr.Client.AppState
 open Fable.SignalR.Feliz
 open Safr.Types.Paravision.Streaming
 

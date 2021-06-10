@@ -42,20 +42,18 @@ export default  {
 
 
 
-      //TODO: snowpack won't properly proxy out web socket! The workaround I'm useing is to use
-      //Down and dirtoy workaround:
-      // 1. use Allow CORS chrome extension.
-      // 2. connect direcly to websocket host instead of routing through dev server proxy.
+      //TODO: snowpack won't properly proxy our web socket! The dirty workaround I'm using is:
+      // 1. use the Allow CORS chrome extension.
+      // 2. connect direcly to websocket host url in code instead of routing through dev server proxy.
       //     -- remember to change the address or set a dev/prod switch in code to remove hardcode address.
       // Another hacky but works production from the fine people at NeedToGetShitDoneANDRunningOutOfTime Inc.
-      //We'll come back to this when snowpack fixes it. It's a known problem.
+      //We'll come back to this when snowpack fixes it or I realize I was doing something stupid.
       /*
       {
             src: '/socket/fr/.*',  //pattern might not be right, need *?
             upgrade: (req, socket, head) => {
 
                 const defaultWSHandler = (err, req, socket, head) => {
-                    console.log("HELLO MCFLY..WE want  a socket!");
                   if (err) {
                     console.error('proxy error', err);
                     socket.destroy();

@@ -2,7 +2,7 @@ module Safr.Client.Components.FRHistory
 
 open Feliz
 open Elmish
-open Safr.Client.State
+open Safr.Client.AppState
 
 open Safr.Types.Eyemetric
 open Fable.SignalR.Feliz

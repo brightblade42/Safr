@@ -1,6 +1,6 @@
 module Safr.Client.Components.Login
 
-open Safr.Client.State
+open Safr.Client.AppState
 open Feliz
 open Elmish
 

@@ -4,7 +4,7 @@ open System
 open Feliz
 open Browser.Dom
 open Safr.Client.Components
-open Safr.Client.State
+open Safr.Client.AppState
 open Feliz.UseElmish
 open Fable.SignalR
 open Fable.SignalR.Feliz

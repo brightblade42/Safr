@@ -6,7 +6,7 @@ export const BadFace = (props) => {
     let mask_res;
 
     if (props.face.Mask.includes("%")) {
-        mask_res = <div className="uppercase mt-1  text-center text-md font-semibold tracking-wide text-green-800">
+        mask_res = <div className="uppercase mt-1  text-center text-md font-semibold tracking-wide text-red-800">
             <span className="mr-2 opacity-90">mask</span>
             <span className="opacity-90 text-md">{props.face.Mask}</span>
         </div>
