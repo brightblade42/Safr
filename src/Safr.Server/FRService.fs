@@ -310,7 +310,7 @@ type FRService(config_agent:     ConfigAgent,
                     None
      }
 
-    let verify_tpass (cam_name: string) (time_stamp: DateTime) (expanded_image: string) enrolled_details (pm: PossibleMatch option)  = async {
+    let verify_tpass (cam_name: string) (time_stamp: DateTime) (expanded_image: string) (mask_prob: float) enrolled_details (pm: PossibleMatch option)  = async {
 
           //TODO: keep an eye on using head for identities. we're only passing a single image to
           //pv and it will give us back an identies list of one but only if we send single face per image.
@@ -318,7 +318,6 @@ type FRService(config_agent:     ConfigAgent,
               match enrolled_details with
               | Some (Success ed) ->
                     let pi = pm.Value
-
                     let conf = pi.identities.Head.confidence //TODO: consider more than the Head.
                     //TODO: using time from this machine, pv time is off #22.
                     let time =  String.Format("{0:hh:mm:ss tt}", time_stamp.ToLocalTime())
@@ -340,6 +339,7 @@ type FRService(config_agent:     ConfigAgent,
                                          Image=  [||] //just for kicks and shits
                                          Frame = frame
                                          Status=status
+                                         Mask = mask_prob
                                      }
 
 
@@ -356,10 +356,10 @@ type FRService(config_agent:     ConfigAgent,
     }
 
 
-    let verify_tpass_async (cam_name: string) (time_stamp: DateTime) (exp_img: string) (en_dets: Async<TPassResult<TPassClient> option * PossibleMatch option>) = async {
+    let verify_tpass_async (cam_name: string) (time_stamp: DateTime) (exp_img: string) (mask_prob: float) (en_dets: Async<TPassResult<TPassClient> option * PossibleMatch option>) = async {
 
        let! (enrolled_details, possible_match)  = en_dets
-       return! verify_tpass cam_name time_stamp exp_img enrolled_details possible_match
+       return! verify_tpass cam_name time_stamp exp_img mask_prob enrolled_details possible_match
     }
 
     let handle_detection (detected: (string * DetectedFacesReply)) =
@@ -369,6 +369,7 @@ type FRService(config_agent:     ConfigAgent,
         printfn $"CAM: %s{cam_name} FACES in Frame: %i{det_faces.faces.Length}"
 
         let time_stamp = det_faces.timestamp
+        //det_faces.faces.[0].
         //test that we can send message to client
         //hub_context.Clients.All.Send (FRHub.Response.NewCount(det_faces.faces.Length)) |> Async.AwaitTask |> ignore
 
@@ -380,7 +381,8 @@ type FRService(config_agent:     ConfigAgent,
                match det_faces.faces.[i].images.expanded with
                | Some exp -> exp
                | _ -> ""
-           verify_tpass_async cam_name time_stamp exp_img x)
+           let mask_prob = det_faces.faces.[i].mask_probability
+           verify_tpass_async cam_name time_stamp exp_img mask_prob x)
         |> Async.Parallel
         |> Async.RunSynchronously
         |> ignore

@@ -17,7 +17,7 @@ export const LoginComponent = (props) => {
             <div className="-mt-48 p-10 xs:p-0 mx-auto md:w-full md:max-w-md">
 
 
-                <div className="shadow-md w-full rounded-lg divide-y divide-gray-200">
+                <div className="shadow-2xl w-full rounded-lg divide-y divide-gray-200">
                     <div
                         className="bg-white py-6 mb-2 "
                     >

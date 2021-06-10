@@ -19,6 +19,7 @@ module Shared =
         Image: byte []
         Frame: byte []
         Status: string
+        Mask: float
     }
 
     type CameraInfo = {

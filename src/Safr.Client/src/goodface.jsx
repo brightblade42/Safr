@@ -3,6 +3,18 @@ import React from 'react';
 export const GoodFace = (props) => {
 
     let b64 = "data:image/png;base64," + props.face.Frame
+    let mask_res;
+
+    if (props.face.Mask.includes("%")) {
+        mask_res = <div className="uppercase mt-1  text-center text-md font-semibold tracking-wide text-green-800">
+                    <span className="opacity-90 mr-2">mask</span>
+                    <span className="opacity-90 text-md">{props.face.Mask}</span>
+                </div>
+    } else {
+        mask_res = <div className="opacity-90 uppercase mt-1 text-center text-md font-semibold tracking-wide text-yellow-700">no mask</div>
+    }
+
+
     return (
 
         <div className="bg-gray-50 mt-4 shadow-xl flex flex-col flex-shrink-0 w-96 h-auto border border-green-700 rounded-md">
@@ -19,7 +31,8 @@ export const GoodFace = (props) => {
 
                     <div className="col-start-2 row-start-1 ">
                         <div className="mt-8 text-2xl text-center font-extrabold text-green-800 tracking-wide">{props.face.Confidence}</div>
-                        <div className="uppercase text-center text-md font-semibold tracking-wide text-green-800">mask</div>
+                        {mask_res}
+
                     </div>
 
                     <div className="mt-2 justify-self-center row-start-2 col-start-2 border-t-2 pt-6">
