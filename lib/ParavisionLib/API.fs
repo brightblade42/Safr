@@ -243,12 +243,9 @@ module API =
             //TODO: consider other available query string parameters. Max_Faces..
             match face with
             | B64Encoding bar ->
-               // printfn "PV API: Lookup B64Image"
-                return! (client, ("api/lookup" |> make_url), bar) |||> post_b64image
+                let url = "api/lookup " |> make_url
+                return! (client, url, bar) |||> post_b64image
             | Binary bin ->
-                //printfn "PV API: Lookup Binary image"
-               // printfn "PV API byte count: %i" bin.Length
-               // printfn "PV API URI: %A" ("api/lookup?num_faces=1" |> make_url)
                 return! (client, ("api/lookup?num_faces=1" |> make_url), bin) |||> post_image
             | _ ->
                 return failwith "unsupported FaceImage"

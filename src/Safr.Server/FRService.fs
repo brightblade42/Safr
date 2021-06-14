@@ -317,6 +317,7 @@ type FRService(config_agent:     ConfigAgent,
           return
               match enrolled_details with
               | Some (Success ed) ->
+                    printfn "ENROLL DEETS SUCCESS"
                     let pi = pm.Value
                     let conf = pi.identities.Head.confidence //TODO: consider more than the Head.
                     //TODO: using time from this machine, pv time is off #22.
@@ -342,7 +343,7 @@ type FRService(config_agent:     ConfigAgent,
                                          Mask = mask_prob
                                      }
 
-
+                        printfn "HELLO MCFLY!!!"
                         hub_context.Clients.All.Send (FRHub.Response.Face id_face) |> ignore
                         (id_face, pi, expanded_image) |||> log_matched_identity
                         ()

@@ -22,7 +22,8 @@ let VideoList (props: {| m: Model; dispatch: Dispatch<Msg>; |}) = // hub: Hub<Ac
                 AVid {| hostname="192.168.0.105"; camname="Back Exit" |}
                 *)
                 for cam in props.m.AvailableCameras  do
-                    AVid {| hostname=cam.ipaddress; camname=cam.name |}
+                    if cam.enabled then
+                        AVid {| hostname=cam.ipaddress; camname=cam.name |}
                 //    VideoPlayerContainer {| cam=cam; m=props.m; dispatch=props.dispatch; |} // hub=props.hub |}
             ]
         ]
