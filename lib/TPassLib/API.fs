@@ -5,12 +5,16 @@ open System.Net.Http
 open System.Net.Http.Headers
 open System.Text
 open Safr.Types.TPass
-
+//open System.IdentityModel.Tokens.Jwt
+open Base64UrlEncoder
 module API =
 
     type TokenPair = (AuthToken * Result<JWToken, string> option)
 
-    let from_url64 (b64: string) =
+    let from_url64 (b64: string) = Encoder.Decode(b64)
+
+
+    let from_url642 (b64: string) =
         let paddings = 3 - ((b64.Length + 3) % 4)
         let url64 =
             match paddings > 0 with
@@ -20,16 +24,25 @@ module API =
         url64.Replace('-','+').Replace('_','/')
     let private from_b64 = from_url64 >> Convert.FromBase64String >> Encoding.UTF8.GetString
 
-    let private to_jwtoken = from_b64 >> JWToken.parse
+    let private to_jwtoken2 = from_b64 >> JWToken.parse
+    let private to_jwtoken tstr =
+        let x = tstr |> from_b64
+        printfn "TOKEN: %s" x
+        x |> JWToken.parse
+    (*
+    let to_jwt tok =
+        let jt = new JwtSecurityTokenHandler()
+        let tok = jt.ReadJwtToken(tok)
+        tok.Paylo
+        *)
     ///a little easier to pass around the raw token with the decoded object
     let private to_token_pair token_resp: TokenPair  =
        (token_resp.token, None) //parsing jwt token is a nightmare
-       (*
-       let jwt = token_resp.token.Split '.'
-       match jwt.Length with
-       | x when x > 2  -> (token_resp.token, jwt.[1] |> to_jwtoken)
-       | _ -> failwith "Bad jwt token"
-       *)
+       //let jwt = token_resp.token.Split '.'
+       //match jwt.Length with
+       //| x when x > 2  ->  (token_resp.token, jwt.[1] |> to_jwtoken |> Some)
+       //| _ -> failwith "Bad jwt token"
+
 
     let disable_cert_validation =
 

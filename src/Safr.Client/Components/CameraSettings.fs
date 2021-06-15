@@ -48,41 +48,6 @@ let private CameraSettings' (props: {| m: Model; dispatch: Dispatch<Msg>; hub: H
 
     let rows = props.m.AvailableCameras |> Array.ofList
 
-    //let cs = rs.[0]
-
-   (*
-    let rows = [|
-        {
-            name = "Main Entrance1 "
-            address = "eyemetric.camera1.com"
-            direction = 1 //"Check in"
-            enabled =  true
-            confidence = 98.0
-        }
-        {
-            name = "Library Entrance 1"
-            address = "eyemetric.camera2.com"
-            direction = 1 //"Check in"
-            enabled =  true
-            confidence = 98.0
-        }
-        {
-            name = "Bay Door 1"
-            address = "eyemetric.camera3.com"
-            direction = 0 //"Check out"
-            enabled =  false
-            confidence = 98.0
-        }
-        {
-            name = "Back Exit 1"
-            address = "eyemetric.camera1.com"
-            direction = 0 //"Check in"
-            enabled =  true
-            confidence = 98.0
-        }
-         |]
-     *)
-
     let pp = { Rows = rows; Columns = [] }
     Html.div [
         prop.style [
@@ -93,6 +58,7 @@ let private CameraSettings' (props: {| m: Model; dispatch: Dispatch<Msg>; hub: H
             //fstyle.marginLeft  100
             //style.marginRight 50d
             style.minHeight 600
+            //style.height 800
 
         ]
         //prop.text "Cool CAMERA SETTINGS PLACEHOLDER"

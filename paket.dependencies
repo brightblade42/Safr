@@ -4,6 +4,7 @@ source https://api.nuget.org/v3/index.json
 framework: net5.0, netstandard2.0
 storage: none
 
+nuget Base64UrlEncoder 1.0.1
 nuget Fable.Remoting.Giraffe
 nuget Giraffe
 nuget Fable.SignalR.AspNetCore
@@ -11,6 +12,7 @@ nuget Microsoft.ApplicationInsights.AspNetCore
 
 nuget Fable.Core
 nuget H.Socket.IO
+nuget System.IdentityModel.Tokens.Jwt 6.11.1
 nuget System.Net.Http
 nuget System.Data.Sqlite
 nuget Dapper

@@ -22,6 +22,7 @@ module Client =
        }
        type private Msg =
            | GetToken of TPassReplyChan<bool>
+           | GetUserToken of (Credential * TPassReplyChan<bool>)
            | GetVersion
            | SearchClient of (SearchReq list * TPassReplyChan<TPassClient []>)
            | GetClientImage of (Uri * TPassReplyChan<byte array>)
@@ -235,6 +236,18 @@ module Client =
                                 ch.Reply(TPassError e)
                                 e.Message |> error_evt.Trigger
                                 return! state |> loop
+                       | GetUserToken (cred, ch) ->
+                            try
+                                printfn "==== Retrieving token for USER ==== "
+                                let! tok =  API.get_token client cred make_url
+                                ch.Reply(Success true) //does it make sense to return the token? it's already internal state.
+                                return! state |> loop
+                            with
+                            | e ->
+                                printfn "==== unable to get user  token ==== %s" e.Message
+                                ch.Reply(TPassError e)
+                                e.Message |> error_evt.Trigger
+                                return! state |> loop
 
                        | GetVersion ->
                            //This isn't really useful as far as I can tell. It's part of TPASS API
@@ -372,6 +385,9 @@ module Client =
 
             member self.initialize () =
                agent.PostAndAsyncReply(GetToken)
+
+            member self.validate_user (cred: Credential) =
+                agent.PostAndAsyncReply(fun ch -> GetUserToken (cred, ch))
             member self.get_pv_client (id: PVID) =
                 agent.PostAndAsyncReply(fun ch -> GetClient (id, ch))
 

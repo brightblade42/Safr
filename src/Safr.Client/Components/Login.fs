@@ -6,7 +6,7 @@ open Elmish
 
 
 [<ReactComponent(import="LoginComponent", from="../src/login.jsx")>]
-let private Login' (props: {|m: Model; onLogin: unit->unit |})  = React.imported()
+let private Login' (props: {|m: Model; onLogin: string->string->unit |})  = React.imported()
 
     (*
     Html.div [
@@ -39,12 +39,12 @@ let  Login (props: {|m: Model; dispatch: Dispatch<Msg> |})  =
         | Failed msg -> msg
         | _ -> " "
 
-    let on_login () =
+    let on_login (user:string)(password:string) =
 
         printfn "I'm supposed to log this shit in man"
         //setUser("")
         //setPwd("")
-        ("admin", "admin") |> Login |> dispatch
+        (user,password) |> Login |> dispatch
         ()
 
     let lprops = {| m=props.m; onLogin=on_login |}

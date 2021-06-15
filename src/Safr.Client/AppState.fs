@@ -254,9 +254,10 @@ let toggle_detected_image (m:Model) =
 
 let do_login (cred: string * string ) = async {
     printfn "WHAT THE HECK BRO!"
-    //let! res = RemoteApi.service.Login cred
-    //return res
-    return true
+    let! res = RemoteApi.service.Login cred
+    printfn $"%b{res}"
+    return res
+    //return true
 }
 
 let on_login (m:Model) (msg: bool) =

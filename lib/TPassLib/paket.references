@@ -1,3 +1,5 @@
 FSharp.Core
 NewtonSoft.Json
 System.Net.Http
+System.IdentityModel.Tokens.Jwt
+Base64UrlEncoder

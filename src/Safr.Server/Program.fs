@@ -749,7 +749,7 @@ let configCors (builder: CorsPolicyBuilder) =
 let configureApp (app: IApplicationBuilder) =
         //let fho = new ForwardedHeadersOptions() //for the reverse proxy magic
         //fho.ForwardedHeaders <- ForwardedHeaders.XForwardedFor ||| ForwardedHeaders.XForwardedProto
-        printfn "THIS IS WHERE THE WEB SOCKET CONN HAPPENS"
+        //printfn "THIS IS WHERE THE WEB SOCKET CONN HAPPENS"
         app
           //  .UseForwardedHeaders(fho)
             .UseDefaultFiles()

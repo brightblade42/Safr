@@ -254,8 +254,14 @@ type FRService(config_agent:     ConfigAgent,
         | _ -> ("Unknown", None)
 
     let validate_user(user: string)(pass:string) =
-            let is_valid  = (user, pass) ||> config_agent.validate_user
-            is_valid
+
+            let tpa = tpass_agent.Value
+            let cred = UserPass (user, pass)
+            let is_valid = tpa.validate_user cred |> Async.RunSynchronously
+
+            match is_valid with
+            | Success _ -> true
+            | _ -> false //we're currently ignoring any errors (Auth Fail is an error)
 
     let get_identity_cache_expiry () =
 

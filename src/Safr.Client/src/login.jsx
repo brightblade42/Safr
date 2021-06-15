@@ -1,11 +1,28 @@
-import React from 'react';
+import React, {useState} from 'react';
 import eye from './images/eye_logo.png';
 export const LoginComponent = (props) => {
 
+    let [user,setUser] = React.useState("")
+    let [pwd,setPwd] = React.useState("")
 
     function handle_login() {
         console.log ("login js hand off");
-        props.onLogin();
+        let cUser = user
+        let cPwd = pwd
+        setUser("")
+        setPwd("")
+
+        props.onLogin(cUser, cPwd);
+
+    }
+
+    function handleUserChange (e) {
+        console.log(e.target.value)
+        setUser(e.target.value)
+    }
+    function handlePwdChange (e) {
+        console.log(e.target.value)
+        setPwd(e.target.value)
     }
 
     const showpwd = "password"
@@ -16,7 +33,7 @@ export const LoginComponent = (props) => {
 
             <div className="-mt-48 p-10 xs:p-0 mx-auto md:w-full md:max-w-md">
 
-
+                <div className="text-xl text-red-700 mb-2 bg-red-100 p-2 rounded-lg text-center ">User name and/or password incorrect.</div>
                 <div className="shadow-2xl w-full rounded-lg divide-y divide-gray-200">
                     <div
                         className="bg-white py-6 mb-2 "
@@ -31,9 +48,15 @@ export const LoginComponent = (props) => {
                     <div className="bg-gray-100 px-5 py-7">
 
                         <label className="font-semibold text-sm text-gray-700 pb-1 block">User name</label>
-                        <input type="text" className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full"/>
+                        <input type="text"
+                               value={user}
+                               onChange={(e)=> handleUserChange(e)}
+                               className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full"/>
                         <label className="font-semibold text-sm text-gray-700 pb-1 block">Password</label>
-                        <input type={showpwd} className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full"/>
+                        <input type={showpwd}
+                               value={pwd}
+                               onChange={(e)=> handlePwdChange(e)}
+                               className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full"/>
                         <button type="button"
                                 onClick={() => handle_login()}
                                 className="transition duration-200 bg-blue-500 hover:bg-blue-600 focus:bg-blue-700
@@ -55,7 +78,7 @@ export const LoginComponent = (props) => {
                             <div className="text-center sm:text-left whitespace-nowrap">
                                 <button
                                     className="transition duration-200 mx-5 px-5 py-4 cursor-pointer
-                                    font-normal text-sm rounded-lg text-gray-500 hover:bg-gray-100 focus:outline-none
+                                    font-normal text-sm rounded-lg text-gray-500 hover:bg-gray-200 focus:outline-none
                                     focus:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 ring-inset">
 
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -66,6 +89,7 @@ export const LoginComponent = (props) => {
                                     <span className="inline-block ml-1">Reset Password</span>
                                 </button>
                             </div>
+
                             <div className="hidden opacity-0 text-center sm:text-right  whitespace-nowrap">
 
                                 <button
