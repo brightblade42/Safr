@@ -56,10 +56,19 @@ module BadFaces =
     [<ReactComponent>]
     let private BadFaces' (props: {| m: Model; dispatch: Dispatch<Msg> |}) =
                     let model = props.m
-                    Html.div [
-                        prop.className ["flex overflow-x-scroll bg-wgray-100 pt-2 pb-6 mt-0 space-x-4"]
-                        prop.children [
+                    let label =
+                        if model.FRWatchList.Length = 0 then
+                            "transition hover:text-wgray-200"
+                        else ""
 
+                    Html.div [
+                        prop.className [$"flex overflow-x-scroll %s{label} text-wgray-200  bg-wgray-100 pt-2 pb-6 mt-0 space-x-4 min-h-[365px]"]
+                        prop.children [
+                            if model.FRWatchList.Length = 0 then
+                                Html.div [
+                                    prop.className ["transition md:text-4xl lg:text-7xl m-auto"]
+                                    prop.text "Watch List"
+                                ]
                             for face in model.FRWatchList do
                                 BadFace {| model=props.m; face=face |}
 

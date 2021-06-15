@@ -58,11 +58,22 @@ module GoodFaces =
     let private GoodFaces' (props: {| m: Model; dispatch: Dispatch<Msg> |}) =
                     let model = props.m
 
+                    let label =
+                        if model.MatchedFaces.Length = 0 then
+                            "transition hover:text-bgray-200"
+                        else ""
+
                     Html.div [
-                        prop.className ["flex overflow-x-scroll bg-bgray-100 pt-2 pb-6 px-4 mt-4 space-x-4"]
+                        prop.className [$"flex overflow-x-scroll %s{label} text-bgray-200 bg-bgray-100 pt-2 pb-6 px-4 mt-4 space-x-4 min-h-[365px]"]
                         prop.children [
 
+                            if model.MatchedFaces.Length = 0 then
+                                Html.div [
+                                    prop.className ["md:text-4xl lg:text-7xl m-auto"]
+                                    prop.text "Matched Faces"
+                                ]
                             for face in model.MatchedFaces do
+
                                 GoodFace {| model=props.m; face=face |}
 
                         ]

@@ -4,7 +4,7 @@ export const GoodFace = (props) => {
 
     let b64 = "data:image/png;base64," + props.face.Frame
     let mask_res;
-
+    let inout;
     if (props.face.Mask.includes("%")) {
         mask_res = <div className="uppercase mt-1  text-center text-md font-semibold tracking-wide text-green-800">
                     <span className="opacity-90 mr-2">mask</span>
@@ -14,6 +14,17 @@ export const GoodFace = (props) => {
         mask_res = <div className="opacity-90 uppercase mt-1 text-center text-md font-semibold tracking-wide text-yellow-700">no mask</div>
     }
 
+    if (props.face.Status.includes("in")) {
+        inout = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+        </svg>
+    } else {
+
+        inout =  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+
+    }
 
     return (
 
@@ -47,7 +58,9 @@ export const GoodFace = (props) => {
             <div className="flex justify-between items-end items-center bg-bgray-100 h-12 rounded-b-md">
                 <div className="text-lg ml-2  font-semibold text-bgray-600 tracking-wide ">{props.face.Cam}</div>
                 <div
-                    className="mr-2 border border-green-900 uppercase text-sm font-extrabold bg-green-100 text-green-900 py-1 px-2 rounded-md flex-shrink-0 ">
+                    className="flex space-x-1 mr-2 border border-green-900 uppercase text-sm font-extrabold bg-green-100 text-green-900 py-1 px-2 rounded-md flex-shrink-0 ">
+                    {inout}
+
                     <span>{props.face.Status}</span>
                 </div>
 

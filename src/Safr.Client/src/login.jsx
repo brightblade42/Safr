@@ -17,12 +17,15 @@ export const LoginComponent = (props) => {
     }
 
     function handleUserChange (e) {
-        console.log(e.target.value)
         setUser(e.target.value)
     }
     function handlePwdChange (e) {
-        console.log(e.target.value)
         setPwd(e.target.value)
+    }
+
+    //maybe better as an F# callback. using the tag is a but of a hack.
+    function toggle_msg () {
+        return (props.m.LoginStatus.tag === 3) ?  "opacity-100" : "opacity-0"
     }
 
     const showpwd = "password"
@@ -33,7 +36,10 @@ export const LoginComponent = (props) => {
 
             <div className="-mt-48 p-10 xs:p-0 mx-auto md:w-full md:max-w-md">
 
-                <div className="text-xl text-red-700 mb-2 bg-red-100 p-2 rounded-lg text-center ">User name and/or password incorrect.</div>
+                <div
+                    className={`${toggle_msg()} text-lg font-semibold text-red-700 mb-2 bg-red-100 p-2 rounded-lg text-center`}
+
+                   >Incorrect user name or password.</div>
                 <div className="shadow-2xl w-full rounded-lg divide-y divide-gray-200">
                     <div
                         className="bg-white py-6 mb-2 "
@@ -58,8 +64,10 @@ export const LoginComponent = (props) => {
                                onChange={(e)=> handlePwdChange(e)}
                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full"/>
                         <button type="button"
+                                disabled={props.m.LoginStatus.tag === 3 && user.length < 1}
                                 onClick={() => handle_login()}
                                 className="transition duration-200 bg-blue-500 hover:bg-blue-600 focus:bg-blue-700
+                                disabled:font-bold disabled:bg-gray-400 disabled:cursor-not-allowed
                                 focus:shadow-sm focus:ring-4 focus:ring-blue-500
                                 focus:ring-opacity-50 text-white w-full py-2.5 rounded-lg text-sm
                                 shadow-sm hover:shadow-md font-semibold text-center inline-block">
@@ -90,6 +98,7 @@ export const LoginComponent = (props) => {
                                 </button>
                             </div>
 
+
                             <div className="hidden opacity-0 text-center sm:text-right  whitespace-nowrap">
 
                                 <button
@@ -113,6 +122,7 @@ export const LoginComponent = (props) => {
 
 
 /*
+                    className="opacity-0 text-lg font-semibold text-red-700 mb-2 bg-red-100 p-2 rounded-lg text-center "
 
                 <h1 className="font-bold text-center text-2xl mb-5">Eyemetric Logo</h1>
 
