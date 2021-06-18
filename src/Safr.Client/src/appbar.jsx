@@ -39,7 +39,7 @@ export const AppBar = (props) => {
 
                 <button
                     className="mt-0 btn-indigo ml-2 uppercase text-sm tracking-wide text-blue-50"
-                        onClick={(e) => handle_nav("about")}>History</button>
+                        onClick={(e) => handle_nav("frhistory")}>History</button>
             </div>
 
             <div className="flex">

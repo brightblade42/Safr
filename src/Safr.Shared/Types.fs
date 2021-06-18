@@ -66,7 +66,6 @@ module Shared =
         type Service = {
             Recognize : unit -> Async<string>
             GetMessage : unit -> Async<string>
-            GetNumbers: Async<int list>
             Login: string * string -> Async<bool>
             GetLatestLog: Option<int> -> Async<Result<seq<FRLog>,exn>> //Some/None or Err?
         }

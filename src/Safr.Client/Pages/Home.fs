@@ -4,10 +4,12 @@ open Feliz
 open Elmish
 open Feliz.UseDeferred
 open Safr.Client
-open Safr.Client.Components.VideoList
-open Safr.Client.Components.GoodFaces
-open Safr.Client.Components.BadFaces
+//open Safr.Client.Components.VideoList
+//open Safr.Client.Components.GoodFaces
+//open Safr.Client.Components.BadFaces
+open Safr.Client.Components
 open Safr.Client.AppState
+
 
 [<ReactComponent>]
 let HomeView (props: {| m: Model; dispatch: Dispatch<Msg>; |}) = // hub: Hub<Action,Response>;  |}) =

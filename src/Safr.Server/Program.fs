@@ -356,21 +356,8 @@ let serviceFunc (ctx: HttpContext) : Service =
         }
 
         GetMessage = fun _ -> async {
-
-            //let state = () |> ag.get_state |> Async.RunSynchronously
-
-            //let id_agent = state.Value.ident_agent
-            //let! ident = "2d60452e-3d94-4fba-85f5-081d5e05569c" |> id_agent.get_identity
-            //printfn "ident: %A" ident
-            //let! x = "2d60452e-3d94-4fba-85f5-081d5e05569c" |> ag.get_enrollment_by_id
-            //let res =
-           //     match x with
-           //     | Ok (Some xx) -> xx.id
-           //     | _ -> "Nobody was found"
-           // return res
            return "No messages here"
         }
-        GetNumbers = async { return [1 .. 5] }
 
         Login = fun cred -> async {
 
@@ -776,8 +763,6 @@ let configureServices (services: IServiceCollection) =
         services.AddCors()|> ignore
         services.AddGiraffe() |> ignore
         services.AddSingleton(ThothSerializer()) |> ignore
-        //services.AddSingleton<Giraffe.Serialization.Json.IJsonSerializer>(ThothSerializer()) |> ignore
-        //services.AddSingleton<Json.IJsonSerializer>(ThothSerializer()) |> ignore
 
 
 [<EntryPoint>]

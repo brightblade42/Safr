@@ -3,14 +3,11 @@ module Safr.Client.App
 open System
 open Feliz
 open Browser.Dom
-open Safr.Client.Components
 open Safr.Client.AppState
 open Feliz.UseElmish
 open Fable.SignalR
 open Fable.SignalR.Feliz
-open EyemetricFR.Shared //TODO: from EyemetricFR to Safr
 open EyemetricFR.Shared.FRHub
-
 
 
 [<ReactComponent>]
@@ -26,7 +23,6 @@ let App () =
         | _ ->
             printfn "NOT LOGGED IN"
             false
-
 
 
     let hub = React.useSignalR<Action, Response> (fun hub ->
@@ -72,13 +68,4 @@ let App () =
     if login_status then
         View.AppView {| m=model; dispatch=dispatch; hub=hub; |}
     else
-        Login.Login {| m=model; dispatch=dispatch |}
-
-
-
-
-
-
-
-
-//ReactDOM.render(View.AppView, document.getElementById("safer-app"))
+        Components.Login {| m=model; dispatch=dispatch |}

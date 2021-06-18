@@ -6,30 +6,22 @@
     <ItemGroup>
         <Compile Include="Server.fs" />
         <Compile Include="Router.fs" />
-        <Compile Include="SharedView.fs" />
         <Compile Include="AppState.fs" />
-        <Compile Include="Components\CameraSettings.fs" />
-        <Compile Include="Components\GoodFaces.fs" />
-        <Compile Include="Components\BadFaces.fs" />
-        <Compile Include="Components\Login.fs" />
-        <Compile Include="Components\FRHistory.fs" />
-        <Compile Include="Components\Video.fs" />
-        <Compile Include="Components\VideoList.fs" />
-        <Compile Include="Components\AppBar.fs" />
+        <Compile Include="Components.fs" />
         <Compile Include="Pages\Home.fs" />
         <Compile Include="Pages\FRHistory.fs" />
         <Compile Include="View.fs" />
         <Compile Include="App.fs" />
         <Content Include="public\index.html" />
-        <Content Include="src\avideo.jsx" />
+        <Content Include="src\axvideo.jsx" />
         <Content Include="src\appbar.jsx" />
         <Content Include="src\goodface.jsx" />
         <Content Include="src\badface.jsx" />
         <Content Include="src\frhistorygrid.jsx" />
-        <Content Include="src\index.css" />
         <Content Include="src\camerasettings.jsx" />
         <Content Include="src\login.jsx" />
         <Folder Include="src\images" />
+        <Content Include="src\index.css" />
         <Content Include="src\index.jsx" />
     </ItemGroup>
     <ItemGroup>
