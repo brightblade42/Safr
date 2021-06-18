@@ -20,12 +20,6 @@ let VideoList (props: {| m: Model; dispatch: Dispatch<Msg>; |}) = // hub: Hub<Ac
                         prop.className [ "text-7xl m-auto text-gray-200" ]
                         prop.text "Cameras"
                     ]
-                (*
-                AVid {| hostname="192.168.0.109"; camname="Main Entrance" |}
-                AVid {| hostname="192.168.0.105"; camname="Library Entrance"|}
-                AVid {| hostname="192.168.0.109"; camname="Bay Door" |}
-                AVid {| hostname="192.168.0.105"; camname="Back Exit" |}
-                *)
                 for cam in props.m.AvailableCameras  do
                     if cam.enabled then
                         AVid {| hostname=cam.ipaddress; camname=cam.name |}
@@ -34,9 +28,8 @@ let VideoList (props: {| m: Model; dispatch: Dispatch<Msg>; |}) = // hub: Hub<Ac
                             prop.className ["w-full max-w-lg flex-shrink-0 flex flex-col mr-1"]
                             prop.children [
                                 Html.div [
-                                    prop.className ["uppercase
-                                         rounded-t-md py-1 text-center transform translate translate-y-4 font-bold mt-2 text-md
-                                         tracking-wide text-bgray-700 bg-bgray-300"
+                                    prop.className [
+                                        "uppercase rounded-t-md py-1 text-center transform translate translate-y-4 font-bold mt-2 text-md tracking-wide text-bgray-700 bg-bgray-300"
                                      ]
 
                                     prop.children [
@@ -57,6 +50,5 @@ let VideoList (props: {| m: Model; dispatch: Dispatch<Msg>; |}) = // hub: Hub<Ac
                                 ]
                             ]
                         ]
-                //    VideoPlayerContainer {| cam=cam; m=props.m; dispatch=props.dispatch; |} // hub=props.hub |}
             ]
         ]

@@ -16,7 +16,7 @@
         <Compile Include="Components\Video.fs" />
         <Compile Include="Components\VideoList.fs" />
         <Compile Include="Components\AppBar.fs" />
-        <Compile Include="Pages\Index.fs" />
+        <Compile Include="Pages\Home.fs" />
         <Compile Include="Pages\FRHistory.fs" />
         <Compile Include="View.fs" />
         <Compile Include="App.fs" />

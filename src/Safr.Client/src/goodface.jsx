@@ -1,5 +1,27 @@
 import React from 'react';
 
+export const GoodFaces  = (props) => {
+
+    let faces = props.faces;
+
+    let bf = () => {
+        if (faces.length === 0) {
+            return <div className="transition md:text-4xl lg:text-7xl m-auto ">Matched Faces</div>
+        } else {
+            return faces.map (f => {
+                return <GoodFace face={f} />
+            })
+        }
+    }
+
+    return (
+        <div className="flex overflow-x-scroll text-bgray-200 bg-bgray-100 pt-2 pb-6 mt-0 space-x-4 min-h-[365px]">
+            {bf()}
+        </div>
+
+    )
+
+}
 export const GoodFace = (props) => {
 
     let b64 = "data:image/png;base64," + props.face.Frame

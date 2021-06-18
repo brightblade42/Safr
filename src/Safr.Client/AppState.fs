@@ -152,6 +152,8 @@ let filter_unviewable (m: Model) (face: IdentifiedFace) =
         | Some _ -> { m with MatchedFaces = face :: m.MatchedFaces }
 let update_face_model (m: Model) (face: IdentifiedFace)  =
 
+
+
     //split the good from the bad.
     if face.Status.Contains "FR" then
         if m.FRWatchList.Length >= m.MaxFRList then

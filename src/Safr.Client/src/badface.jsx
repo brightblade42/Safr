@@ -1,4 +1,29 @@
 import React from 'react';
+import {Divider} from "@material-ui/core";
+
+
+export const BadFaces  = (props) => {
+
+    let faces = props.faces;
+
+    let bf = () => {
+        if (faces.length === 0) {
+            return <div className="transition md:text-4xl lg:text-7xl m-auto ">Watch List</div>
+        } else {
+            return faces.map (f => {
+                return <BadFace face={f} />
+            })
+        }
+    }
+
+    return (
+        <div className="flex overflow-x-scroll text-wgray-200 bg-wgray-100 pt-2 pb-6 mt-0 space-x-4 min-h-[365px]">
+            {bf()}
+        </div>
+
+    )
+
+}
 
 export const BadFace = (props) => {
 
@@ -22,7 +47,7 @@ export const BadFace = (props) => {
 
     return (
         <div
-            className="bg-wgray-50 ml-4 mt-2 shadow-xl flex flex-col flex-shrink-0 w-96 h-auto border border-red-700 rounded-md">
+            className="bg-wgray-50 ml-4 mt-2 shadow-xl flex flex-col flex-shrink-0 w-96 h-auto border-2 border-red-700 rounded-md">
 
             <div className="flex justify-between items-baseline py-2 px-1 ">
 

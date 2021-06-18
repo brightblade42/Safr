@@ -57,8 +57,8 @@ export const CameraSettings = (props) => {
 
     return (
 
-       <div className="flex flex-col" >
-           <div className="text-xl py-2 font-semibold shadow-xl border-2 d border-gray-300
+       <div className="absolute top-[460px] min-h-3 flex flex-col" >
+           <div className="text-xl py-2 font-semibold shadow-xl border-2  border-gray-300
            text-bgray-700 text-center bg-bgray-200">Camera Settings</div>
            <div className="p-6 bg-bgray-100 fr-history"  >
                <Grid

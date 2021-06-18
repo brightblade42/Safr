@@ -33,39 +33,45 @@ const ImageTypeProvider = props => (
 export const FRHistoryGrid = (props) => {
 
     const [imageColumns] = React.useState(['detected_img','matched_face']);
-    const [pageSizes] = React.useState([5,10,15, 0]);
+    const [pageSizes] = React.useState([5,10,15, 0])
+
+    let on_load = () => {
+        props.model.on_load()
+    }
     const columns = [
 
-        //{ name: "identity", title: "Id"},
-        {name: "matched_face", title: "Enrolled "},
-        //{name: "detected_img", title: "face"},
-        { name: "name", title: "name"},
-        { name: "confidence", title: "confidence"},
-        { name: "status", title: "status"},
-        { name: "matched_on", title: "matched on"},
-        { name: "location", title: "location"},
+        {name: "matched_face", title: "ENROLLED"},
+        { name: "name", title: "NAME"},
+        { name: "confidence", title: "CONFIDENCE"},
+        { name: "status", title: "STATUS"},
+        { name: "matched_on", title: "MATCHED ON"},
+        { name: "location", title: "LOCATION"},
     ]
 
     return (
-        <div className="p-6 fr-history">
-           <Grid
-               rows={props.model.Rows}
-               columns={columns} >
+        <div className="flex flex-col">
+            <button className="btn-indigo w-32 mt-4 ml-3" onClick={on_load}>Load History</button>
+            <div className="px-6 fr-history">
+               <Grid
+                   rows={props.model.Rows}
+                   columns={columns} >
 
-               <ImageTypeProvider for={imageColumns}/>
-               <SearchState defaultValue=""/>
-               <IntegratedFiltering />
-               <PagingState
-                   defaultCurrentPage={0}
-                   defaultPageSize={10} />
-               <IntegratedPaging />
-               <Table/>
-               <TableHeaderRow/>
-               <Toolbar/>
-               <SearchPanel/>
-               <PagingPanel  pageSizes={pageSizes}/>
-           </Grid>
-       </div>
+                   <ImageTypeProvider for={imageColumns}/>
+                   <SearchState defaultValue=""/>
+                   <IntegratedFiltering />
+                   <PagingState
+                       defaultCurrentPage={0}
+                       defaultPageSize={10} />
+                   <IntegratedPaging />
+                   <Table/>
+                   <TableHeaderRow/>
+                   <Toolbar/>
+                   <SearchPanel/>
+                   <PagingPanel  pageSizes={pageSizes}/>
+               </Grid>
+           </div>
+
+        </div>
 
     )
 

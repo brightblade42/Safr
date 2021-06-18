@@ -32,7 +32,7 @@ let AppView' (props: {| m: Model; dispatch:Dispatch<Msg>; hub: Hub<Action,Respon
         Html.div [
            prop.children [
                 match props.m.CurrentPage with
-                | Page.Index -> Safr.Client.Pages.Index.IndexView {| dispatch=props.dispatch; m=props.m; |} // hub=hub |}
+                | Page.Index -> Safr.Client.Pages.Index.HomeView {| dispatch=props.dispatch; m=props.m; |} // hub=hub |}
                 | Page.About -> Safr.Client.Pages.FRHistory.FRHistoryView {| dispatch=props.dispatch; m=props.m |}
                     //Html.text "Very nice, all of us in the same device"
 

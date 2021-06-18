@@ -5,44 +5,38 @@ open EyemetricFR.Shared
 open Feliz
 open Elmish
 
-module GoodFaces =
 
-    let private format_conf = function
-           | x when x >= 1. -> "100%"
-           | x -> (sprintf "%.2f%%" (x * 100.))
-
-
-    let private format_mask_prop = function
-           | x when x >= 1. -> "100%"
-           | x when x < 0.8 -> "No Mask"
-           | x -> (sprintf "%.1f%%" (x * 100.))
-    let private short_status (status: string)  =
-        match status with
-        | x when x.ToLower() = "checked in" -> "in"
-        | _ -> "out"
+let private format_conf = function
+   | x when x >= 1. -> "100%"
+   | x -> (sprintf "%.2f%%" (x * 100.))
 
 
-    type FaceModel = {
+let private format_mask_prop = function
+   | x when x >= 1. -> "100%"
+   | x when x < 0.8 -> "No Mask"
+   | x -> (sprintf "%.1f%%" (x * 100.))
+let private short_status (status: string)  =
+    match status with
+    | x when x.ToLower() = "checked in" -> "in"
+    | _ -> "out"
 
-        ID: string
-        Name: string
-        Cam: string
-        Confidence: string //float
-        TimeStamp: string
-        //Image: string
-        Frame: string
-        Status: string
-        Mask: string
-    }
 
-    [<ReactComponent(import="GoodFace", from="../src/goodface.jsx")>]
-    let private GoodFace' (props: {| model: Model; face: FaceModel |}) = React.imported()
+type FaceModel = {
 
-    let GoodFace (props: {| model: Model; face: IdentifiedFace |}) =
-        //we wrap this for when we need extra things from parents without mucking up our componentj
-        printfn $"THE MASK PROB is %f{props.face.Mask}"
-        let face = props.face
-        let fmodel = {
+    ID: string
+    Name: string
+    Cam: string
+    Confidence: string //float
+    TimeStamp: string
+    //Image: string
+    Frame: string
+    Status: string
+    Mask: string
+}
+
+
+let private to_facemodel (face: IdentifiedFace): FaceModel =
+        {
             ID = face.ID
             Name =  face.Name
             Cam = face.Cam
@@ -52,33 +46,10 @@ module GoodFaces =
             Status = short_status face.Status
             Mask = format_mask_prop face.Mask
         }
-        GoodFace' {| model = props.model; face = fmodel |}
 
-    [<ReactComponent>]
-    let private GoodFaces' (props: {| m: Model; dispatch: Dispatch<Msg> |}) =
-                    let model = props.m
+[<ReactComponent(import="GoodFaces", from="../src/goodface.jsx")>]
+let private GoodFaces' (props: {| faces: FaceModel []; |}) = React.imported()
 
-                    let label =
-                        if model.MatchedFaces.Length = 0 then
-                            "transition hover:text-bgray-200"
-                        else ""
+let GoodFaces (props: {| m: Model; dispatch: Dispatch<Msg> |}) =
+        GoodFaces' {| faces= props.m.MatchedFaces |> List.map(to_facemodel) |> List.toArray |}
 
-                    Html.div [
-                        prop.className [$"flex overflow-x-scroll %s{label} text-bgray-200 bg-bgray-100 pt-2 pb-6 px-4 mt-4 space-x-4 min-h-[365px]"]
-                        prop.children [
-
-                            if model.MatchedFaces.Length = 0 then
-                                Html.div [
-                                    prop.className ["md:text-4xl lg:text-7xl m-auto"]
-                                    prop.text "Matched Faces"
-                                ]
-                            for face in model.MatchedFaces do
-
-                                GoodFace {| model=props.m; face=face |}
-
-                        ]
-                    ]
-
-
-
-    let GoodFaces content = GoodFaces' content
