@@ -12,6 +12,8 @@ packages/
 paket-files/
 node_modules/
 publish/
+extra/
+extra/**/*
 release.cmd
 release.sh
 *.orig
