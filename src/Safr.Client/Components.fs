@@ -101,25 +101,25 @@ let private to_facemodel (face: IdentifiedFace): FaceModel =
 
 
 type JSX =
-    [<ReactComponent(import="GoodFaces", from="./src/goodface.jsx")>]
+    [<ReactComponent(import="GoodFaces", from="./src/goodface.tsx")>]
     static member GoodFaces (props: {| faces: FaceModel [] |}) = React.imported()
 
-    [<ReactComponent(import="BadFaces", from="./src/badface.jsx")>]
+    [<ReactComponent(import="BadFaces", from="./src/badface.tsx")>]
     static member BadFaces (props: {| faces: FaceModel [] |}) = React.imported()
 
-    [<ReactComponent(import="CameraSettings", from="./src/camerasettings.jsx")>]
+    [<ReactComponent(import="CameraSettings", from="./src/camerasettings.tsx")>]
     static member CameraSettingsGrid (props: {| model: CamSettings.GModel; funcs: CamSettings.Funcs |}) = React.imported()
 
-    [<ReactComponent(import="LoginComponent", from="./src/login.jsx")>]
+    [<ReactComponent(import="LoginComponent", from="./src/login.tsx")>]
     static member Login (props: {| model: Model; onLogin: string->string->unit; |})  = React.imported()
 
-    [<ReactComponent(import="FRHistoryGrid", from="./src/frhistorygrid.jsx")>]
+    [<ReactComponent(import="FRHistoryGrid", from="./src/frhistorygrid.tsx")>]
     static member FRHistoryGrid (props: {| model: FRHistory.GModel; onLoad: unit->unit |}) = React.imported()
 
     [<ReactComponent(import="VideoList", from="./src/axvideo.jsx")>]
     static member VideoList (props: {| available_cams: CameraStream [] |}) = React.imported()
 
-    [<ReactComponent(import="AppBar", from="./src/appbar.jsx")>]
+    [<ReactComponent(import="AppBar", from="./src/appbar.tsx")>]
     static member AppBar (props: {| model: Model; onNav: string->unit |}) = React.imported()
 
 let GoodFaces (props: {| m: Model; dispatch: Dispatch<Msg> |}) =

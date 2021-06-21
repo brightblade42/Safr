@@ -42,6 +42,7 @@ export const AxVideo = ({ hostname,camname,doit }) => {
         console.log("we made it, baby");
     })
 
+    // @ts-ignore
     return (
 
         <div className="w-full max-w-lg flex-shrink-0 flex flex-col mr-1">

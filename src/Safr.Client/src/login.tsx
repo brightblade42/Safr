@@ -1,5 +1,7 @@
 import React, {useState} from 'react';
-import eye from './images/eye_logo.png';
+
+import eye from "./images/eye_logo.png";
+
 export const LoginComponent = ({model, onLogin}) => {
 
     let [user,setUser] = React.useState("")

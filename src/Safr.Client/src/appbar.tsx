@@ -1,22 +1,22 @@
 import React from 'react';
-//import eye from './images/eye_logo.png';
 import eye from './images/eye_logo2.png';
 
 export const AppBar = (props) => {
 
-    function handle_nav(goto) {
-        console.log("I have been called and I'm javascript now using props");
-        console.log(props.model);
-        props.onNav(goto);
+
+    function go_home () {
+        props.onNav("index");
+    }
+    function go_history () {
+        props.onNav("frhistory");
+    }
+    function go_settings () {
+        props.onNav("settings");
     }
 
-    /*
-
-                <img src={eye}
-                     className="w-[99px] h-[58px] opacity-90"
-                     alt="eyemetric"/>
-
-     */
+    function go_logout () {
+        props.onNav("logout");
+    }
 
     return (
         <div className="flex  justify-between items-end  bg-blue-800 text-blue-300 p-1">
@@ -26,7 +26,7 @@ export const AppBar = (props) => {
                      alt="eyemetric"/>
 
                 <button className="mt-0  btn-indigo ml-2 uppercase text-sm tracking-wide text-blue-50 "
-                        onClick={(e) => handle_nav("index")}>
+                        onClick={go_home}>
                    <div className="flex space-x-2 items-end">
                        <svg xmlns="http://www.w3.org/2000/svg" className="inline-block  h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
@@ -39,14 +39,14 @@ export const AppBar = (props) => {
 
                 <button
                     className="mt-0 btn-indigo ml-2 uppercase text-sm tracking-wide text-blue-50"
-                        onClick={(e) => handle_nav("frhistory")}>History</button>
+                        onClick={go_history}>History</button>
             </div>
 
             <div className="flex">
                 <button
 
                     className="btn-indigo mt-0 ml-2 uppercase text-sm tracking-wide text-blue-50"
-                        onClick={(e) => handle_nav("settings")}>
+                        onClick={go_settings}>
 
                     <div className="flex space-x-2 items-end">
                         <svg xmlns="http://www.w3.org/2000/svg" className="inline-block h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -60,7 +60,7 @@ export const AppBar = (props) => {
                     </button>
                 <button
                     className="btn-indigo mt-0 ml-2 uppercase text-sm tracking-wide text-blue-50"
-                        onClick={(e) => handle_nav("logout")}>Logout</button>
+                        onClick={go_logout}>Logout</button>
 
             </div>
         </div>
