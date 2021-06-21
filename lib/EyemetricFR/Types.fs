@@ -5,7 +5,6 @@ open Safr.Types.Paravision.Identification
 [<AutoOpen>]
 module Types =
 
-
     type EnrollLog  = {
           ccode: string
           name: string

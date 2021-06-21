@@ -8,9 +8,7 @@
         <Compile Include="Router.fs" />
         <Compile Include="AppState.fs" />
         <Compile Include="Components.fs" />
-        <Compile Include="Pages\Home.fs" />
-        <Compile Include="Pages\FRHistory.fs" />
-        <Compile Include="View.fs" />
+        <Compile Include="Pages.fs" />
         <Compile Include="App.fs" />
         <Content Include="public\index.html" />
         <Content Include="src\axvideo.jsx" />
@@ -22,7 +20,7 @@
         <Content Include="src\login.jsx" />
         <Folder Include="src\images" />
         <Content Include="src\index.css" />
-        <Content Include="src\index.jsx" />
+        <Content Include="src\index.tsx" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\Safr.Shared\Safr.Shared.fsproj" />

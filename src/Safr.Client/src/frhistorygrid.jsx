@@ -30,13 +30,13 @@ const ImageTypeProvider = props => (
      <DataTypeProvider formatterComponent={ImageFormatter} {...props} />
 );
 
-export const FRHistoryGrid = (props) => {
+export const FRHistoryGrid = ({model, onLoad}) => {
 
     const [imageColumns] = React.useState(['detected_img','matched_face']);
     const [pageSizes] = React.useState([5,10,15, 0])
 
     let on_load = () => {
-        props.model.on_load()
+        onLoad()
     }
     const columns = [
 
@@ -53,7 +53,7 @@ export const FRHistoryGrid = (props) => {
             <button className="btn-indigo w-32 mt-4 ml-3" onClick={on_load}>Load History</button>
             <div className="px-6 fr-history">
                <Grid
-                   rows={props.model.Rows}
+                   rows={model.Rows}
                    columns={columns} >
 
                    <ImageTypeProvider for={imageColumns}/>

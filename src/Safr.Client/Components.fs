@@ -22,6 +22,7 @@ let private format_mask_prop = function
    | x -> (sprintf "%.1f%%" (x * 100.))
 let private short_status (status: string)  =
     match status with
+    | x when x.ToLower().Contains("fr")  -> "watch!"
     | x when x.ToLower() = "checked in" -> "in"
     | _ -> "out"
 
@@ -81,10 +82,8 @@ module FRHistory =
     }
 
     type GModel = {
-        //Rows: Row seq
         Rows: FRLog seq
         Columns: Column seq
-        on_load: unit -> unit
     }
 
 
@@ -103,19 +102,19 @@ let private to_facemodel (face: IdentifiedFace): FaceModel =
 
 type JSX =
     [<ReactComponent(import="GoodFaces", from="./src/goodface.jsx")>]
-    static member GoodFaces (props: {| faces: FaceModel []; |}) = React.imported()
+    static member GoodFaces (props: {| faces: FaceModel [] |}) = React.imported()
 
     [<ReactComponent(import="BadFaces", from="./src/badface.jsx")>]
-    static member BadFaces (props: {| faces: FaceModel []; |}) = React.imported()
+    static member BadFaces (props: {| faces: FaceModel [] |}) = React.imported()
 
     [<ReactComponent(import="CameraSettings", from="./src/camerasettings.jsx")>]
-    static member CameraSettingsGrid (props: {| model: CamSettings.GModel; funcs: CamSettings.Funcs  |}) = React.imported()
+    static member CameraSettingsGrid (props: {| model: CamSettings.GModel; funcs: CamSettings.Funcs |}) = React.imported()
 
     [<ReactComponent(import="LoginComponent", from="./src/login.jsx")>]
-    static member Login (props: {|m: Model; onLogin: string->string->unit |})  = React.imported()
+    static member Login (props: {| model: Model; onLogin: string->string->unit; |})  = React.imported()
 
     [<ReactComponent(import="FRHistoryGrid", from="./src/frhistorygrid.jsx")>]
-    static member FRHistoryGrid (props: {| model: FRHistory.GModel |}) = React.imported()
+    static member FRHistoryGrid (props: {| model: FRHistory.GModel; onLoad: unit->unit |}) = React.imported()
 
     [<ReactComponent(import="VideoList", from="./src/axvideo.jsx")>]
     static member VideoList (props: {| available_cams: CameraStream [] |}) = React.imported()
@@ -124,40 +123,45 @@ type JSX =
     static member AppBar (props: {| model: Model; onNav: string->unit |}) = React.imported()
 
 let GoodFaces (props: {| m: Model; dispatch: Dispatch<Msg> |}) =
-        JSX.GoodFaces {| faces= props.m.MatchedFaces |> List.map(to_facemodel) |> List.toArray |}
+        let props = {| faces=props.m.MatchedFaces |> List.map(to_facemodel) |> List.toArray |}
+        JSX.GoodFaces props
 
 let BadFaces (props: {| m: Model; dispatch: Dispatch<Msg> |}) =
-        JSX.BadFaces {| faces= props.m.FRWatchList |> List.map(to_facemodel) |> List.toArray |}
+        let props = {| faces=props.m.FRWatchList |> List.map(to_facemodel) |> List.toArray |}
+        JSX.BadFaces props
 
 let CameraSettings (props: {| m: Model; dispatch: Dispatch<Msg>; hub: Hub<Action,Response>; |}) =
 
     let rows = props.m.AvailableCameras |> Array.ofList
 
-    let pp: CamSettings.GModel = { Rows = rows; Columns = [] }
+    let model: CamSettings.GModel = { Rows = rows; Columns = [] }
 
     let funcs: CamSettings.Funcs = {
         start_all_streams = (fun () -> props.hub.current.sendNow(Action.StartAllStreams))
         stop_all_streams = (fun () -> props.hub.current.sendNow(Action.StopAllStreams))
     }
 
-    JSX.CameraSettingsGrid {| model=pp; funcs = funcs |}
+    JSX.CameraSettingsGrid {| model=model; funcs=funcs |}
 
 let Login (props: {|m: Model; dispatch: Dispatch<Msg> |})  =
 
-    let on_login (user:string) (password:string) = (user,password) |> Login |> props.dispatch
-    JSX.Login {| m=props.m; onLogin=on_login |}
+    let onLogin (user:string) (password:string) =
+        printfn "In the F# login function"
+        (user,password) |> Login |> props.dispatch
+
+    JSX.Login {| model=props.m; onLogin=onLogin |}
 
 
 let FRHistoryGrid (props: {| model: Model; dispatch: Dispatch<Msg>; |}) =
 
     let rows = Seq.toArray props.model.FRLogs
+    let model: FRHistory.GModel = { Rows = rows; Columns=[];  }
     let on_load () = GetFRLogs |> props.dispatch
 
-    let model: FRHistory.GModel = { Rows = rows; Columns=[]; on_load=on_load }
-    JSX.FRHistoryGrid {| model=model |}
+    JSX.FRHistoryGrid  {| model=model; onLoad=on_load |}
 
 let VideoList (props: {| m: Model; dispatch: Dispatch<Msg> |}) =
-        JSX.VideoList {| available_cams = props.m.AvailableCameras |>  List.toArray |}
+        JSX.VideoList  {| available_cams = props.m.AvailableCameras |>  List.toArray |}
 
 let AppBar (props: {| m:Model; disp: Dispatch<Msg> |}) =
 

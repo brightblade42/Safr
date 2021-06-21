@@ -2,12 +2,42 @@ module Safr.Client.App
 
 open System
 open Feliz
+open Elmish
+open Router
 open Browser.Dom
 open Safr.Client.AppState
 open Feliz.UseElmish
 open Fable.SignalR
 open Fable.SignalR.Feliz
 open EyemetricFR.Shared.FRHub
+
+
+[<ReactComponent>]
+let AppView (props: {| m: Model; dispatch:Dispatch<Msg>; hub: Hub<Action,Response>; |}) =
+
+    let navigation =
+         Components.AppBar {| m=props.m; disp=props.dispatch |}
+
+    let render =
+        Html.div [
+           prop.children [
+                match props.m.CurrentPage with
+                | Page.HomePage -> Pages.HomePage {| dispatch=props.dispatch; m=props.m; |} // hub=hub |}
+                | Page.FRHistoryPage -> Pages.FRHistoryPage {| dispatch=props.dispatch; m=props.m |}
+
+                if props.m.CamSelectionModal then
+                    Components.CameraSettings props
+           ]
+        ]
+
+
+    React.router [
+        router.pathMode
+        //router.onUrlChanged (Page.parseFromUrlSegments >> setPage)
+        router.onUrlChanged (Page.parseFromUrlSegments >> UrlChanged >> props.dispatch)
+        router.children [ navigation; render ]
+        //router.children [ render ]
+    ]
 
 
 [<ReactComponent>]
@@ -53,7 +83,6 @@ let App () =
 
 
     //TODO: this loads, regardless of login status which may not be what we want.
-
     let on_loaded () =
         let cb _ =
             printfn "get the available camera"
@@ -66,6 +95,6 @@ let App () =
     React.useEffect((fun _ -> on_loaded) [|  |])
 
     if login_status then
-        View.AppView {| m=model; dispatch=dispatch; hub=hub; |}
+        AppView {| m=model; dispatch=dispatch; hub=hub; |}
     else
         Components.Login {| m=model; dispatch=dispatch |}

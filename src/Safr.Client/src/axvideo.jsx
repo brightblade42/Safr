@@ -52,19 +52,34 @@ export const AxVideo = ({ hostname,camname,doit }) => {
                 <media-stream-player
                     autoplay
                     format="RTP_H264"
-                    hostname={hostname}/>
+                    hostname={hostname}
+                />
             </div>
         </div>
     );
 }
 
-export const VideoList = (props) => {
+/*
 
-   let cams = props.available_cams
+                <BasicPlayer
+                    autoplay
+                    format="RTP_H264"
+                    hostname={hostname}
+                />
+                <media-stream-player
+                    autoplay
+                    format="RTP_H264"
+                    hostname={hostname}
+                    />
+ */
+
+
+export const VideoList = ({available_cams}) => {
+
 
    let avail_cams = () => {
 
-       if (cams.length === 0) {
+       if (available_cams.length === 0) {
            return (
                <div className="text-7xl m-auto text-gray-200">Cameras</div>
            )
@@ -78,7 +93,7 @@ export const VideoList = (props) => {
            }
        }
 
-       return cams.map(cam => {
+       return available_cams.map(cam => {
             return ( <> {vid(cam)} </> )
        })
 

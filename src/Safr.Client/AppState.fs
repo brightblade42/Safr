@@ -1,7 +1,4 @@
 module Safr.Client.AppState
-
-//module EyemetricFR.Client.State
-open EyemetricFR
 open Safr.Client //.RemoteApi
 open Safr.Types.Paravision.Streaming
 open Safr.Types.Eyemetric
@@ -9,7 +6,6 @@ open EyemetricFR.Shared
 open Safr.Client.Router
 open Elmish
 open Feliz.Router
-
 
 type LocalCamera = {
     ID: int
@@ -35,12 +31,8 @@ type FRLogStatus =
     | Failed of string
 *)
 
-type Theme =
-    | Light
-    | Dark
 type Model = {
     CurrentPage: Page
-    Theme: Theme
     LoginStatus: LoginState
     Message : string
     Count: int
@@ -70,13 +62,10 @@ type Model = {
     DisplayDetectedImage: bool
     //Maybe this belongs in its own Elmish thing...
     FRLogs: seq<FRLog>
-    //FRLogs: FRLog []
 }
 
 type Msg =
-//    | Login of (string, string)
-    | GetMessage
-
+    | GetMessage  //simple test code.
     | GotMessage of string
     | UpdateFace of IdentifiedFace
   //  | GetAvailableCameras
@@ -111,11 +100,9 @@ let init () =
         let nextPage = (Router.currentPath() |> Page.parseFromUrlSegments)
         {
             CurrentPage = nextPage
-            Theme = Light
             LoginStatus = NotLoggedIn
             FRLogs = Seq.empty  //nuthin at first
             //LoginStatus = NotLoggedIn
-            //LoginStatus = InFlight
             Message = "Click me!"
             Count = 50
             CamWidth = 480
@@ -150,9 +137,8 @@ let filter_unviewable (m: Model) (face: IdentifiedFace) =
         match is_good with
         | None -> m
         | Some _ -> { m with MatchedFaces = face :: m.MatchedFaces }
+
 let update_face_model (m: Model) (face: IdentifiedFace)  =
-
-
 
     //split the good from the bad.
     if face.Status.Contains "FR" then
@@ -161,7 +147,6 @@ let update_face_model (m: Model) (face: IdentifiedFace)  =
         else
             { m with FRWatchList = face :: m.FRWatchList  }
     else
-
 
         if m.MatchedFaces.Length >= m.MaxFaceList then
             { m with MatchedFaces = ((m.MaxFaceList / 2), m.MatchedFaces) ||> List.truncate }
@@ -267,6 +252,7 @@ let on_login (m:Model) (msg: bool) =
         {m with LoginStatus = LoggedIn}, Cmd.none
     else
         {m with LoginStatus = Failed "could not log in with user name and password"}, Cmd.none
+
 let withAsyncLoginCommand (m:Model) (cred: string * string) =
     printfn $"%A{cred}"
     let m = {m with LoginStatus = InFlight}
@@ -301,7 +287,6 @@ let update (msg:Msg) (model:Model) : Model * Cmd<Msg> =
     | GotMessage msg              -> { model with Message = msg }, Cmd.none  //Dummy Code
     | UpdateFace face             -> ((model, face) ||> update_face_model), Cmd.none
     | UpdateAvailableCameras cams -> ((model, cams ) ||> update_available_cams), Cmd.none
-    //| UpdatePicSize v -> {model with PicSize = v}, Cmd.none
     | UpdatePicSize v             -> {model with CamWidth =  v}, Cmd.none
     | UpdateFRPicSize v           -> {model with CamHeight  = v}, Cmd.none
     | ToggleCamSelectionModal     -> { model with CamSelectionModal = (not model.CamSelectionModal) }, Cmd.none

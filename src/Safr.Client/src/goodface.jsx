@@ -1,8 +1,8 @@
 import React from 'react';
 
-export const GoodFaces  = (props) => {
+export const GoodFaces  = ({faces}) => {
 
-    let faces = props.faces;
+    //let faces = props.faces;
 
     let bf = () => {
         if (faces.length === 0) {

@@ -2,9 +2,9 @@ import React from 'react';
 import {Divider} from "@material-ui/core";
 
 
-export const BadFaces  = (props) => {
+export const BadFaces  = ({faces}) => {
 
-    let faces = props.faces;
+    //let faces = props.faces;
 
     let bf = () => {
         if (faces.length === 0) {

@@ -11,6 +11,7 @@ ProjectSection(SolutionItems) = preProject
 	src\Safr.Client\paket.references = src\Safr.Client\paket.references
 	snowpack.config.mjs = snowpack.config.mjs
 	package.json = package.json
+	tsconfig.json = tsconfig.json
 EndProjectSection
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Safr.Server", "src\Safr.Server\Safr.Server.fsproj", "{6F17D61A-6C5A-4A09-BC8F-9F626EC25C11}"

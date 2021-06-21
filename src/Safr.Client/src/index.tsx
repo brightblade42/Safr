@@ -1,11 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import { App } from './bin/App.js';
+import { App } from './bin/App';
+
 
 function Root () {
     return (
-        <div>
+        <div >
             <App />
         </div>
     );

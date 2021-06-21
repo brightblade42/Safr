@@ -31,17 +31,17 @@ const ImageTypeProvider = props => (
     <DataTypeProvider formatterComponent={ImageFormatter} {...props} />
 );
 */
-export const CameraSettings = (props) => {
+export const CameraSettings = ({model, funcs}) => {
 
      const on_start_streams = () =>  {
         console.log("start streams request from jsx");
-        props.funcs.start_all_streams();
+        funcs.start_all_streams();
 
     };
     //const [imageColumns] = React.useState(['detected_img','matched_face']);
     const  on_stop_streams = () => {
         console.log("stop streams request from jsx");
-        props.funcs.stop_all_streams();
+        funcs.stop_all_streams();
 
     }
     const [pageSizes] = React.useState([5,10,15, 0]);
@@ -62,7 +62,7 @@ export const CameraSettings = (props) => {
            text-bgray-700 text-center bg-bgray-200">Camera Settings</div>
            <div className="p-6 bg-bgray-100 fr-history"  >
                <Grid
-                   rows={props.model.Rows}
+                   rows={model.Rows}
                    columns={columns} >
 
                    <SearchState defaultValue=""/>

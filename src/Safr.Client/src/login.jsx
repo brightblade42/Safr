@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import eye from './images/eye_logo.png';
-export const LoginComponent = (props) => {
+export const LoginComponent = ({model, onLogin}) => {
 
     let [user,setUser] = React.useState("")
     let [pwd,setPwd] = React.useState("")
@@ -12,7 +12,7 @@ export const LoginComponent = (props) => {
         setUser("")
         setPwd("")
 
-        props.onLogin(cUser, cPwd);
+        onLogin(cUser, cPwd);
 
     }
 
@@ -25,7 +25,7 @@ export const LoginComponent = (props) => {
 
     //maybe better as an F# callback. using the tag is a but of a hack.
     function toggle_msg () {
-        return (props.m.LoginStatus.tag === 3) ?  "opacity-100" : "opacity-0"
+        return (model.LoginStatus.tag === 3) ?  "opacity-100" : "opacity-0"
     }
 
     const showpwd = "password"
@@ -64,7 +64,7 @@ export const LoginComponent = (props) => {
                                onChange={(e)=> handlePwdChange(e)}
                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full"/>
                         <button type="button"
-                                disabled={props.m.LoginStatus.tag === 3 && user.length < 1}
+                                disabled={model.LoginStatus.tag === 3 && user.length < 1}
                                 onClick={() => handle_login()}
                                 className="transition duration-200 bg-blue-500 hover:bg-blue-600 focus:bg-blue-700
                                 disabled:font-bold disabled:bg-gray-400 disabled:cursor-not-allowed
