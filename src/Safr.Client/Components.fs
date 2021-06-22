@@ -99,7 +99,7 @@ let private to_facemodel (face: IdentifiedFace): FaceModel =
             Mask = format_mask_prop face.Mask
         }
 
-
+//all of our actual UI is in jsx/tsx. I don't like the F# dsl.
 type JSX =
     [<ReactComponent(import="GoodFaces", from="./src/goodface.tsx")>]
     static member GoodFaces (props: {| faces: FaceModel [] |}) = React.imported()
@@ -121,6 +121,8 @@ type JSX =
 
     [<ReactComponent(import="AppBar", from="./src/appbar.tsx")>]
     static member AppBar (props: {| model: Model; onNav: string->unit |}) = React.imported()
+
+
 
 let GoodFaces (props: {| m: Model; dispatch: Dispatch<Msg> |}) =
         let props = {| faces=props.m.MatchedFaces |> List.map(to_facemodel) |> List.toArray |}

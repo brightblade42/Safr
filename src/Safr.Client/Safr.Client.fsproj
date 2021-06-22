@@ -26,5 +26,9 @@
     <ItemGroup>
         <ProjectReference Include="..\Safr.Shared\Safr.Shared.fsproj" />
     </ItemGroup>
+    <ItemGroup>
+      <EmbeddedResource Remove="src\vendor\svgs\**" />
+      <EmbeddedResource Remove="src\vendor\**" />
+    </ItemGroup>
     <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

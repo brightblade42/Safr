@@ -12,7 +12,8 @@ module.exports = {
       colors: {
           bgray: colors.coolGray,
           wgray: colors.warmGray,
-          lime: colors.lime
+          lime: colors.lime,
+          teal: colors.teal
 
       },
     },

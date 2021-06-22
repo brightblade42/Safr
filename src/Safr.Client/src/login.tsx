@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
-
 import eye from "./images/eye_logo.png";
+import { FontAwesomeIcon as FAIcon } from "@fortawesome/react-fontawesome";
 
 export const LoginComponent = ({model, onLogin}) => {
 
@@ -30,12 +30,16 @@ export const LoginComponent = ({model, onLogin}) => {
         return (model.LoginStatus.tag === 3) ?  "opacity-100" : "opacity-0"
     }
 
+
+    function is_in_flight () {
+        return (model.LoginStatus.tag === 2) ?  "opacity-100" : "opacity-0"
+    }
+
     const showpwd = "password"
 
     return (
 
         <div className="bg-bgray-50 min-h-screen bg-white flex flex-col justify-center sm:py-12">
-
             <div className="-mt-48 p-10 xs:p-0 mx-auto md:w-full md:max-w-md">
 
                 <div
@@ -43,9 +47,7 @@ export const LoginComponent = ({model, onLogin}) => {
 
                    >Incorrect user name or password.</div>
                 <div className="shadow-2xl w-full rounded-lg divide-y divide-gray-200">
-                    <div
-                        className="bg-white py-6 mb-2 "
-                    >
+                    <div className="bg-white py-6 mb-2 " >
                         <img src={eye}
                              className="mx-auto"
                              alt="eyemetric"/>
@@ -68,17 +70,19 @@ export const LoginComponent = ({model, onLogin}) => {
                         <button type="button"
                                 disabled={model.LoginStatus.tag === 3 && user.length < 1}
                                 onClick={() => handle_login()}
-                                className="transition duration-200 bg-blue-500 hover:bg-blue-600 focus:bg-blue-700
-                                disabled:font-bold disabled:bg-gray-400 disabled:cursor-not-allowed
-                                focus:shadow-sm focus:ring-4 focus:ring-blue-500
-                                focus:ring-opacity-50 text-white w-full py-2.5 rounded-lg text-sm
-                                shadow-sm hover:shadow-md font-semibold text-center inline-block">
-                            <span className="inline-block mr-2">Login</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                 className="w-4 h-4 inline-block">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-                            </svg>
+                                className="relative flex justify-center
+                                items-center transition duration-200
+                                bg-blue-500 hover:bg-blue-600 focus:bg-blue-700
+                                disabled:font-bold disabled:bg-gray-400
+                                disabled:cursor-not-allowed
+                                focus:shadow-sm focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50
+                                text-white w-full py-2
+                                rounded-lg text-sm
+                                shadow-sm hover:shadow-md font-semibold text-center  inline-block">
+                            <span className="inline-block mr-2 text-lg">Login</span>
+                            <span className={` ${is_in_flight()} animate-spin  inline-block ml-1 text-2xl`}>
+                                <FAIcon className="text-bgray-100" icon={['fad','spinner-third']}  />
+                            </span>
                         </button>
                     </div>
 
@@ -87,16 +91,11 @@ export const LoginComponent = ({model, onLogin}) => {
 
                             <div className="text-center sm:text-left whitespace-nowrap">
                                 <button
-                                    className="transition duration-200 mx-5 px-5 py-4 cursor-pointer
+                                    className="transition duration-200 mx-4 px-4 py-4  cursor-pointer
                                     font-normal text-sm rounded-lg text-gray-500 hover:bg-gray-200 focus:outline-none
                                     focus:bg-gray-200 focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 ring-inset">
-
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                         stroke="currentColor" className="w-4 h-4 inline-block align-text-top">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
-                                    </svg>
-                                    <span className="inline-block ml-1">Reset Password</span>
+                                    <FAIcon icon={["far","lock-open-alt"]} className="mr-2"/>
+                                    <span className="inline-block" >Reset Password</span>
                                 </button>
                             </div>
 
@@ -120,6 +119,15 @@ export const LoginComponent = ({model, onLogin}) => {
         </div>
     )
 }
+
+/*
+
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                         stroke="currentColor" className="w-4 h-4 inline-block align-text-top">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
+                                    </svg>
+ */
 
 
 

@@ -362,7 +362,9 @@ let serviceFunc (ctx: HttpContext) : Service =
         Login = fun cred -> async {
 
             let user,pwd = cred
-            return fr.validate_user user pwd
+            let res = (fr.validate_user user pwd)
+            printfn $"result from validate user: %A{res}"
+            return res  // fr.validate_user user pwd
 
         }
 
