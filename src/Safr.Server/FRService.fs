@@ -569,7 +569,16 @@ type FRService(config_agent:     ConfigAgent,
     }
 
     let update_camera (updated_cam: CameraStream) = async {
-       //stop stream before updating.. properties will get out of sync.
+
+       //make sure the connection matched the address.
+       //user: root  pass: 3y3Metr1c
+       //TODO: this isn't quite the correct thing to do but it gets us up and runngin
+       let updated_cam = {updated_cam with
+                              connection = $"rtsp://root:3y3Metr1c@%s{updated_cam.ipaddress}/axis-media/media.amp"
+                              detect_frame_rate = 1
+                          }
+       //IMPORTANT: we have to stop the running camera stream before updating its information.
+       //otherwise the streaming service will become out of sync and unstable and that's just a bad time.
        //TODO: reject if camera id doesn't match existing camera. That's not cool bro
        let! current_cams = get_cams()
        //find the current (old) camera to be updated
@@ -586,6 +595,7 @@ type FRService(config_agent:     ConfigAgent,
                 match res with
                 | Ok _ ->
                     let ncam = cams |> Seq.filter(fun x -> x.id = updated_cam.id) |> List.ofSeq
+                    //StartStreamingResultList (lol what is this?)
                     let! strm_res = ncam |> det_agent.start_decode
                     printfn $"FRSERVICE: updated cam stream started : %i{ncam.Head.id} %s{ncam.Head.name}"
                     do! notify_clients_camera_update ()

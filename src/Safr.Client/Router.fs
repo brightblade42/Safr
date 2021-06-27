@@ -7,12 +7,14 @@ open Fable.Core.JsInterop
 type Page =
     | HomePage
     | FRHistoryPage
+    | ScratchPage
 
 [<RequireQualifiedAccess>]
 module Page =
     let defaultPage = Page.HomePage
 
     let parseFromUrlSegments = function
+        | [ "scratch" ] -> Page.ScratchPage
         | [ "frhistory" ] -> Page.FRHistoryPage
         | [ ] -> Page.HomePage
         | _ -> defaultPage
@@ -22,6 +24,9 @@ module Page =
     let toUrlSegments = function
         | Page.HomePage -> [ ] |> noQueryString
         | Page.FRHistoryPage -> [ "frhistory" ] |> noQueryString
+        | Page.ScratchPage ->
+            printfn "SCRATCH MATCH"
+            [ "scratch" ] |> noQueryString
 
 [<RequireQualifiedAccess>]
 module Router =

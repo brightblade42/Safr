@@ -31,23 +31,13 @@ type FRLogStatus =
     | Failed of string
 *)
 
-type Model = {
+type AppState = {
     CurrentPage: Page
     LoginStatus: LoginState
-    Message : string
-    Count: int
     MatchedFaces: IdentifiedFace list
     FRWatchList: IdentifiedFace list
     AvailableCameras: CameraStream list //needs to be a seq or array. we'll convert it later
     LocalCameraList: LocalCamera list
-    SelectedCamera: int
-    EditedCamera: CameraStream option
-    //garbage hack
-    ECamName: string
-    ECamIP: string
-    ECamEnabled: string
-    ECamDirection: string
-    ECamSampleRate: string
 
     CamWidth: int
     CamHeight: int
@@ -58,6 +48,10 @@ type Model = {
     CamSelectionModal: bool
     PlayAll: bool
     StreamsLoading: bool
+    StartingAllStreams: bool
+    StoppingAllStreams: bool
+    StartingStream: CameraStream option
+    StoppingStream: CameraStream option
     TriggerVideoRefresh: int
     DisplayDetectedImage: bool
     //Maybe this belongs in its own Elmish thing...
@@ -65,13 +59,9 @@ type Model = {
 }
 
 type Msg =
-    | GetMessage  //simple test code.
-    | GotMessage of string
     | UpdateFace of IdentifiedFace
   //  | GetAvailableCameras
     | UpdateAvailableCameras of CameraInfo
-    | UpdatePicSize of int
-    | UpdateFRPicSize of int
     | ToggleCamSelectionModal //of bool
     | UpdateSelectedCamera of int
     | UpdateEditedCamera of CameraStream
@@ -86,6 +76,10 @@ type Msg =
 
     | ToggleCamEnabled of LocalCamera
     | PlayAllCameras of bool //TODO: this still a thing?
+    | StartingAllStreams of bool
+    | StoppingAllStreams of bool
+    | StartingStream of CameraStream option
+    | StoppingStream of CameraStream option
     | UpdateStreamsLoading of bool //anytime a stream action is in flight. stop the presses!
     | RefreshVideoPlayers
     | ToggleDetectedImage
@@ -98,13 +92,11 @@ type Msg =
 
 let init () =
         let nextPage = (Router.currentPath() |> Page.parseFromUrlSegments)
+
         {
             CurrentPage = nextPage
             LoginStatus = NotLoggedIn
             FRLogs = Seq.empty  //nuthin at first
-            //LoginStatus = NotLoggedIn
-            Message = "Click me!"
-            Count = 50
             CamWidth = 480
             CamHeight = 320
             MaxFaceList = 20
@@ -117,199 +109,177 @@ let init () =
             AvailableCameras = []
             LocalCameraList = [ ]
             CamSelectionModal =  false
-            SelectedCamera = 0
+            //SelectedCamera = 0
 
-            ECamName = ""
-            ECamIP = ""
-            ECamEnabled = "false" //string for now......
-            ECamDirection = "1"
-            ECamSampleRate = ""
-            EditedCamera = None
+            //ECamName = ""
+            //ECamIP = ""
+            //ECamEnabled = "false" //string for now......
+            //ECamDirection = "1"
+            //ECamSampleRate = ""
+            //EditedCamera = None
             PlayAll = true   //is this still needed since we figured out autoplay?
             StreamsLoading = false
+            StartingAllStreams = false
+            StoppingAllStreams = false
+            //kinda weird. only one stream at a time can be started in this case.
+            StartingStream = None
+            StoppingStream = None
             TriggerVideoRefresh = 0
             DisplayDetectedImage = true
         }, Cmd.none
         //Cmd.ofSub(fun _-> Router.navigatePage nextPage)
 
-let filter_unviewable (m: Model) (face: IdentifiedFace) =
+
+module FRFuncs =
+    let update_face_model (m: AppState) (face: IdentifiedFace)  =
+
+        //split the good from the bad.
+        if face.Status.Contains "FR" then
+            if m.FRWatchList.Length >= m.MaxFRList then
+                { m with FRWatchList = ((m.MaxFRList / 2), m.FRWatchList) ||> List.truncate  }
+            else
+                { m with FRWatchList = face :: m.FRWatchList  }
+        else
+
+            if m.MatchedFaces.Length >= m.MaxFaceList then
+                { m with MatchedFaces = ((m.MaxFaceList / 2), m.MatchedFaces) ||> List.truncate }
+            else
+                { m with MatchedFaces = face :: m.MatchedFaces }
+                //filter_unviewable m face //NOT using Local Cameras feature right now
+
+
+module CameraFuncs =
+    let updateCam (m: AppState) (c:LocalCamera) =
+        m.LocalCameraList |> List.map(fun x ->
+            if x.ID = c.ID then
+              printfn $"Updated cam: %s{c.Name}"
+              {x with Visible = (not c.Visible)}
+            else
+                x
+           )
+
+
+    //the list of cameras we are allowed to view has changes so we must also change!
+    let update_available_cams (m: AppState) (cam_info: CameraInfo ) =
+        //we will also need to update, the local cameras, A Cmd seems the way we would go.
+        //cmd dispatches to updateLocalCamera list or something..
+        printfn "updated camera info"
+        printfn $"%A{cam_info.available_cams}"
+        printfn "========================="
+        printfn "updated stream info"
+        printfn $"%A{cam_info.streams}"
+        //a seperated camera list for specific local settings. NOT SURE IF WE'll keep this around
+        //let local_cams = cam_info.available_cams |> List.mapi (fun i x -> { ID= i; Name = x.name; IP = x.ipaddress; Visible = x.enabled; Order = i; } )
+
+        //look into the returned streams and set avail camera streaming property to true or false
+        let streaming_cams =
+            match cam_info.streams with
+            | Ok s ->
+                //compare what we can stream to what IS streaming and set each avail cam streaming flag.
+                //we could probably handle error states here as well..
+                //is the existence in the list itself good enough to determine it's stream state?
+                cam_info.available_cams |> List.map(fun c ->
+                       let is_running = s.streams |> List.exists (fun i ->  i.name = c.name)
+                       {c with streaming = is_running}
+                    )
+            | Error e ->
+                printfn $"ERROR GETTING STREAM STATE %s{e}"
+                printfn "Returning available cams as is"
+                cam_info.available_cams
+
+        //let model = { m with AvailableCameras = streaming_cams; LocalCameraList = local_cams; StreamsLoading = false}
+        { m with AvailableCameras = streaming_cams;  StreamsLoading = false; StartingAllStreams=false; StoppingAllStreams=false;}
+        //we want to sync the streaming flag with our list of currently streaming cameras.
+
+
+    let update_stream_load_state (m:AppState) (is_loading:  bool) =
+        //other model state may be affected
+        {m with StreamsLoading = is_loading}
+
+    let starting_all_streams (m:AppState) (is_loading:  bool) =
+        //other model state may be affected
+        {m with StartingAllStreams = is_loading}
+    let stopping_all_streams (m:AppState) (is_loading:  bool) =
+        //other model state may be affected
+        {m with StoppingAllStreams = is_loading}
+    let refresh_video_players (m:AppState) =
+        let n_count = m.TriggerVideoRefresh + 1
+        printfn $"refresher: %i{n_count}"
+        {m with TriggerVideoRefresh = n_count}, Cmd.none
+
+    let filter_unviewable (m: AppState) (face: IdentifiedFace) =
         let is_good = m.LocalCameraList |> List.tryFindIndex(fun c -> c.Name.ToLower().Trim() = face.Cam.ToLower().Trim() && c.Visible )
         match is_good with
         | None -> m
         | Some _ -> { m with MatchedFaces = face :: m.MatchedFaces }
 
-let update_face_model (m: Model) (face: IdentifiedFace)  =
-
-    //split the good from the bad.
-    if face.Status.Contains "FR" then
-        if m.FRWatchList.Length >= m.MaxFRList then
-            { m with FRWatchList = ((m.MaxFRList / 2), m.FRWatchList) ||> List.truncate  }
-        else
-            { m with FRWatchList = face :: m.FRWatchList  }
-    else
-
-        if m.MatchedFaces.Length >= m.MaxFaceList then
-            { m with MatchedFaces = ((m.MaxFaceList / 2), m.MatchedFaces) ||> List.truncate }
-        else
-            { m with MatchedFaces = face :: m.MatchedFaces }
-            //filter_unviewable m face //NOT using Local Cameras feature right now
-
-
-//local visibility, no server update.
-let updateCam (m: Model) (c:LocalCamera) =
-    m.LocalCameraList |> List.map(fun x ->
-        if x.ID = c.ID then
-          printfn $"Updated cam: %s{c.Name}"
-          {x with Visible = (not c.Visible)}
-        else
-            x
-       )
-
-let reset_camera_list (m: Model) =
-
-    {m with SelectedCamera = 0
-            ECamName = ""
-            ECamIP = ""
-            ECamEnabled = ""
-            ECamDirection = ""
-            EditedCamera = None
-    }
-//the list of cameras we are allowed to view has changes so we must also change!
-let update_available_cams (m: Model) (cam_info: CameraInfo ) =
-    //we will also need to update, the local cameras, A Cmd seems the way we would go.
-    //cmd dispatches to updateLocalCamera list or something..
-    printfn "We have received updated camera info"
-    printfn $"%A{cam_info}"
-
-    //a seperated camera list for specific local settings. NOT SURE IF WE'll keep this around
-    //let local_cams = cam_info.available_cams |> List.mapi (fun i x -> { ID= i; Name = x.name; IP = x.ipaddress; Visible = x.enabled; Order = i; } )
-
-    //look into the returned streams and set avail camera streaming property to true or false
-    let streaming_cams =
-        match cam_info.streams with
-        | Ok s ->
-            cam_info.available_cams |> List.map(fun c ->
-                   let is_running = s.streams |> List.exists (fun i -> i.name = c.name)
-                   {c with streaming = is_running}
-                )
-        | Error e ->
-            printfn $"ERROR GETTING STREAM STATE %s{e}"
-            printfn "Returning available cams as is"
-            cam_info.available_cams
-
-    //let model = { m with AvailableCameras = streaming_cams; LocalCameraList = local_cams; StreamsLoading = false}
-    let model = { m with AvailableCameras = streaming_cams;  StreamsLoading = false}
-    reset_camera_list model
-    //we want to sync the streaming flag with our list of currently streaming cameras.
-
-
-
-let update_selected_cam (m:Model) (id: int) =
-      let c = m.AvailableCameras |> List.tryFind(fun x -> x.id = id)
-      match c with
-      | Some cam ->
-          {
-           m with SelectedCamera = id
-                  EditedCamera = Some cam
-                  ECamName = cam.name // Garbage hack
-                  ECamIP = cam.ipaddress
-                  ECamEnabled = (string cam.enabled)
-                  ECamDirection = (string cam.direction)
-                  ECamSampleRate = (string cam.detect_frame_rate)
-           }
-      | None ->
-          {m with SelectedCamera = id;}
-
-let update_edited_cam (m: Model) (cam: CameraStream) =
-    {m with EditedCamera = Some cam}
-
-let edit_cam_name (m: Model) (name: string) =
-    printfn $"In Edit Cam Name: %s{name}"
-    {m with ECamName = name}, Cmd.none
-
-let update_stream_load_state (m:Model) (is_loading:  bool) =
-    //other model state may be affected
-    {m with StreamsLoading = is_loading}
-
-let refresh_video_players (m:Model) =
-    let n_count = m.TriggerVideoRefresh + 1
-    printfn $"refresher: %i{n_count}"
-    {m with TriggerVideoRefresh = n_count}, Cmd.none
-
-let toggle_detected_image (m:Model) =
+let toggle_detected_image (m:AppState) =
     {m with DisplayDetectedImage = (not m.DisplayDetectedImage)}, Cmd.none
 
-let do_login (cred: string * string ) = async {
-    printfn "WHAT THE HECK BRO!"
-    let! res = RemoteApi.service.Login cred
-    printfn $"%b{res}"
-    return res
-    //return true
-}
 
-let on_login (m:Model) (msg: bool) =
-    if msg then
-        {m with LoginStatus = LoggedIn}, Cmd.none
-    else
-        {m with LoginStatus = Failed "could not log in with user name and password"}, Cmd.none
+module LoginFuncs =
 
-let withAsyncLoginCommand (m:Model) (cred: string * string) =
-    printfn $"%A{cred}"
-    let m = {m with LoginStatus = InFlight}
+    let do_login (cred: string * string ) = async {
+        printfn "WHAT THE HECK BRO!"
+        let! res = RemoteApi.service.Login cred
+        printfn $"%b{res}"
+        return res
+        //return true
+    }
 
-    m, Cmd.OfAsync.perform do_login cred LoginResponse
+    let withAsyncLoginCommand (m:AppState) (cred: string * string) =
+        printfn $"%A{cred}"
+        let m = {m with LoginStatus = InFlight}
 
+        m, Cmd.OfAsync.perform do_login cred LoginResponse
 
-let get_fr_log_top () = async {
-    printfn "In GET Log Top client"
-    let! res = RemoteApi.service.GetLatestLog None
-    printfn "In GET Log Top client"
-    return
-        match res with
-        | Ok logs ->
-            printfn "========= LOGS ========="
-            printfn $"%A{logs}"
-            logs
-        | Error e ->
-            printfn $"ERROR GETTING LOG: %A{e}"
-            Seq.empty
-}
+    let on_login_response (m:AppState) (msg: bool) =
+        if msg then
+            {m with LoginStatus = LoggedIn}, Cmd.none
+        else
+            {m with LoginStatus = Failed "could not log in with user name and password"}, Cmd.none
+module FRHistoryFuncs =
 
-let on_frlogs_recvd (m:Model) (msg: seq<FRLog>) = {m with FRLogs = msg}, Cmd.none
+    let get_frlog_top () = async {
 
-let withAsyncFRLogCommand (m:Model) (count: Option<int>) =
-    printfn "Async Log command"
-    m, Cmd.OfAsync.perform get_fr_log_top () GetFRLogsResponse
+        printfn "In GET Log Top client"
+        let! res = RemoteApi.service.GetLatestLog None
 
-let update (msg:Msg) (model:Model) : Model * Cmd<Msg> =
+        return
+            match res with
+            | Ok logs -> logs
+            | Error e ->
+                printfn $"ERROR GETTING LOG: %A{e}"
+                Seq.empty
+    }
+
+    let withAsyncFRLogCommand (m:AppState) (count: Option<int>) =
+        printfn "Async Log command"
+        m, Cmd.OfAsync.perform get_frlog_top () GetFRLogsResponse
+
+    let on_frlogs_response (m:AppState) (msg: seq<FRLog>) = {m with FRLogs = msg}, Cmd.none
+
+let update (msg:Msg) (model:AppState) : AppState * Cmd<Msg> =
 
     match msg with
-    | GetMessage                  -> model, Cmd.OfAsync.perform RemoteApi.service.GetMessage () GotMessage //Dummy Code
-    | GotMessage msg              -> { model with Message = msg }, Cmd.none  //Dummy Code
-    | UpdateFace face             -> ((model, face) ||> update_face_model), Cmd.none
-    | UpdateAvailableCameras cams -> ((model, cams ) ||> update_available_cams), Cmd.none
-    | UpdatePicSize v             -> {model with CamWidth =  v}, Cmd.none
-    | UpdateFRPicSize v           -> {model with CamHeight  = v}, Cmd.none
+    | UpdateFace face             -> ((model, face) ||> FRFuncs.update_face_model), Cmd.none
+    | UpdateAvailableCameras cams -> ((model, cams ) ||> CameraFuncs.update_available_cams), Cmd.none
     | ToggleCamSelectionModal     -> { model with CamSelectionModal = (not model.CamSelectionModal) }, Cmd.none
-    | ToggleCamEnabled cam        -> { model with LocalCameraList = (updateCam model cam) }, Cmd.none
-    | UpdateSelectedCamera id     -> (update_selected_cam model id), Cmd.none
-    | UpdateEditedCamera cam      -> (update_edited_cam model cam), Cmd.none
+    | ToggleCamEnabled cam        -> { model with LocalCameraList = (CameraFuncs.updateCam model cam) }, Cmd.none
+    //| UpdateSelectedCamera id     -> (CameraFuncs.update_selected_cam model id), Cmd.none
+    //| UpdateEditedCamera cam      -> (CameraFuncs.update_edited_cam model cam), Cmd.none
 
-    //garbage hack ECamXX
-    | UpdateECamName name         -> (model, name) ||> edit_cam_name
-    | UpdateECamIP ip             -> {model with ECamIP = ip}, Cmd.none
-    | UpdateECamEnabled enabled   -> {model with ECamEnabled = enabled}, Cmd.none
-    | UpdateECamDirection dir     -> {model with ECamDirection = dir}, Cmd.none
-    | UpdateECamSampleRate rate   -> {model with ECamSampleRate = rate}, Cmd.none
-    | ResetCameraList             ->  model |> reset_camera_list, Cmd.none
-    | UpdateStreamsLoading state  -> (model, state) ||> update_stream_load_state, Cmd.none
-    | RefreshVideoPlayers         -> model |> refresh_video_players
+    //not in use...
+    | UpdateStreamsLoading state  -> (model, state) ||> CameraFuncs.update_stream_load_state, Cmd.none
+    | StartingAllStreams state  -> (model, state) ||> CameraFuncs.starting_all_streams, Cmd.none
+    | StoppingAllStreams state  -> (model, state) ||> CameraFuncs.stopping_all_streams, Cmd.none
+    | RefreshVideoPlayers         -> model |> CameraFuncs.refresh_video_players
     | ToggleDetectedImage         -> model |> toggle_detected_image
     //Login events
-    | Login cred                   -> (model,cred) ||> withAsyncLoginCommand
-    | LoginResponse msg            -> (model, msg) ||> on_login
+    | Login cred                   -> (model,cred) ||> LoginFuncs.withAsyncLoginCommand
+    | LoginResponse msg            -> (model, msg) ||> LoginFuncs.on_login_response
     | Logout                       -> {model with LoginStatus = NotLoggedIn}, Cmd.none
 
-    | GetFRLogs                    -> (model, Some(100)) ||> withAsyncFRLogCommand
-    | GetFRLogsResponse msg        -> (model, msg) ||> on_frlogs_recvd
+    | GetFRLogs                    -> (model, Some(100)) ||> FRHistoryFuncs.withAsyncFRLogCommand
+    | GetFRLogsResponse msg        -> (model, msg) ||> FRHistoryFuncs.on_frlogs_response
     | UrlChanged page              -> { model with CurrentPage = page }, Cmd.none

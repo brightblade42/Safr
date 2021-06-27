@@ -13,13 +13,17 @@ export const AppBar = (props) => {
     function go_settings () {
         props.onNav("settings");
     }
+    function go_scratch () {
+        console.log("hello there")
+        props.onNav("scratch");
+    }
 
     function go_logout () {
         props.onNav("logout");
     }
 
     return (
-        <div className="flex  justify-between items-end  bg-blue-800 text-blue-300 p-1">
+        <div className="fixed inset-x-0 top-0 z-10  flex justify-between items-end  bg-blue-800 text-blue-300 p-1">
             <div className="flex space-x-4 items-end">
                 <img src={eye}
                      className="inline-block w-[99px] h-[58px] opacity-100 "
@@ -40,6 +44,10 @@ export const AppBar = (props) => {
                 <button
                     className="mt-0 btn-indigo ml-2 uppercase text-sm tracking-wide text-blue-50"
                         onClick={go_history}>History</button>
+
+                <button
+                    className="mt-0 btn-indigo ml-2 uppercase text-sm tracking-wide text-blue-50"
+                    onClick={go_scratch}>Scratch</button>
             </div>
 
             <div className="flex">

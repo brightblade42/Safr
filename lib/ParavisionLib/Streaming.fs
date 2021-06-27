@@ -288,8 +288,10 @@ module Streaming =
                     return fr_state
 
             | Health health ->
+                printfn "CHECKING ON STREAM HEALTH......."
                 return { fr_state with stream_health = (Some health)}
             | CameraStreams cams ->
+                printfn "UPDATEING CAMERA STREAMS State..."
                 return { fr_state with cam_streams = (Some cams) }
             }
         let fr = Agent.Start(fun inbox ->

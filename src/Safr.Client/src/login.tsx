@@ -32,6 +32,7 @@ export const LoginComponent = ({model, onLogin}) => {
 
 
     function is_in_flight () {
+        //console.log ("Hello precious....")
         return (model.LoginStatus.tag === 2) ?  "opacity-100" : "opacity-0"
     }
 

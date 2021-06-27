@@ -51,6 +51,7 @@ module FRHub =
 
         | Action.UpdateCamera cam ->
 
+            printfn $"CAM TO UPDATE : %A{cam}"
             //let res = cam |> fr.update_camera  |> Async.RunSynchronously
             cam |> fr.update_camera  |> Async.Ignore |> Async.Start //Async.RunSynchronously
             Response.Noop //Actual response is a broadcast in fr object

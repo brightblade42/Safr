@@ -17,7 +17,9 @@
         <Content Include="src\badface.tsx" />
         <Content Include="src\frhistorygrid.tsx" />
         <Content Include="src\camerasettings.tsx" />
+        <Content Include="src\dialogs.tsx" />
         <Content Include="src\login.tsx" />
+        <Content Include="src\progressbars.tsx" />
         <Content Include="src\types\images.d.ts" />
         <Folder Include="src\images" />
         <Content Include="src\index.css" />

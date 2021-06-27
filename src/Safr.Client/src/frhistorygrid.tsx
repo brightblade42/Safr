@@ -22,7 +22,7 @@ const ImageFormatter = ({value}) => {
     const imgf = "data:image/png;base64, " + value
     return (
         <div className="flex space-x-2">
-           <img src={imgf} className="w-28 h-28 rounded-md shadow-lg" alt="smelly cat"/>
+           <img src={imgf} className="w-28 h-28 rounded-md shadow-lg" alt="enrolled face"/>
         </div>)
 }
 

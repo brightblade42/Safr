@@ -5,25 +5,31 @@ open Feliz
 open Elmish
 open Router
 open Browser.Dom
-open Safr.Client.AppState
 open Feliz.UseElmish
+open Safr.Client.AppState
 open Fable.SignalR
 open Fable.SignalR.Feliz
 open EyemetricFR.Shared.FRHub
 
-
 [<ReactComponent>]
-let AppView (props: {| m: Model; dispatch:Dispatch<Msg>; hub: Hub<Action,Response>; |}) =
+let AppView (props: {| m: AppState; dispatch:Dispatch<Msg>; hub: Hub<Action,Response>; |}) =
 
     let navigation =
-         Components.AppBar {| m=props.m; disp=props.dispatch |}
+         Html.div [
+             //prop.className ["fixed z-10 top-0 right-0 left-0"]
+             prop.children [
+                Components.AppBar {| m=props.m; disp=props.dispatch |}
+            ]
+         ]
 
     let render =
         Html.div [
+           prop.className ["mt-16"]
            prop.children [
                 match props.m.CurrentPage with
-                | Page.HomePage -> Pages.HomePage {| dispatch=props.dispatch; m=props.m; |} // hub=hub |}
+                | Page.HomePage -> Pages.HomePage props
                 | Page.FRHistoryPage -> Pages.FRHistoryPage {| dispatch=props.dispatch; m=props.m |}
+                | Page.ScratchPage -> Pages.ScratchPage {| dispatch=props.dispatch; m=props.m |}
 
                 if props.m.CamSelectionModal then
                     Components.CameraSettings props
@@ -71,9 +77,10 @@ let App () =
                     UpdateAvailableCameras cams |> dispatch
                 | Response.StreamsStarting ->
                     printfn "STREAMS ARE STARTING NOTIFICATION"
-                    true |> UpdateStreamsLoading |> dispatch
+                    //true |> UpdateStreamsLoading |> dispatch
+                    true |> StartingAllStreams |> dispatch
                 | Response.StreamsStopping ->
-                    true |> UpdateStreamsLoading |> dispatch
+                    true |> StoppingAllStreams |> dispatch
                     printfn "STREAMS ARE STOPPING NOTIFICATION"
                 | Response.CameraStreamHealthy _ -> () //TODO: implement
                 | Response.StreamStarting _ -> ()
@@ -82,19 +89,8 @@ let App () =
         )
 
 
-    //TODO: this loads, regardless of login status which may not be what we want.
-    let on_loaded () =
-        let cb _ =
-            printfn "get the available camera"
-            hub.current.sendNow Action.GetAvailableCameras
-            ()
-
-        window.addEventListener("load", cb)
-        { new IDisposable with member this.Dispose() = window.removeEventListener("load", cb) }
-
-    React.useEffect((fun _ -> on_loaded) [|  |])
-
     if login_status then
+        //should I do the service here?
         AppView {| m=model; dispatch=dispatch; hub=hub; |}
     else
         Components.Login {| m=model; dispatch=dispatch |}
