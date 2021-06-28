@@ -38,6 +38,8 @@ module Shared =
             | AddCamera       of CameraStream
             | RemoveCamera    of int //camname but not sure about this
             | UpdateCamera    of CameraStream
+            //| StartStream     of string
+            //| StopStream      of string  //We'd rather this be the CameraStream type
             | StartStream     of CameraStream
             | StopStream      of CameraStream
             | StartAllStreams

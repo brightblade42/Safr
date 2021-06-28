@@ -27,8 +27,8 @@ type IFR =
     abstract get_conf : unit -> Configuration option
     abstract stop_streams: unit -> Async<StopStreamingResultList>
     abstract start_streams: unit -> Async<StartStreamingResultList>
-    abstract stop_stream: string -> Async<Result<StopDecodeReply, string>>
-    abstract start_stream: string -> Async<Result<StartDecodeReply, string>>
+    abstract stop_stream: CameraStream -> Async<Result<StopDecodeReply, string>>
+    abstract start_stream: CameraStream -> Async<Result<StartDecodeReply, string>>
     //abstract get_streams: unit -> Asymc<
     abstract add_camera: CameraStream -> Async<string>  //should have a better return value
     abstract remove_camera: int -> Async<Result<int, exn>> //should have a better return value
@@ -372,13 +372,9 @@ type FRService(config_agent:     ConfigAgent,
     let handle_detection (detected: (string * DetectedFacesReply)) =
 
         let (cam_name, det_faces) = detected
-        //det_faces.faces.Head.
         printfn $"CAM: %s{cam_name} FACES in Frame: %i{det_faces.faces.Length}"
 
         let time_stamp = det_faces.timestamp
-        //det_faces.faces.[0].
-        //test that we can send message to client
-        //hub_context.Clients.All.Send (FRHub.Response.NewCount(det_faces.faces.Length)) |> Async.AwaitTask |> ignore
 
         det_faces.faces
         |> List.map (fun  x -> x.images.cropped |> get_possible_match)
@@ -423,15 +419,43 @@ type FRService(config_agent:     ConfigAgent,
 
        let cam_info = {cam_info with available_cams = av }
 
-       printfn "FROM NOTIFY CLIENTS CAMERA UPDATE--ING"
+       hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info) |> ignore
+    }
+
+    let notify_clients_camera_adding (cam: CameraStream) = async {
+
+       let! cam_info = get_cam_info()
+       let max_id (list: CameraStream list) =
+           List.fold (fun acc (elem: CameraStream) -> if acc > elem.id then acc else elem.id ) 0 list
+
+       let recent_cam = max_id cam_info.available_cams
+       let av = cam_info.available_cams |>
+                List.map (fun (c:CameraStream) ->
+                if c.id = recent_cam then {c with updating = true}
+                else c )
+
+       let cam_info = {cam_info with available_cams = av }
+
+       hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info) |> ignore
+    }
+
+
+    let notify_clients_camera_deleting (id: int) = async {
+
+       let! cam_info = get_cam_info()
+
+       let av = cam_info.available_cams |>
+                List.map (fun (c:CameraStream) ->
+                if c.id = id then {c with updating = true}
+                else c )
+
+       let cam_info = {cam_info with available_cams = av }
+
        hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info) |> ignore
     }
 
     let notify_clients_camera_updated () = async {
-
         let! cam_info = get_cam_info()
-
-        printfn "FROM NOTIFY CLIENTS CAMERA UPDATE--ED"
         hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info ) |> ignore
     }
 
@@ -458,46 +482,52 @@ type FRService(config_agent:     ConfigAgent,
        do! notify_streams_starting()
        let only_enabled = cams |> Seq.filter (fun x -> x.enabled) |>   List.ofSeq
        //reset the cache, value may have changed
-       id_cache <- CacheMap(get_identity_cache_expiry())
+       id_cache <- CacheMap(get_identity_cache_expiry()) //TODO: Use this?
        let! x = only_enabled |> det_agent.start_decode
        do! notify_clients_camera_updated ()
 
        return x
     }
 
-    let start_stream (cam_name: string) = async {
-      //start a single stream
+    let start_stream (cam: CameraStream) = async {
+
         let! cams = get_cams()
-        let cam = cams |> Seq.filter(fun x -> x.name = cam_name) |> List.ofSeq
-        match cam.Length with
+        let cam_lst = cams |> Seq.filter(fun x -> x.name = cam.name) |> List.ofSeq
+
+        match cam_lst.Length with
         | 0 ->
-            return Error $"no available cameras named %s{cam_name}"
+            return Error $"no available cameras named %s{cam.name}"
         | _ ->
-            let! res = cam |> det_agent.start_decode
+
+            do! notify_clients_camera_updating cam
+            let! res = cam_lst |> det_agent.start_decode
+            do! notify_clients_camera_updated ()
 
             return
                 match res with
                 | StartStreamingResultList.Success s -> s.Head //we know there's only one.
                 | StartStreamingResultList.StreamingError e -> Error e
                 | StartStreamingResultList.ConnectionError e -> Error e
-                | _ -> Error $"Could not start camera stream: %s{cam_name}"
+                | _ -> Error $"Could not start camera stream: %s{cam.name}"
     }
 
-    let stop_stream (cam_name: string) = async {
+    let stop_stream (cam: CameraStream) = async {
       //start a single stream
         let! cams = get_cams()
-        let cam = cams |> Seq.filter(fun x -> x.name = cam_name) |> List.ofSeq
-        match cam.Length with
+        let cam_lst = cams |> Seq.filter(fun x -> x.name = cam.name) |> List.ofSeq
+        match cam_lst.Length with
         | 0 ->
-            return Error $"no available cameras named %s{cam_name}"
+            return Error $"no available cameras named %s{cam.name}"
         | _ ->
-            let! res = cam |> det_agent.stop_decode
+            do! notify_clients_camera_updating cam
+            let! res = cam_lst |> det_agent.stop_decode
+            do! notify_clients_camera_updated ()
             return
                 match res with
                 | StopStreamingResultList.Success s -> s.Head //we know there's only one.
                 | StopStreamingResultList.StreamingError e -> Error e
                 | StopStreamingResultList.ConnectionError e -> Error e
-                | _ -> Error $"Could not start camera stream: %s{cam_name}"
+                | _ -> Error $"Could not start camera stream: %s{cam.name}"
     }
 
     let sub_faces_detected () =
@@ -513,7 +543,7 @@ type FRService(config_agent:     ConfigAgent,
                  match dc with
                  | Error ex ->
                       printfn "STREAM HARD DISCONNECTED"
-                      Async.Sleep 8000 |> Async.RunSynchronously
+                      Async.Sleep 8000 |> Async.RunSynchronously  //timing is everything. This is shit. ;)
                       let n_streams = start_streams() |> Async.RunSynchronously
                       printfn "%A" n_streams
                       ()
@@ -525,15 +555,12 @@ type FRService(config_agent:     ConfigAgent,
 
     let set_camera_defaults(cam: CameraStream): CameraStream  =
 
-       let ncam =
-            match cam.user with
-            | "" -> {cam with user="root"; password="3y3Metr1c" }
-            | "root" -> {cam with password="3y3Metr1c"}
-            | "dev" -> {cam with user="root"; password="3y3Metr1c"}
-            | _ -> cam
-
-       { ncam with
-             connection = $"rtsp://%s{ncam.user}:%s{ncam.password}@%s{cam.ipaddress}/axis-media/media.amp"
+       let user = "root"
+       let password = "3y3Metr1c"
+       { cam with
+             user = user
+             password = password
+             connection = $"rtsp://%s{user}:%s{password}@%s{cam.ipaddress}/axis-media/media.amp"
              detect_frame_rate = 1
        }
     let add_camera (cam: CameraStream) = async {
@@ -542,12 +569,14 @@ type FRService(config_agent:     ConfigAgent,
         //TODO: use default user/pass from config.
         let cam = cam |> set_camera_defaults
         let! res = cam_agent.save_camera cam
+        printfn $"%A{res}"
 
         return!
             async {
                 match res with
                 | Ok _ ->
 
+                    do! notify_clients_camera_adding(cam)
                     let! started = [cam] |> det_agent.start_decode
                     printfn $"FRSERVICE: New Cam stream started: %A{started}"
                     do! notify_clients_camera_updated ()
@@ -570,6 +599,7 @@ type FRService(config_agent:     ConfigAgent,
         match to_delete.Length with
         | 1 ->
 
+            do! notify_clients_camera_deleting id
             let! res = cam_agent.delete_camera (CameraID id)
             return!
                 async {
@@ -663,8 +693,8 @@ type FRService(config_agent:     ConfigAgent,
         member self.get_cam_info () : Async<CameraInfo> = get_cam_info()
         member self.start_streams () = start_streams ()
         member self.stop_streams () = stop_streams ()
-        member self.start_stream cam_name = start_stream cam_name
-        member self.stop_stream cam_name = stop_stream cam_name
+        member self.start_stream (cam: CameraStream) = start_stream cam
+        member self.stop_stream (cam: CameraStream) = stop_stream cam
         member self.add_camera (cam: CameraStream) = add_camera cam
         member self.remove_camera (id: int) = remove_camera id //should have a better return value
         member self.update_camera (cam: CameraStream) = update_camera cam

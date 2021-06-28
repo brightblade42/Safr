@@ -56,6 +56,14 @@ module FRHub =
             fr.stop_streams () |> Async.Ignore |> Async.Start
             Response.Noop
 
+        | Action.StartStream cam ->
+            fr.start_stream cam |> Async.Ignore |> Async.Start
+            Response.Noop
+
+        | Action.StopStream cam ->
+            fr.stop_stream cam |> Async.Ignore |> Async.Start
+            Response.Noop
+
     let invoke (msg: Action) (hubContext: FableHub) = task { return update msg hubContext  }
 
 

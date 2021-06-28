@@ -17,7 +17,7 @@ export const BadFaces  = ({faces}) => {
     }
 
     return (
-        <div className="flex overflow-x-scroll text-wgray-200 bg-wgray-100 pt-0 pb-6 -mt-1 space-x-4 min-h-[365px]">
+        <div className="flex overflow-x-scroll text-wgray-200 bg-wgray-100 pt-0 pb-6 -mt-1 space-x-4 min-h-[300px]">
             {bf()}
         </div>
 

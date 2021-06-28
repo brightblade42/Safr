@@ -60,7 +60,10 @@ module CamSettings =
         stop_all_streams: unit->unit
         update_camera: CameraStream->unit
         add_camera: CameraStream->unit
+        stop_camera: CameraStream->unit
+        start_camera: CameraStream->unit
         delete_camera: int->unit
+
     }
 
 
@@ -155,13 +158,24 @@ let CameraSettings (props: {| m: AppState; dispatch: Dispatch<Msg>; hub: Hub<Act
         props.hub.current.sendNow(Action.RemoveCamera id)
         ()
 
+    let start_camera (cam: CameraStream) =
+        printfn $"CAM ACTION START %s{cam.name}"
+        props.hub.current.sendNow(Action.StartStream cam)
+
+    let stop_camera (cam: CameraStream) =
+        printfn $"CAM ACTION STOP %s{cam.name}"
+        props.hub.current.sendNow(Action.StopStream cam)
+
     let gmodel: CamSettings.GModel = { Rows = rows; Columns = [] }
+
     let funcs: CamSettings.Funcs = {
         start_all_streams = (fun () -> props.hub.current.sendNow(Action.StartAllStreams))
         stop_all_streams = (fun () -> props.hub.current.sendNow(Action.StopAllStreams))
         update_camera = update_camera
         add_camera = add_camera
         delete_camera = delete_camera
+        start_camera = start_camera
+        stop_camera = stop_camera
     }
 
     let nprops = {| model=props.m; gmodel=gmodel; funcs=funcs |}

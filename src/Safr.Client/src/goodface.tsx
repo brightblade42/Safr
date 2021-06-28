@@ -15,7 +15,7 @@ export const GoodFaces  = ({faces}) => {
     }
 
     return (
-        <div className="flex overflow-x-scroll text-bgray-200 bg-bgray-100 pt-2 pb-6 mt-0 px-4 space-x-4 min-h-[365px]">
+        <div className="flex overflow-x-scroll text-bgray-200 bg-bgray-100 pt-2 pb-6 mt-0 px-4 space-x-4 min-h-[300px] ">
             {bf()}
         </div>
 
