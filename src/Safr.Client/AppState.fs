@@ -109,14 +109,6 @@ let init () =
             AvailableCameras = []
             LocalCameraList = [ ]
             CamSelectionModal =  false
-            //SelectedCamera = 0
-
-            //ECamName = ""
-            //ECamIP = ""
-            //ECamEnabled = "false" //string for now......
-            //ECamDirection = "1"
-            //ECamSampleRate = ""
-            //EditedCamera = None
             PlayAll = true   //is this still needed since we figured out autoplay?
             StreamsLoading = false
             StartingAllStreams = false
@@ -163,6 +155,7 @@ module CameraFuncs =
     let update_available_cams (m: AppState) (cam_info: CameraInfo ) =
         //we will also need to update, the local cameras, A Cmd seems the way we would go.
         //cmd dispatches to updateLocalCamera list or something..
+        printfn "HELLO HELLO!!!"
         printfn "updated camera info"
         printfn $"%A{cam_info.available_cams}"
         printfn "========================="
@@ -220,15 +213,13 @@ let toggle_detected_image (m:AppState) =
 module LoginFuncs =
 
     let do_login (cred: string * string ) = async {
-        printfn "WHAT THE HECK BRO!"
         let! res = RemoteApi.service.Login cred
-        printfn $"%b{res}"
+        //printfn $"%b{res}"
         return res
-        //return true
     }
 
     let withAsyncLoginCommand (m:AppState) (cred: string * string) =
-        printfn $"%A{cred}"
+        //printfn $"%A{cred}"
         let m = {m with LoginStatus = InFlight}
 
         m, Cmd.OfAsync.perform do_login cred LoginResponse
@@ -266,8 +257,6 @@ let update (msg:Msg) (model:AppState) : AppState * Cmd<Msg> =
     | UpdateAvailableCameras cams -> ((model, cams ) ||> CameraFuncs.update_available_cams), Cmd.none
     | ToggleCamSelectionModal     -> { model with CamSelectionModal = (not model.CamSelectionModal) }, Cmd.none
     | ToggleCamEnabled cam        -> { model with LocalCameraList = (CameraFuncs.updateCam model cam) }, Cmd.none
-    //| UpdateSelectedCamera id     -> (CameraFuncs.update_selected_cam model id), Cmd.none
-    //| UpdateEditedCamera cam      -> (CameraFuncs.update_edited_cam model cam), Cmd.none
 
     //not in use...
     | UpdateStreamsLoading state  -> (model, state) ||> CameraFuncs.update_stream_load_state, Cmd.none

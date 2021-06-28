@@ -53,19 +53,14 @@ module CamSettings =
         Rows: CameraStream seq
         Columns: Column seq
     }
-    type UpdateCamAction = {
-            id: int
-            name: string
-            address: string
-            direction: int
-            enabled: bool
-    }
 
 
     type Funcs = {
         start_all_streams: unit->unit
         stop_all_streams: unit->unit
         update_camera: CameraStream->unit
+        add_camera: CameraStream->unit
+        delete_camera: int->unit
     }
 
 
@@ -150,11 +145,23 @@ let CameraSettings (props: {| m: AppState; dispatch: Dispatch<Msg>; hub: Hub<Act
         props.hub.current.sendNow(Action.UpdateCamera cam)
         ()
 
+    let add_camera (cam:CameraStream) =
+        printfn $"CAM ACTION ADD : %A{cam}"
+        props.hub.current.sendNow(Action.AddCamera cam)
+        ()
+
+    let delete_camera (id: int) =
+        printfn $"CAM ACTION DELETE: %i{id}"
+        props.hub.current.sendNow(Action.RemoveCamera id)
+        ()
+
     let gmodel: CamSettings.GModel = { Rows = rows; Columns = [] }
     let funcs: CamSettings.Funcs = {
         start_all_streams = (fun () -> props.hub.current.sendNow(Action.StartAllStreams))
         stop_all_streams = (fun () -> props.hub.current.sendNow(Action.StopAllStreams))
         update_camera = update_camera
+        add_camera = add_camera
+        delete_camera = delete_camera
     }
 
     let nprops = {| model=props.m; gmodel=gmodel; funcs=funcs |}

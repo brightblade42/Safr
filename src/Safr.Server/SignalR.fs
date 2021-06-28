@@ -25,14 +25,6 @@ module FRHub =
 
         | Action.AddCamera cam ->
 
-            (*  test this async pattern
-            async {
-                let! res = cam |>  fr.add_camera // |> Async.RunSynchronously
-                Response.AvailableCameras (fr.get_cams())
-                return () //res
-
-            } |> Async.StartImmediate |> ignore
-            *)
             printfn "Adding a camera"
             //TODO: should be a result type so we can take action for errors.
             let res = cam |>  fr.add_camera |> Async.RunSynchronously

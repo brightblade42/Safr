@@ -412,13 +412,26 @@ type FRService(config_agent:     ConfigAgent,
 
         return { available_cams = cams; streams = streams }
     }
-    let notify_clients_camera_update () = async {
 
-        let! av_cams         = get_cams() //updates the mutable internal list. (Yuck)
-        let! active_streams  = det_agent.async_get_streams()
-        let  cam_info        = { available_cams = av_cams; streams = active_streams }
+    let notify_clients_camera_updating (cam: CameraStream) = async {
 
-        printfn "FROM NOTIFY CLIENTS"
+       let! cam_info = get_cam_info()
+       let av = cam_info.available_cams |>
+                List.map (fun (c:CameraStream) ->
+                if c.id = cam.id then {c with updating = true}
+                else c )
+
+       let cam_info = {cam_info with available_cams = av }
+
+       printfn "FROM NOTIFY CLIENTS CAMERA UPDATE--ING"
+       hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info) |> ignore
+    }
+
+    let notify_clients_camera_updated () = async {
+
+        let! cam_info = get_cam_info()
+
+        printfn "FROM NOTIFY CLIENTS CAMERA UPDATE--ED"
         hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info ) |> ignore
     }
 
@@ -435,7 +448,7 @@ type FRService(config_agent:     ConfigAgent,
        do! notify_streams_stopping()
        let! sx = cams |> det_agent.stop_decode
        printfn $"%A{sx}"
-       do! notify_clients_camera_update ()
+       do! notify_clients_camera_updated ()
        return sx
     }
 
@@ -447,7 +460,7 @@ type FRService(config_agent:     ConfigAgent,
        //reset the cache, value may have changed
        id_cache <- CacheMap(get_identity_cache_expiry())
        let! x = only_enabled |> det_agent.start_decode
-       do! notify_clients_camera_update ()
+       do! notify_clients_camera_updated ()
 
        return x
     }
@@ -510,27 +523,34 @@ type FRService(config_agent:     ConfigAgent,
              handling_face_detection <- true
 
 
+    let set_camera_defaults(cam: CameraStream): CameraStream  =
+
+       let ncam =
+            match cam.user with
+            | "" -> {cam with user="root"; password="3y3Metr1c" }
+            | "root" -> {cam with password="3y3Metr1c"}
+            | "dev" -> {cam with user="root"; password="3y3Metr1c"}
+            | _ -> cam
+
+       { ncam with
+             connection = $"rtsp://%s{ncam.user}:%s{ncam.password}@%s{cam.ipaddress}/axis-media/media.amp"
+             detect_frame_rate = 1
+       }
     let add_camera (cam: CameraStream) = async {
 
         //set default user/pass
         //TODO: use default user/pass from config.
-        let ncam =
-            match cam.user with
-            | "" -> {cam with user="root"; password="root" }
-            | "root" -> {cam with password="root"}
-            | "dev" -> {cam with user="root"; password="3y3Metr1c"}
-            | _ -> cam
-
-        let! res = cam_agent.save_camera ncam
+        let cam = cam |> set_camera_defaults
+        let! res = cam_agent.save_camera cam
 
         return!
             async {
                 match res with
                 | Ok _ ->
 
-                    let! started = [ncam] |> det_agent.start_decode
+                    let! started = [cam] |> det_agent.start_decode
                     printfn $"FRSERVICE: New Cam stream started: %A{started}"
-                    do! notify_clients_camera_update ()
+                    do! notify_clients_camera_updated ()
                     //hub_context.Clients.All.
                     return "new camera saved"
 
@@ -559,7 +579,7 @@ type FRService(config_agent:     ConfigAgent,
                             let msg =  "a camera was deleted"
                             let! stopped = to_delete |> det_agent.stop_decode
                             printfn $"FRSERVICE: stopped removed cam streams. %A{stopped} "
-                            do! notify_clients_camera_update ()
+                            do! notify_clients_camera_updated ()
                             printfn "%s" msg
                             return Ok id
                     | Error e -> return Error e
@@ -568,15 +588,14 @@ type FRService(config_agent:     ConfigAgent,
         | _ -> return Error (Exception "duplicate cameras found. This should not happen.")
     }
 
+
     let update_camera (updated_cam: CameraStream) = async {
 
+       do! notify_clients_camera_updating(updated_cam)
+       let updated_cam = updated_cam |> set_camera_defaults
        //make sure the connection matched the address.
        //user: root  pass: 3y3Metr1c
        //TODO: this isn't quite the correct thing to do but it gets us up and runngin
-       let updated_cam = {updated_cam with
-                              connection = $"rtsp://root:3y3Metr1c@%s{updated_cam.ipaddress}/axis-media/media.amp"
-                              detect_frame_rate = 1
-                          }
        //IMPORTANT: we have to stop the running camera stream before updating its information.
        //otherwise the streaming service will become out of sync and unstable and that's just a bad time.
        //TODO: reject if camera id doesn't match existing camera. That's not cool bro
@@ -598,7 +617,7 @@ type FRService(config_agent:     ConfigAgent,
                     //StartStreamingResultList (lol what is this?)
                     let! strm_res = ncam |> det_agent.start_decode
                     printfn $"FRSERVICE: updated cam stream started : %i{ncam.Head.id} %s{ncam.Head.name}"
-                    do! notify_clients_camera_update ()
+                    do! notify_clients_camera_updated ()
                     let msg = "a camera was updated"
                     printfn "%s" msg
                     return Ok ncam.Head.id

@@ -395,6 +395,7 @@ module Paravision =
           streaming: bool
           detect_frame_rate: int
           secure: bool
+          updating: bool
         }
         static member Decoder: Decoder<CameraStream> =
           Decode.object (fun get -> {
@@ -409,6 +410,7 @@ module Paravision =
                 streaming          = get.Optional.Field "streaming"  Decode.bool |> Option.defaultValue false
                 detect_frame_rate  = get.Optional.Field "detect_frame_rate"  Decode.int |> Option.defaultValue 1
                 secure             = get.Optional.Field "enabled"    Decode.bool |> Option.defaultValue false
+                updating           = get.Optional.Field "updating"    Decode.bool |> Option.defaultValue false
           })
         static member from (json: string) = Decode.fromString CameraStream.Decoder json
 
