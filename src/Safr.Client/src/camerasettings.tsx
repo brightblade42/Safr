@@ -20,8 +20,7 @@ import {
     TableEditRow,
     TableEditColumn,
     PagingPanel,
-    Toolbar,
-    SearchPanel
+    Toolbar
 } from "@devexpress/dx-react-grid-material-ui";
 import { FontAwesomeIcon as FAIcon } from "@fortawesome/react-fontawesome";
 import {OKCancelDialog} from "./dialogs";
@@ -155,7 +154,18 @@ export const CameraSettings = (props) => {
     const [addedRows, setAddedRows]         = React.useState([]);
     const [rowChanges, setRowChanges]       = React.useState({});
     const [deletedRow, setDeletedRow]       = React.useState(0);
+    const [pageSizes] = React.useState([5,10,15, 0]);
+    const columns = [
 
+        //{name: "id", title: "ID"},
+        {name: "name", title: "NAME"},
+        { name: "ipaddress", title: "ADDRESS"},
+        { name: "direction", title: "DIRECTION"},
+        { name: "enabled", title: "STATUS"},
+    ]
+
+    const [camEnabledColumn] = React.useState(['enabled'])
+    const [camDirectionColumn] = React.useState(['direction'])
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
 
     const handle_start_or_stop = (row) => {
@@ -203,59 +213,40 @@ export const CameraSettings = (props) => {
     );
 
     const changeAddedRows = (value) => {
-        console.log("change add rows function")
         const initialized = value.map(row => (Object.keys(row).length ? row : { direction: 1, enabled: true }));
         setAddedRows(initialized);
     };
 
     const commitChanges = ({ added, changed, deleted }) => {
-        console.log("COMMIT THE CHANGES HERE  ADD/CHANGE/DELETE....")
 
         if (added) {
             let addRow = added[0];
-
-            //might want to set dummy 0 id
             let nrow = Object.assign(addRow, {id: 0} );
-            console.log(nrow)
             funcs.add_camera(nrow);
         }
         if (changed) {
             let id = Object.keys(changed)[0];
 
-
-            let obj = changed[id]
-            if (obj === undefined) {
+            let changed_row = changed[id]
+            if (changed_row === undefined) {
                 console.log("you so fine.. yeah, undefined. Bazinga")
                 return;
             }
             let crow = gmodel.Rows.find(x =>  x.id === parseInt(id));
-            let nrow = Object.assign(crow, obj)
+            let new_row = Object.assign(crow, changed_row)
 
-            funcs.update_camera(nrow)
+            funcs.update_camera(new_row)
         }
         if (deleted) {
+
             setDeletedRow(deleted[0])
             setIsDeleteDialogOpen(true)
         }
 
     };
 
-     const on_start_streams = () =>  { funcs.start_all_streams();
-    };
-    const  on_stop_streams = () => { funcs.stop_all_streams();
-    }
-    const [pageSizes] = React.useState([5,10,15, 0]);
-    const columns = [
-
-        //{name: "id", title: "ID"},
-        {name: "name", title: "NAME"},
-        { name: "ipaddress", title: "ADDRESS"},
-        { name: "direction", title: "DIRECTION"},
-        { name: "enabled", title: "STATUS"},
-    ]
-
-    const [camEnabledColumn] = React.useState(['enabled'])
-    const [camDirectionColumn] = React.useState(['direction'])
+     const on_start_streams = () =>  { funcs.start_all_streams(); };
+    const  on_stop_streams = () => { funcs.stop_all_streams(); }
 
     const renderDialog = () => {
          if (isDeleteDialogOpen) {
