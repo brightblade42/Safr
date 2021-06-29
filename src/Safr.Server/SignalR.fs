@@ -16,35 +16,22 @@ module FRHub =
     let update (msg: Action) (hubContext: FableHub) =
 
         let fr = hubContext.Services.GetService(typeof<FRService>) :?> IFR
+
         match msg with
         | Action.GetAvailableCameras ->
-
             let ci = create_cam_info fr
             Response.AvailableCameras ci
-            //Response.AvailableCameras (fr.get_cams())
 
         | Action.AddCamera cam ->
-
-            printfn "Adding a camera"
             //TODO: should be a result type so we can take action for errors.
             let res = cam |>  fr.add_camera |> Async.RunSynchronously
-            //let ci = create_cam_info fr
-            printfn "FROM ADD CAMERA"
-            Response.Noop//AvailableCameras ci
-            //Response.AvailableCameras (fr.get_cams())
+            Response.Noop
 
         | Action.RemoveCamera cam_id ->
-
             let res = cam_id |> fr.remove_camera |> Async.RunSynchronously
-            //let ci = create_cam_info fr
             Response.Noop
-            //Response.AvailableCameras ci
-            //Response.AvailableCameras (fr.get_cams ())
 
         | Action.UpdateCamera cam ->
-
-            printfn $"CAM TO UPDATE : %A{cam}"
-            //let res = cam |> fr.update_camera  |> Async.RunSynchronously
             cam |> fr.update_camera  |> Async.Ignore |> Async.Start //Async.RunSynchronously
             Response.Noop //Actual response is a broadcast in fr object
 
@@ -68,7 +55,6 @@ module FRHub =
 
 
     let send (msg: Action) (hubContext: FableHub<Action, Response>) =
-
         (msg , hubContext) ||> update |> hubContext.Clients.Caller.Send
 
 

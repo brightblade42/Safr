@@ -3,20 +3,28 @@ import {
     DataTypeProvider,
     PagingState,
     SearchState,
+    FilteringState,
     IntegratedFiltering,
     IntegratedPaging,
 
 } from "@devexpress/dx-react-grid";
 
-import { IconButton} from "@material-ui/core";
+import {TextField} from "@material-ui/core";
+
 import {
     Grid,
     Table,
     TableHeaderRow,
+    TableFilterRow,
     PagingPanel,
     Toolbar,
-    SearchPanel
+
 } from "@devexpress/dx-react-grid-material-ui";
+
+import {DateTime} from 'luxon';
+
+
+
 
 const ImageFormatter = ({value}) => {
     const imgf = "data:image/png;base64, " + value
@@ -30,13 +38,40 @@ const ImageTypeProvider = props => (
      <DataTypeProvider formatterComponent={ImageFormatter} {...props} />
 );
 
-export const FRHistoryGrid = ({model, onLoad}) => {
 
+const DateFormatter = ({ value }) => {
+    let ldate = DateTime.fromISO(value);
+    return ldate.toLocaleString(DateTime.DATETIME_MED);
+}
+
+const DateTypeProvider = props => (
+    <DataTypeProvider formatterComponent={DateFormatter} {...props} />
+);
+
+
+const BuildConfidenceFormatter = (format_conf) => {
+   return ({value}) => {
+       return (
+           <span className="text-md" >{format_conf(value)}</span>
+       )
+
+   };
+}
+
+
+
+export const FRHistoryGrid = (props) => {
+
+    const model = props.model;
+    const funcs = props.funcs;
+    console.log(funcs);
     const [imageColumns] = React.useState(['detected_img','matched_face']);
+    const [dateColumns] = React.useState(['matched_on']);
+    const [confidenceColumns] = React.useState(['confidence']);
     const [pageSizes] = React.useState([5,10,15, 0])
 
     let on_load = () => {
-        onLoad()
+        funcs.on_load()
     }
     const columns = [
 
@@ -48,25 +83,49 @@ export const FRHistoryGrid = ({model, onLoad}) => {
         { name: "location", title: "LOCATION"},
     ]
 
+    const format_confidence =  (c: number)  => {
+        return funcs.format_conf(c)
+    }
+    const ConfidenceTypeProvider = props => (
+        <DataTypeProvider formatterComponent={BuildConfidenceFormatter(format_confidence)} {...props} />
+    );
+
     return (
         <div className="flex flex-col">
-            <button className="btn-indigo w-32 mt-4 ml-3" onClick={on_load}>Load History</button>
+            <div className="flex mt-6 space-x-8 justify-end mr-4">
+                <TextField
+                    id="datetime-local"
+                    label="END DATE"
+                    type="datetime-local"
+                    defaultValue="2017-05-24T10:30"
+                />
+                <TextField
+                    id="datetime-local"
+                    label="START DATE"
+                    type="datetime-local"
+                    defaultValue="2017-05-24T10:30"
+                />
+                <button className="btn-indigo w-32  ml-3" onClick={on_load}>Load History</button>
+            </div>
             <div className="px-6 fr-history">
                <Grid
                    rows={model.Rows}
                    columns={columns} >
 
                    <ImageTypeProvider for={imageColumns}/>
+                   <DateTypeProvider for={dateColumns} />
+                   <ConfidenceTypeProvider for={confidenceColumns}/>
                    <SearchState defaultValue=""/>
+                   <FilteringState defaultFilters={[]}/>
                    <IntegratedFiltering />
                    <PagingState
                        defaultCurrentPage={0}
-                       defaultPageSize={10} />
+                       defaultPageSize={5} />
                    <IntegratedPaging />
                    <Table/>
                    <TableHeaderRow/>
+                   <TableFilterRow  />
                    <Toolbar/>
-                   <SearchPanel/>
                    <PagingPanel  pageSizes={pageSizes}/>
                </Grid>
            </div>

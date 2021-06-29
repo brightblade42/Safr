@@ -11,7 +11,8 @@ open Safr.Client.AppState
 open EyemetricFR.Shared
 open Safr.Types.Eyemetric
 open Safr.Types.Paravision.Streaming
-let private format_conf = function
+
+let format_conf = function
    | x when x >= 1. -> "100%"
    | x -> (sprintf "%.2f%%" (x * 100.))
 
@@ -85,6 +86,10 @@ module FRHistory =
         Columns: Column seq
     }
 
+    type Funcs = {
+        format_conf: float-> string
+        on_load: unit->unit
+    }
 
 let private to_facemodel (face: IdentifiedFace): FaceModel =
         {
@@ -120,7 +125,7 @@ type JSX =
     static member Login (props: {| model: AppState; onLogin: string->string->unit; |})  = React.imported()
 
     [<ReactComponent(import="FRHistoryGrid", from="./src/frhistorygrid.tsx")>]
-    static member FRHistoryGrid (props: {| model: FRHistory.GModel; onLoad: unit->unit |}) = React.imported()
+    static member FRHistoryGrid (props: {| model: FRHistory.GModel; funcs: FRHistory.Funcs|}) = React.imported()
 
     [<ReactComponent(import="VideoList", from="./src/axvideo.jsx")>]
     static member VideoList (props: {| model: AppState; available_cams: CameraStream [] |}) = React.imported()
@@ -199,8 +204,17 @@ let FRHistoryGrid (props: {| model: AppState; dispatch: Dispatch<Msg>; |}) =
     let rows = Seq.toArray props.model.FRLogs
     let model: FRHistory.GModel = { Rows = rows; Columns=[];  }
     let on_load () = GetFRLogs |> props.dispatch
+    let format_conf (x: float) =
+       match x with
+       | x when x >= 1. -> "100%"
+       | x -> (sprintf "%.2f%%" (x * 100.))
 
-    JSX.FRHistoryGrid  {| model=model; onLoad=on_load |}
+    let funcs: FRHistory.Funcs = {
+        on_load = on_load
+        format_conf = format_conf
+    }
+
+    JSX.FRHistoryGrid  {| model=model; funcs=funcs |}
 
 [<ReactComponent>]
 let VideoList (props: {| m: AppState; dispatch: Dispatch<Msg> |}) =
