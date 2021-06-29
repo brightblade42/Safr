@@ -38,6 +38,7 @@ type IFR =
     abstract get_cam_info: unit -> Async<CameraInfo>
     abstract log_enroll_attempt: EnrollLog -> Async<Result<int, string>>
     abstract get_frlog_top: Option<int> -> Async<Result<seq<FRLog>, exn>>
+    abstract get_frlog_daterange: Option<string> -> Option<string> -> Async<Result<seq<FRLog>, exn>>
     abstract delete_enrollment: string -> Async<Result<int, exn>>
     abstract delete_all_enrollments: unit -> Async<Result<int, exn>>
     abstract get_enrollment: string -> Async<Result<EnrolledIdentity option, exn>>
@@ -124,6 +125,10 @@ type FRService(config_agent:     ConfigAgent,
         return! count |> fr_log_agent.get_top
     }
 
+    let get_frlog_daterange (startdate: Option<string>) (enddate: Option<string>) = async {
+        printfn $"FR SERVICE: get_frlog daterange %A{startdate} : %A{enddate}"
+        return! (startdate, enddate) ||> fr_log_agent.get_by_daterange
+    }
     let get_enrollment (id: string) = async {
         return enroll_agent.get_enrolled_details_by_id id  //should this be async as well?
     }
@@ -715,3 +720,4 @@ type FRService(config_agent:     ConfigAgent,
         member self.delete_face (req: DeleteFaceReq) = delete_face req
         member self.validate_user (user:string) (pass:string) = validate_user user pass
         member self.get_frlog_top (count: Option<int>) = get_frlog_top count
+        member self.get_frlog_daterange (startdate: Option<string>) (enddate: Option<string>)= get_frlog_daterange startdate enddate

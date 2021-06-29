@@ -70,6 +70,7 @@ module Shared =
             GetMessage : unit -> Async<string>
             Login: string * string -> Async<bool>
             GetLatestLog: Option<int> -> Async<Result<seq<FRLog>,exn>> //Some/None or Err?
+            GetFRLogByDate: Option<string> -> Option<string> -> Async<Result<seq<FRLog>,exn>> //Some/None or Err?
         }
         with
             static member RouteBuilder _ m = $"/api/fr/%s{m}"

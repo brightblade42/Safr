@@ -22,7 +22,7 @@ import {
 } from "@devexpress/dx-react-grid-material-ui";
 
 import {DateTime} from 'luxon';
-
+import { FontAwesomeIcon as FAIcon } from "@fortawesome/react-fontawesome";
 
 
 
@@ -41,7 +41,7 @@ const ImageTypeProvider = props => (
 
 const DateFormatter = ({ value }) => {
     let ldate = DateTime.fromISO(value);
-    return ldate.toLocaleString(DateTime.DATETIME_MED);
+    return ldate.toLocaleString(DateTime.DATETIME_SHORT);
 }
 
 const DateTypeProvider = props => (
@@ -63,16 +63,33 @@ const BuildConfidenceFormatter = (format_conf) => {
 export const FRHistoryGrid = (props) => {
 
     const model = props.model;
+    const gmodel = props.gmodel
     const funcs = props.funcs;
-    console.log(funcs);
     const [imageColumns] = React.useState(['detected_img','matched_face']);
     const [dateColumns] = React.useState(['matched_on']);
     const [confidenceColumns] = React.useState(['confidence']);
     const [pageSizes] = React.useState([5,10,15, 0])
+    const ddate = DateTime.now();
+    const [endDate, setEndDate] = React.useState(ddate.toFormat("yyyy-MM-dd") + "T18:00");
+    const [startDate, setStartDate] = React.useState(ddate.toFormat("yyyy-MM-dd") + "T06:00");
 
-    let on_load = () => {
-        funcs.on_load()
+
+    const on_enddate_change = (value)  => {
+        console.log("hello enddate : " + value);
+        setEndDate(value);
     }
+    const on_startdate_change = (value)  => {
+        console.log("hello startdate: " + value);
+        setStartDate(value);
+    }
+    const on_load = () => {
+        funcs.on_load(startDate, endDate)
+    }
+
+    const is_loading = () => {
+        return model.FRHistoryLoading ? "opacity-100" : "opacity-0"
+    }
+
     const columns = [
 
         {name: "matched_face", title: "ENROLLED"},
@@ -90,26 +107,65 @@ export const FRHistoryGrid = (props) => {
         <DataTypeProvider formatterComponent={BuildConfidenceFormatter(format_confidence)} {...props} />
     );
 
+    const handle_key_press = (e) => {
+        if (e.key === "Enter") {
+            on_load()
+        }
+    }
     return (
-        <div className="flex flex-col">
-            <div className="flex mt-6 space-x-8 justify-end mr-4">
-                <TextField
-                    id="datetime-local"
-                    label="END DATE"
-                    type="datetime-local"
-                    defaultValue="2017-05-24T10:30"
-                />
+        <div
+            className="flex flex-col">
+            <div className="flex mt-6 z-10 space-x-8 justify-end mr-4">
                 <TextField
                     id="datetime-local"
                     label="START DATE"
                     type="datetime-local"
-                    defaultValue="2017-05-24T10:30"
+                    defaultValue={startDate}
+                    onKeyPress={(e) => handle_key_press(e)}
+                    onChange={(e) => on_startdate_change(e.target.value)}
+                    InputLabelProps={{
+                        shrink: true,
+                    }}
                 />
-                <button className="btn-indigo w-32  ml-3" onClick={on_load}>Load History</button>
+                <TextField
+                    id="datetime-local"
+                    label="END DATE"
+                    type="datetime-local"
+                    onKeyPress={(e) => handle_key_press(e)}
+                    onChange={(e) => on_enddate_change(e.target.value)}
+                    defaultValue={endDate}
+                    InputLabelProps={{
+                        shrink: true,
+                    }}
+                />
+
+                <button type="button"
+                        disabled={model.FRHistoryLoading}
+                        onClick={on_load}
+                        className="relative flex justify-center
+                                w-32 items-center transition duration-200
+                                bg-blue-500 hover:bg-blue-600 focus:bg-blue-700
+                                disabled:font-bold disabled:bg-gray-400 disabled:cursor-not-allowed
+                                focus:shadow-sm focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50
+                                text-white
+                                font-semibold
+                                rounded-lg text-sm
+                                shadow-sm hover:shadow-md
+                                 " >
+                    <span className="inline-block text-lg">Load</span>
+                    <span className={` ${is_loading()} animate-spin  inline-block ml-1 text-2xl`}>
+                                <FAIcon className="text-bgray-100" icon={['fad','spinner-third']}  />
+                            </span>
+                </button>
+                {/*
+                <button
+                    disabled={model.FRHistoryLoading}
+                    className="disabled:bg-gray-400 btn-indigo w-32 ml-3" onClick={on_load}>Load History</button>
+                    */}
             </div>
-            <div className="px-6 fr-history">
+            <div className="px-2 fr-history -mt-12">
                <Grid
-                   rows={model.Rows}
+                   rows={gmodel.Rows}
                    columns={columns} >
 
                    <ImageTypeProvider for={imageColumns}/>

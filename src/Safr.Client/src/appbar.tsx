@@ -45,9 +45,11 @@ export const AppBar = (props) => {
                     className="mt-0 btn-indigo ml-2 uppercase text-sm tracking-wide text-blue-50"
                         onClick={go_history}>History</button>
 
+                {/*
                 <button
                     className="mt-0 btn-indigo ml-2 uppercase text-sm tracking-wide text-blue-50"
                     onClick={go_scratch}>Scratch</button>
+                    */}
             </div>
 
             <div className="flex">

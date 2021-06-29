@@ -88,7 +88,7 @@ module FRHistory =
 
     type Funcs = {
         format_conf: float-> string
-        on_load: unit->unit
+        on_load: string->string->unit
     }
 
 let private to_facemodel (face: IdentifiedFace): FaceModel =
@@ -125,7 +125,7 @@ type JSX =
     static member Login (props: {| model: AppState; onLogin: string->string->unit; |})  = React.imported()
 
     [<ReactComponent(import="FRHistoryGrid", from="./src/frhistorygrid.tsx")>]
-    static member FRHistoryGrid (props: {| model: FRHistory.GModel; funcs: FRHistory.Funcs|}) = React.imported()
+    static member FRHistoryGrid (props: {| model: AppState; gmodel: FRHistory.GModel; funcs: FRHistory.Funcs|}) = React.imported()
 
     [<ReactComponent(import="VideoList", from="./src/axvideo.jsx")>]
     static member VideoList (props: {| model: AppState; available_cams: CameraStream [] |}) = React.imported()
@@ -202,8 +202,18 @@ let Login (props: {|m: AppState; dispatch: Dispatch<Msg> |})  =
 let FRHistoryGrid (props: {| model: AppState; dispatch: Dispatch<Msg>; |}) =
 
     let rows = Seq.toArray props.model.FRLogs
-    let model: FRHistory.GModel = { Rows = rows; Columns=[];  }
-    let on_load () = GetFRLogs |> props.dispatch
+    let gmodel: FRHistory.GModel = { Rows = rows; Columns=[];  }
+    //let on_load () = GetFRLogs |> props.dispatch
+    let on_load (startdate) (enddate) =
+        printfn "in ON LOAD FOR RANGE"
+        let dr = {
+            StartDate = Some(startdate)
+            EndDate   = Some(enddate)
+        }
+        GetFRLogsDateRange dr |> props.dispatch
+        //GetFRLogs |> props.dispatch
+
+
     let format_conf (x: float) =
        match x with
        | x when x >= 1. -> "100%"
@@ -214,7 +224,7 @@ let FRHistoryGrid (props: {| model: AppState; dispatch: Dispatch<Msg>; |}) =
         format_conf = format_conf
     }
 
-    JSX.FRHistoryGrid  {| model=model; funcs=funcs |}
+    JSX.FRHistoryGrid  {| model=props.model; gmodel = gmodel; funcs=funcs |}
 
 [<ReactComponent>]
 let VideoList (props: {| m: AppState; dispatch: Dispatch<Msg> |}) =

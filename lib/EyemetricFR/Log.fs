@@ -11,6 +11,7 @@ module Logging  =
         | Log of FRLog
         | GetLogs
         | GetTop of (Option<int> * AsyncReplyChannel<Result<seq<FRLog>,exn>>)
+        | GetByDateRange of (Option<string> * Option<string> * AsyncReplyChannel<Result<seq<FRLog>,exn>>)
         | PurgeLogs
 
     let open_conn (dbPath: string) =
@@ -35,6 +36,12 @@ module Logging  =
         let res = Queries.Logging.get_fr_top conn cnt
         res
 
+    let get_frlog_by_date conn (startdate: Option<string>) (enddate: Option<string>) =
+        printfn "getting latest fr log by date ranger"
+        let startdate = startdate |> Option.defaultValue "2021-06-28"
+        let enddate = enddate |> Option.defaultValue "2021-06-29"
+        let res = Queries.Logging.get_frlog_by_date conn startdate enddate
+        res
     let default_db_path = System.IO.Path.Combine(AppContext.BaseDirectory, "data/frlog.sqlite")
     type FRLogAgent(?dbPath: string) =
         let db_path = (dbPath, default_db_path) ||> defaultArg
@@ -54,6 +61,10 @@ module Logging  =
                              ch.Reply(r)
 
                              return! loop []
+                         | GetByDateRange (startdate, enddate, ch) ->
+                             let r = get_frlog_by_date conn startdate enddate
+                             ch.Reply(r)
+                             return! loop []
                          | PurgeLogs ->
                              return! loop []
                     }
@@ -66,6 +77,10 @@ module Logging  =
 
         member self.get_top(count: Option<int>) =
             agent.PostAndAsyncReply(fun ch -> GetTop (count, ch))
+
+
+        member self.get_by_daterange (startdate: Option<string>) (enddate: Option<string>) =
+            agent.PostAndAsyncReply(fun ch -> GetByDateRange (startdate,enddate, ch))
 
     module Enrollment =
         type private Agent<'T> = MailboxProcessor<'T>

@@ -21,6 +21,10 @@ type LoginState =
     | InFlight   //a login attempt is in progress
     | Failed of string  //we have failed to login, reason is string.
 
+type FRHistoryRange = {
+    StartDate: Option<string>
+    EndDate: Option<string>
+}
 //possible handling of
 //remote data state.
 (*
@@ -34,6 +38,7 @@ type FRLogStatus =
 type AppState = {
     CurrentPage: Page
     LoginStatus: LoginState
+    FRHistoryLoading: bool //TODO: consider a Union
     MatchedFaces: IdentifiedFace list
     FRWatchList: IdentifiedFace list
     AvailableCameras: CameraStream list //needs to be a seq or array. we'll convert it later
@@ -87,6 +92,7 @@ type Msg =
     | LoginResponse of bool
     | Logout
     | GetFRLogs
+    | GetFRLogsDateRange of FRHistoryRange
     | GetFRLogsResponse of seq<FRLog>
     | UrlChanged of currentPage:Page
 
@@ -96,6 +102,7 @@ let init () =
         {
             CurrentPage = nextPage
             LoginStatus = NotLoggedIn
+            FRHistoryLoading = false
             FRLogs = Seq.empty  //nuthin at first
             CamWidth = 480
             CamHeight = 320
@@ -244,11 +251,28 @@ module FRHistoryFuncs =
                 Seq.empty
     }
 
+    let  get_frlog_daterange (range: FRHistoryRange) = async {
+
+        let! res = RemoteApi.service.GetFRLogByDate range.StartDate range.EndDate
+
+        return
+            match res with
+            | Ok logs -> logs
+            | Error e ->
+                printfn $"ERROR GETTING LOG: %A{e}"
+                Seq.empty
+    }
+
     let withAsyncFRLogCommand (m:AppState) (count: Option<int>) =
         printfn "Async Log command"
         m, Cmd.OfAsync.perform get_frlog_top () GetFRLogsResponse
 
-    let on_frlogs_response (m:AppState) (msg: seq<FRLog>) = {m with FRLogs = msg}, Cmd.none
+    let withAsyncFRLogDateRangeCommand (m:AppState) (daterange: FRHistoryRange) =
+        printfn "Async Log Date Range command"
+        {m with FRHistoryLoading= true}, Cmd.OfAsync.perform get_frlog_daterange daterange  GetFRLogsResponse
+
+    let on_frlogs_response (m:AppState) (msg: seq<FRLog>) =
+        {m with FRLogs = msg; FRHistoryLoading=false}, Cmd.none
 
 let update (msg:Msg) (model:AppState) : AppState * Cmd<Msg> =
 
@@ -270,5 +294,6 @@ let update (msg:Msg) (model:AppState) : AppState * Cmd<Msg> =
     | Logout                       -> {model with LoginStatus = NotLoggedIn}, Cmd.none
 
     | GetFRLogs                    -> (model, Some(100)) ||> FRHistoryFuncs.withAsyncFRLogCommand
+    | GetFRLogsDateRange range   -> (model, range) ||> FRHistoryFuncs.withAsyncFRLogDateRangeCommand
     | GetFRLogsResponse msg        -> (model, msg) ||> FRHistoryFuncs.on_frlogs_response
     | UrlChanged page              -> { model with CurrentPage = page }, Cmd.none

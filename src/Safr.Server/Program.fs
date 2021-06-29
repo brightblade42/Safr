@@ -368,6 +368,35 @@ let serviceFunc (ctx: HttpContext) : Service =
 
         }
 
+        GetFRLogByDate = fun startdate enddate -> async {
+
+            printfn "Hello from Remote Service"
+            let! logs = fr.get_frlog_daterange startdate enddate
+
+            //let! logs = fr.get_frlog_top count
+            //very hacky quick and dirty
+            let with_images =
+                match logs with
+                | Ok logs ->
+                    logs |> Seq.map(fun lg ->
+                        let en = fr.get_enrollment lg.identity |> Async.RunSynchronously
+                        //printfn "%A" lg.detected_img
+                        match en with
+                        | Ok (Some enr) ->
+                            let img = Convert.ToBase64String enr.pv_img
+                            {lg with matched_face = img}
+                        | _ -> lg
+
+                        ) |> Ok
+
+                | Error e -> Error e
+
+
+            return with_images //logs
+
+
+        }
+
         GetLatestLog = fun count -> async {
             printfn "Hello from Remote Service"
             let! logs = fr.get_frlog_top count
