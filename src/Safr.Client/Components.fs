@@ -43,7 +43,6 @@ type FaceModel = {
 
 module CamSettings =
 
-
     type Column = {
         name: string
         title: string
@@ -69,12 +68,6 @@ module CamSettings =
 
 
 module FRHistory =
-
-    type Row = {
-        id: int
-        product: string
-        owner: string
-    }
 
     type Column = {
         name: string
@@ -134,10 +127,12 @@ type JSX =
     static member AppBar (props: {| model: AppState; onNav: string->unit |}) = React.imported()
 
 
+[<ReactComponent>]
 let GoodFaces (props: {| m: AppState; dispatch: Dispatch<Msg> |}) =
         let props = {| faces=props.m.MatchedFaces |> List.map(to_facemodel) |> List.toArray |}
         JSX.GoodFaces props
 
+[<ReactComponent>]
 let BadFaces (props: {| m: AppState; dispatch: Dispatch<Msg> |}) =
         let props = {| faces=props.m.FRWatchList |> List.map(to_facemodel) |> List.toArray |}
         JSX.BadFaces props
@@ -149,7 +144,6 @@ let CameraSettings (props: {| m: AppState; dispatch: Dispatch<Msg>; hub: Hub<Act
 
     let update_camera (cam: CameraStream) =
         printfn $"CAM ACTION: %A{cam}"
-        //printfn $"CAM ACTION: %A{cam.direction}"
         props.hub.current.sendNow(Action.UpdateCamera cam)
         ()
 
@@ -183,9 +177,7 @@ let CameraSettings (props: {| m: AppState; dispatch: Dispatch<Msg>; hub: Hub<Act
         stop_camera = stop_camera
     }
 
-    let nprops = {| model=props.m; gmodel=gmodel; funcs=funcs |}
-
-    JSX.CameraSettingsGrid  nprops //{| gmodel=model; funcs=funcs |}
+    JSX.CameraSettingsGrid {| model=props.m; gmodel=gmodel; funcs=funcs |}
 
 
 [<ReactComponent>]
@@ -203,6 +195,7 @@ let FRHistoryGrid (props: {| model: AppState; dispatch: Dispatch<Msg>; |}) =
 
     let rows = Seq.toArray props.model.FRLogs
     let gmodel: FRHistory.GModel = { Rows = rows; Columns=[];  }
+
     let on_load (startdate) (enddate) =
         printfn "in ON LOAD FOR RANGE"
         let dr = {
@@ -210,7 +203,6 @@ let FRHistoryGrid (props: {| model: AppState; dispatch: Dispatch<Msg>; |}) =
             EndDate   = Some(enddate)
         }
         GetFRLogsDateRange dr |> props.dispatch
-        //GetFRLogs |> props.dispatch
 
 
     let format_conf (x: float) =
@@ -224,6 +216,7 @@ let FRHistoryGrid (props: {| model: AppState; dispatch: Dispatch<Msg>; |}) =
     }
 
     JSX.FRHistoryGrid  {| model=props.model; gmodel = gmodel; funcs=funcs |}
+
 
 [<ReactComponent>]
 let VideoList (props: {| m: AppState; dispatch: Dispatch<Msg> |}) =

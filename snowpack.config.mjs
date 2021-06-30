@@ -21,7 +21,7 @@ export default  {
     '@snowpack/plugin-dotenv',
     '@snowpack/plugin-postcss',
     '@snowpack/plugin-typescript',
-      ['./snowplug1.js'],
+     ['./snowplug1.js'],
     '@jadex/snowpack-plugin-tailwindcss-jit' //temp fix for spack/jit issue
 
   ],

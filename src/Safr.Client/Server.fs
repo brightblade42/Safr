@@ -2,7 +2,6 @@
 
 open Fable.Remoting.Client
 open EyemetricFR.Shared.Remoting
-//open Safr.Shared.API
 
 let service =
     Remoting.createApi()

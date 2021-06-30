@@ -36,6 +36,7 @@ type FRLogStatus =
 *)
 
 type AppState = {
+
     CurrentPage: Page
     LoginStatus: LoginState
     FRHistoryLoading: bool //TODO: consider a Union
@@ -44,10 +45,6 @@ type AppState = {
     AvailableCameras: CameraStream list //needs to be a seq or array. we'll convert it later
     LocalCameraList: LocalCamera list
 
-    CamWidth: int
-    CamHeight: int
-    PicSize: int
-    FRPicSize: int
     MaxFaceList: int
     MaxFRList: int
     CamSelectionModal: bool
@@ -65,20 +62,9 @@ type AppState = {
 
 type Msg =
     | UpdateFace of IdentifiedFace
-  //  | GetAvailableCameras
     | UpdateAvailableCameras of CameraInfo
     | ToggleCamSelectionModal //of bool
-    | UpdateSelectedCamera of int
-    | UpdateEditedCamera of CameraStream
-
-    //garbage hack
-    | UpdateECamName of string
-    | UpdateECamIP of string
-    | UpdateECamEnabled of string
-    | UpdateECamDirection of string
-    | UpdateECamSampleRate of string
     | ResetCameraList
-
     | ToggleCamEnabled of LocalCamera
     | PlayAllCameras of bool //TODO: this still a thing?
     | StartingAllStreams of bool
@@ -91,7 +77,7 @@ type Msg =
     | Login of (string * string) //user password combination
     | LoginResponse of bool
     | Logout
-    | GetFRLogs
+   // | GetFRLogs
     | GetFRLogsDateRange of FRHistoryRange
     | GetFRLogsResponse of seq<FRLog>
     | UrlChanged of currentPage:Page
@@ -104,13 +90,8 @@ let init () =
             LoginStatus = NotLoggedIn
             FRHistoryLoading = false
             FRLogs = Seq.empty  //nuthin at first
-            CamWidth = 480
-            CamHeight = 320
             MaxFaceList = 20
             MaxFRList = 20
-
-            PicSize = 150
-            FRPicSize = 150
             MatchedFaces = []
             FRWatchList = []
             AvailableCameras = []
@@ -126,13 +107,13 @@ let init () =
             TriggerVideoRefresh = 0
             DisplayDetectedImage = true
         }, Cmd.none
-        //Cmd.ofSub(fun _-> Router.navigatePage nextPage)
 
 
 module FRFuncs =
     let update_face_model (m: AppState) (face: IdentifiedFace)  =
 
-        //split the good from the bad.
+        //split the good from the bad. Truncate the list so we don't just keep
+        //adding things to the browser.
         if face.Status.Contains "FR" then
             if m.FRWatchList.Length >= m.MaxFRList then
                 { m with FRWatchList = ((m.MaxFRList / 2), m.FRWatchList) ||> List.truncate  }
@@ -162,7 +143,6 @@ module CameraFuncs =
     let update_available_cams (m: AppState) (cam_info: CameraInfo ) =
         //we will also need to update, the local cameras, A Cmd seems the way we would go.
         //cmd dispatches to updateLocalCamera list or something..
-        printfn "HELLO HELLO!!!"
         printfn "updated camera info"
         printfn $"%A{cam_info.available_cams}"
         printfn "========================="
@@ -193,15 +173,13 @@ module CameraFuncs =
 
 
     let update_stream_load_state (m:AppState) (is_loading:  bool) =
-        //other model state may be affected
         {m with StreamsLoading = is_loading}
-
     let starting_all_streams (m:AppState) (is_loading:  bool) =
-        //other model state may be affected
         {m with StartingAllStreams = is_loading}
     let stopping_all_streams (m:AppState) (is_loading:  bool) =
-        //other model state may be affected
         {m with StoppingAllStreams = is_loading}
+
+
     let refresh_video_players (m:AppState) =
         let n_count = m.TriggerVideoRefresh + 1
         printfn $"refresher: %i{n_count}"
@@ -220,36 +198,19 @@ let toggle_detected_image (m:AppState) =
 module LoginFuncs =
 
     let do_login (cred: string * string ) = async {
-        let! res = RemoteApi.service.Login cred
-        //printfn $"%b{res}"
-        return res
+        return! RemoteApi.service.Login cred
     }
 
     let withAsyncLoginCommand (m:AppState) (cred: string * string) =
-        //printfn $"%A{cred}"
         let m = {m with LoginStatus = InFlight}
-
         m, Cmd.OfAsync.perform do_login cred LoginResponse
 
     let on_login_response (m:AppState) (msg: bool) =
-        if msg then
-            {m with LoginStatus = LoggedIn}, Cmd.none
-        else
-            {m with LoginStatus = Failed "could not log in with user name and password"}, Cmd.none
+        match msg with
+        | true -> {m with LoginStatus = LoggedIn}, Cmd.none
+        | _ -> {m with LoginStatus = Failed "could not log in with user name and password"}, Cmd.none
+
 module FRHistoryFuncs =
-
-    let get_frlog_top () = async {
-
-        printfn "In GET Log Top client"
-        let! res = RemoteApi.service.GetLatestLog None
-
-        return
-            match res with
-            | Ok logs -> logs
-            | Error e ->
-                printfn $"ERROR GETTING LOG: %A{e}"
-                Seq.empty
-    }
 
     let  get_frlog_daterange (range: FRHistoryRange) = async {
 
@@ -263,12 +224,8 @@ module FRHistoryFuncs =
                 Seq.empty
     }
 
-    let withAsyncFRLogCommand (m:AppState) (count: Option<int>) =
-        printfn "Async Log command"
-        m, Cmd.OfAsync.perform get_frlog_top () GetFRLogsResponse
-
+    //SIDE EFFECTS
     let withAsyncFRLogDateRangeCommand (m:AppState) (daterange: FRHistoryRange) =
-        printfn "Async Log Date Range command"
         {m with FRHistoryLoading= true}, Cmd.OfAsync.perform get_frlog_daterange daterange  GetFRLogsResponse
 
     let on_frlogs_response (m:AppState) (msg: seq<FRLog>) =
@@ -293,7 +250,7 @@ let update (msg:Msg) (model:AppState) : AppState * Cmd<Msg> =
     | LoginResponse msg            -> (model, msg) ||> LoginFuncs.on_login_response
     | Logout                       -> {model with LoginStatus = NotLoggedIn}, Cmd.none
 
-    | GetFRLogs                    -> (model, Some(100)) ||> FRHistoryFuncs.withAsyncFRLogCommand
+    //| GetFRLogs                    -> (model, Some(100)) ||> FRHistoryFuncs.withAsyncFRLogCommand
     | GetFRLogsDateRange range   -> (model, range) ||> FRHistoryFuncs.withAsyncFRLogDateRangeCommand
     | GetFRLogsResponse msg        -> (model, msg) ||> FRHistoryFuncs.on_frlogs_response
     | UrlChanged page              -> { model with CurrentPage = page }, Cmd.none
