@@ -5,6 +5,11 @@
 import  proxy  from 'http2-proxy';
 
 export default  {
+ optimize: {
+    bundle: true,
+    minify: true,
+    target: 'es2018',
+  },
   mount: {
     /* ... */
     "src/Safr.Client/public": "/",
@@ -16,6 +21,7 @@ export default  {
     '@snowpack/plugin-dotenv',
     '@snowpack/plugin-postcss',
     '@snowpack/plugin-typescript',
+      ['./snowplug1.js'],
     '@jadex/snowpack-plugin-tailwindcss-jit' //temp fix for spack/jit issue
 
   ],

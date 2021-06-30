@@ -19,7 +19,7 @@ let format_conf = function
 
 let private format_mask_prop = function
    | x when x >= 1. -> "100%"
-   | x when x < 0.8 -> "No Mask"
+   | x when x < 0.4 -> "No Mask"
    | x -> (sprintf "%.1f%%" (x * 100.))
 let private short_status (status: string)  =
     match status with
@@ -203,7 +203,6 @@ let FRHistoryGrid (props: {| model: AppState; dispatch: Dispatch<Msg>; |}) =
 
     let rows = Seq.toArray props.model.FRLogs
     let gmodel: FRHistory.GModel = { Rows = rows; Columns=[];  }
-    //let on_load () = GetFRLogs |> props.dispatch
     let on_load (startdate) (enddate) =
         printfn "in ON LOAD FOR RANGE"
         let dr = {

@@ -69,17 +69,14 @@ export const FRHistoryGrid = (props) => {
     const [dateColumns] = React.useState(['matched_on']);
     const [confidenceColumns] = React.useState(['confidence']);
     const [pageSizes] = React.useState([5,10,15, 0])
-    const ddate = DateTime.now();
-    const [endDate, setEndDate] = React.useState(ddate.toFormat("yyyy-MM-dd") + "T18:00");
-    const [startDate, setStartDate] = React.useState(ddate.toFormat("yyyy-MM-dd") + "T06:00");
+    const [endDate, setEndDate] = React.useState(DateTime.now().toFormat("yyyy-MM-dd") + "T18:00");
+    const [startDate, setStartDate] = React.useState(DateTime.now().toFormat("yyyy-MM-dd") + "T06:00");
 
 
     const on_enddate_change = (value)  => {
-        console.log("hello enddate : " + value);
         setEndDate(value);
     }
     const on_startdate_change = (value)  => {
-        console.log("hello startdate: " + value);
         setStartDate(value);
     }
     const on_load = () => {

@@ -10,10 +10,38 @@ open Safr.Client.AppState
 open Fable.SignalR
 open Fable.SignalR.Feliz
 open EyemetricFR.Shared.FRHub
+open EyemetricFR.Shared
 
 [<ReactComponent>]
-let AppView (props: {| m: AppState; dispatch:Dispatch<Msg>; hub: Hub<Action,Response>; |}) =
+let AppView (props: {| m: AppState; dispatch:Dispatch<Msg>; |}) = // hub: Hub<Action,Response>; |}) =
 
+    let dispatch = props.dispatch
+    let hub = React.useSignalR<Action, Response> (fun hub ->
+
+        //TODO : Use a dev/prod check. (until snowpack proxies our shit correctly
+       // hub.withUrl("http://localhost:8085/socket/fr")
+        hub.withUrl(Endpoints.Root)
+
+            .withAutomaticReconnect()
+            .configureLogging(LogLevel.Debug)
+            .onMessage <|
+                function
+                | Response.Face face ->
+                    UpdateFace face |> dispatch
+                | Response.AvailableCameras cams ->
+                    UpdateAvailableCameras cams |> dispatch
+                | Response.StreamsStarting ->
+                    printfn "STREAMS ARE STARTING NOTIFICATION"
+                    //true |> UpdateStreamsLoading |> dispatch
+                    true |> StartingAllStreams |> dispatch
+                | Response.StreamsStopping ->
+                    true |> StoppingAllStreams |> dispatch
+                    printfn "STREAMS ARE STOPPING NOTIFICATION"
+                | Response.CameraStreamHealthy _ -> () //TODO: implement
+                | Response.StreamStarting _ -> ()
+                | Response.StreamStopping _ -> ()
+                | Response.Noop -> ()
+        )
     let navigation =
          Html.div [
              //prop.className ["fixed z-10 top-0 right-0 left-0"]
@@ -27,12 +55,12 @@ let AppView (props: {| m: AppState; dispatch:Dispatch<Msg>; hub: Hub<Action,Resp
            prop.className ["mt-16"]
            prop.children [
                 match props.m.CurrentPage with
-                | Page.HomePage -> Pages.HomePage props
+                | Page.HomePage -> Pages.HomePage {| m=props.m; dispatch=dispatch; hub=hub; |}
                 | Page.FRHistoryPage -> Pages.FRHistoryPage {| dispatch=props.dispatch; m=props.m |}
                 | Page.ScratchPage -> Pages.ScratchPage {| dispatch=props.dispatch; m=props.m |}
 
                 if props.m.CamSelectionModal then
-                    Components.CameraSettings props
+                    Components.CameraSettings {| m=props.m; dispatch=dispatch; hub=hub; |}
            ]
         ]
 
@@ -60,37 +88,9 @@ let App () =
             printfn "NOT LOGGED IN"
             false
 
-
-    let hub = React.useSignalR<Action, Response> (fun hub ->
-
-        //TODO : Use a dev/prod check. (until snowpack proxies our shit correctly
-        hub.withUrl("http://localhost:8085/socket/fr")
-        //hub.withUrl(Endpoints.Root)
-
-            .withAutomaticReconnect()
-            .configureLogging(LogLevel.Debug)
-            .onMessage <|
-                function
-                | Response.Face face ->
-                    UpdateFace face |> dispatch
-                | Response.AvailableCameras cams ->
-                    UpdateAvailableCameras cams |> dispatch
-                | Response.StreamsStarting ->
-                    printfn "STREAMS ARE STARTING NOTIFICATION"
-                    //true |> UpdateStreamsLoading |> dispatch
-                    true |> StartingAllStreams |> dispatch
-                | Response.StreamsStopping ->
-                    true |> StoppingAllStreams |> dispatch
-                    printfn "STREAMS ARE STOPPING NOTIFICATION"
-                | Response.CameraStreamHealthy _ -> () //TODO: implement
-                | Response.StreamStarting _ -> ()
-                | Response.StreamStopping _ -> ()
-                | Response.Noop -> ()
-        )
-
-
     if login_status then
+
         //should I do the service here?
-        AppView {| m=model; dispatch=dispatch; hub=hub; |}
+        AppView {| m=model; dispatch=dispatch; |} // hub=hub; |}
     else
         Components.Login {| m=model; dispatch=dispatch |}

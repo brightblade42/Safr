@@ -268,7 +268,7 @@ export const CameraSettings = (props) => {
 
     return (
 
-       <div className="absolute top-[400px] min-h-3 flex flex-col shadow-2xl" >
+       <div className="absolute top-[386px] min-h-3 flex flex-col shadow-2xl" >
            <div className="text-xl py-2 font-semibold shadow-xl border-2  border-gray-300
              text-bgray-700 text-center bg-bgray-200">Camera Settings</div>
            {renderDialog()}
