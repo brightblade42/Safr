@@ -1,30 +1,10 @@
 import React from 'react';
 import { FontAwesomeIcon as FAIcon } from "@fortawesome/react-fontawesome";
+import {CheckIn, CheckOut} from "./heroicons";
 
+const InOut = ({direction}) => ( direction ? <CheckIn/> : <CheckOut/> )
 
-const InOut = ({direction}) => {
-    let inout;
-    if (direction) {
-        inout = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                     stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
-        </svg>
-    } else {
-
-        inout = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                     stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-        </svg>
-
-    }
-
-    return inout
-}
-
-
-export const DisabledVideo = ({camname}) => {
+export const DisabledVideo = ({cam}) => {
     return (
 
         <div className="w-full max-w-lg flex-shrink-0 flex flex-col mr-1">
@@ -32,7 +12,7 @@ export const DisabledVideo = ({camname}) => {
                             transform translate translate-y-4 font-bold mt-2
                             text-md tracking-wide text-bgray-700 bg-bgray-300">
 
-               <span>{camname}</span>
+               <span>{cam.name}</span>
                <div className="bg-gray-400 min-h-[288px]">
                    <span className="inline-block text-4xl text-gray-300 my-24">
                        Disabled
@@ -43,14 +23,14 @@ export const DisabledVideo = ({camname}) => {
     )
 }
 
-export const OfflineVideo = ({camname}) => {
+export const OfflineVideo = ({cam}) => {
     return (
 
         <div className="w-full max-w-lg flex-shrink-0 flex flex-col mr-1">
             <div className="uppercase rounded-t-md py-1 text-center
                             transform translate translate-y-4 font-bold mt-2
                             text-md tracking-wide text-bgray-700 bg-bgray-300">
-                <span>{camname}</span>
+                <span>{cam.name}</span>
                 <div className="bg-gray-400 min-h-[288px]">
                    <span className="inline-block text-4xl text-gray-300 my-24">
                        OFFLINE
@@ -64,14 +44,14 @@ export const OfflineVideo = ({camname}) => {
         </div>
     )
 }
-export const ConnectingVideo = ({camname, msg}) => {
+export const ConnectingVideo = ({cam, msg}) => {
     return (
 
         <div className="w-full max-w-lg flex-shrink-0 flex flex-col mr-1">
             <div className="uppercase rounded-t-md py-1 text-center
                             transform translate translate-y-4 font-bold mt-2
                             text-md tracking-wide text-bgray-700 bg-bgray-300">
-                <span>{camname}</span>
+                <span>{cam.name}</span>
                 <div className="bg-gray-400 min-h-[288px]">
                    <span className="inline-block text-4xl text-yellow-300/60 my-24">
                        {msg}
@@ -85,14 +65,14 @@ export const ConnectingVideo = ({camname, msg}) => {
         </div>
     )
 }
-export const UpdatingVideo = ({camname, msg}) => {
+export const UpdatingVideo = ({cam, msg}) => {
     return (
 
         <div className="w-full max-w-lg flex-shrink-0 flex flex-col mr-1">
             <div className="uppercase rounded-t-md py-1 text-center
                             transform translate translate-y-4 font-bold mt-2
                             text-md tracking-wide text-bgray-700 bg-bgray-300">
-                <span>{camname}</span>
+                <span>{cam.name}</span>
                 <div className="bg-gray-400 min-h-[288px]">
                    <span className="inline-block text-4xl text-yellow-300/60 my-24">
                        {msg}
@@ -107,11 +87,7 @@ export const UpdatingVideo = ({camname, msg}) => {
     )
 }
 
-export const AxVideo = ({cam, hostname,camname,doit }) => {
-
-    React.useEffect(() => {
-        console.log("we made it, baby");
-    })
+export const AxVideo = ({cam}) => {
 
     // @ts-ignore
     return (
@@ -130,7 +106,7 @@ export const AxVideo = ({cam, hostname,camname,doit }) => {
                 <media-stream-player
                     autoplay
                     format="RTP_H264"
-                    hostname={hostname}
+                    hostname={cam.ipaddress}
                 />
             </div>
         </div>
@@ -154,27 +130,27 @@ export const VideoList = (props) => {
        let vid = (cam) => {
            //changed being made to camera, addreess, name, enabled, things like that.
            if (cam.updating) {
-               return  <UpdatingVideo camname={cam.name} msg="Updating.." />
+               return  <UpdatingVideo cam={cam} msg="Updating.." />
            }
            if (cam.enabled) {
 
                if (cam.streaming) {
 
                    if (app_state.StoppingAllStreams) {
-                       return (<ConnectingVideo camname={cam.name} msg="Disconnecting.."/>)
+                       return (<ConnectingVideo cam={cam} msg="Disconnecting.."/>)
                    }
-                   return ( <AxVideo cam={cam} hostname={cam.ipaddress} camname={cam.name} /> )
+                   return ( <AxVideo cam={cam} /> )
                } else {
                    if (app_state.StartingAllStreams) {
-                       return (<ConnectingVideo camname={cam.name} msg="Connecting.."/> )
+                       return (<ConnectingVideo cam={cam} msg="Connecting.."/> )
                    }
 
-                   return (<OfflineVideo camname={cam.name}/> )
+                   return (<OfflineVideo cam={cam}/> )
 
                }
 
            } else {
-               return (<DisabledVideo camname={cam.name}/>)
+               return (<DisabledVideo cam={cam}/>)
            }
 
 

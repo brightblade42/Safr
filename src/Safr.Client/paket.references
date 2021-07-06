@@ -1,11 +1,8 @@
 Fable.Core
 Fable.React
 Fable.Remoting.Client
-
-Feliz
 Feliz.Router
 Feliz.UseDeferred
 Feliz.UseElmish
-
 Fable.SignalR
 Fable.SignalR.Feliz

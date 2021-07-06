@@ -30,7 +30,6 @@ nuget Fable.React
 nuget Fable.Remoting.Client
 nuget Fable.SignalR
 nuget Fable.SignalR.Feliz
-nuget Feliz
 nuget Feliz.UseElmish
 nuget Feliz.Router
 nuget Feliz.UseDeferred

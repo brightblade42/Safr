@@ -23,72 +23,50 @@ import {
     Toolbar
 } from "@devexpress/dx-react-grid-material-ui";
 import { FontAwesomeIcon as FAIcon } from "@fortawesome/react-fontawesome";
+import {CheckIn, CheckOut} from "./heroicons";
 import {DateTime} from 'luxon';
 import {OKCancelDialog} from "./dialogs";
 
-const getRowId = row => row.id
 
+const getRowId = row => row.id
 
 const CamEnabledEditor = (props) => {
         let value= props.value;
         let onValueChange = props.onValueChange
         return (
-        <Select
-            input={<Input />}
-            value={value ? 'Enabled' : 'Disabled'}
-            onChange={event => onValueChange(event.target.value === 'Enabled')}
-            style={{ width: '100%' }}
-        >
-            <MenuItem value="Enabled">
-                Enabled
-            </MenuItem>
-            <MenuItem value="Disabled">
-                Disabled
-            </MenuItem>
-        </Select>
+            <Select
+                input={<Input />}
+                value={value ? 'Enabled' : 'Disabled'}
+                onChange={event => onValueChange(event.target.value === 'Enabled')}
+                style={{ width: '100%' }} >
+                <MenuItem value="Enabled">
+                    Enabled
+                </MenuItem>
+                <MenuItem value="Disabled">
+                    Disabled
+                </MenuItem>
+            </Select>
         )
 }
-
 
 const CamDirectionEditor = ({ value, onValueChange }) => (
     <Select
         input={<Input />}
         value={value ? 'IN' : 'OUT'}
         onChange={event => onValueChange((event.target.value === 'IN') ? 1 : 0)}
-        style={{ width: '100%' }}
-    >
-        <MenuItem value="IN">
-            IN
-        </MenuItem>
-        <MenuItem value="OUT">
-            OUT
-        </MenuItem>
+        style={{ width: '100%' }} >
+            <MenuItem value="IN"> IN </MenuItem>
+            <MenuItem value="OUT"> OUT </MenuItem>
     </Select>
 );
 
 const CamDirectionFormatter = (props) => {
-    let inout;
     let value = props.value;
 
-    if (value) {
-        inout = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                     stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
-        </svg>
-    } else {
-
-        inout = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                     stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-        </svg>
-
-    }
     return(
         <div
             className="w-[5rem] flex justify-start items-center flex-shrink-0 border border-green-900 uppercase text-sm font-extrabold bg-green-100 text-green-900 py-1 px-2 rounded-md flex-shrink-0 ">
-            {inout}
+            {value ? <CheckIn /> : <CheckOut/> }
             <span className="ml-2">{value ? "IN" : "OUT"}</span>
         </div>
     )
