@@ -10,6 +10,20 @@ open FSharp.Data.JsonExtensions
 
 module Eyemetric =
 
+  type DateRange =
+    {
+      start_date: string
+      end_date: string
+    }
+    static member Decoder: Decoder<DateRange> =
+        Decode.object (fun get -> {
+            start_date  = get.Required.At ["start_date"]  Decode.string
+            end_date  = get.Required.At ["end_date"]  Decode.string
+        })
+
+    static member from (json: string) =
+      Decode.fromString DateRange.Decoder json
+
   [<CLIMutable>]
   type FRLog =
         {
@@ -50,6 +64,20 @@ module TPass =
     type SearchType = string
     type SearchReq = (IDOrName * SearchType * CompID)
     type Credential = | UserPass of (string * string)
+
+    type LoginCred =
+        {
+        user: string
+        password: string
+        }
+        static member Decoder: Decoder<LoginCred> =
+            Decode.object (fun get -> {
+                user  = get.Required.At ["user"]  Decode.string
+                password  = get.Required.At ["password"]  Decode.string
+            })
+
+        static member from (json: string) =
+          Decode.fromString LoginCred.Decoder json
     type AuthToken = string
 
     type JWToken =

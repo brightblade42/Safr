@@ -26,6 +26,7 @@ import { FontAwesomeIcon as FAIcon } from "@fortawesome/react-fontawesome";
 import {CheckIn, CheckOut} from "./heroicons";
 import {DateTime} from 'luxon';
 import {OKCancelDialog} from "./dialogs";
+import {AppState} from "./AppState";
 
 
 const getRowId = row => row.id
@@ -126,14 +127,16 @@ let BuildCamEnabledFormatter = (onclick, is_busy) => {
 
 export const CameraSettings = (props) => {
 
-    const gmodel = props.gmodel;
-    const model = props.model;
+    //const gmodel = props.gmodel;
+    const app_state: AppState = props.state
     const funcs = props.funcs;
 
     const [editingRowIds, setEditingRowIds] = React.useState([]);
     const [addedRows, setAddedRows]         = React.useState([]);
     const [rowChanges, setRowChanges]       = React.useState({});
     const [deletedRow, setDeletedRow]       = React.useState(0);
+
+
     const [pageSizes] = React.useState([5,10,15, 0]);
     const columns = [
 
@@ -149,12 +152,15 @@ export const CameraSettings = (props) => {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
 
     const handle_start_or_stop = (row) => {
+        console.log("handle start or stop")
         if (row.streaming) {
             funcs.stop_camera(row)
         }
         else {
             funcs.start_camera(row)
         }
+
+
     }
     const handle_cancel = () => {
         setIsDeleteDialogOpen(false)
@@ -162,12 +168,13 @@ export const CameraSettings = (props) => {
 
     const handle_delete = () => {
         setIsDeleteDialogOpen(false)
-        funcs.delete_camera(deletedRow)
+        console.log("handle delete camera");
+        //funcs.delete_camera(deletedRow)
     }
 
     const any_cams_updating = () => {
         let any_updates = false;
-        gmodel.Rows.forEach(r => {
+        app_state.available_cameras.forEach(r => {
             if (r.updating) {
                 any_updates = true;
             }
@@ -177,7 +184,7 @@ export const CameraSettings = (props) => {
     }
 
     const streams_inflight = () => {
-        return model.StartingAllStreams || model.StoppingAllStreams
+        return app_state.starting_all_streams || app_state.stopping_all_streams
     }
 
     const is_busy = () => {
@@ -202,7 +209,8 @@ export const CameraSettings = (props) => {
         if (added) {
             let addRow = added[0];
             let nrow = Object.assign(addRow, {id: 0} );
-            funcs.add_camera(nrow);
+
+            //funcs.add_camera(nrow);
         }
         if (changed) {
             let id = Object.keys(changed)[0];
@@ -212,10 +220,11 @@ export const CameraSettings = (props) => {
                 console.log("you so fine.. yeah, undefined. Bazinga")
                 return;
             }
-            let crow = gmodel.Rows.find(x =>  x.id === parseInt(id));
+            //let crow = gmodel.Rows.find(x =>  x.id === parseInt(id));
+            let crow = app_state.available_cameras.find(x =>  x.id === parseInt(id));
             let new_row = Object.assign(crow, changed_row)
 
-            funcs.update_camera(new_row)
+           // funcs.update_camera(new_row)
         }
         if (deleted) {
 
@@ -225,13 +234,19 @@ export const CameraSettings = (props) => {
 
     };
 
-     const on_start_streams = () =>  { funcs.start_all_streams(); };
-    const  on_stop_streams = () => { funcs.stop_all_streams(); }
+    const on_start_streams = () =>  {
+        console.log("on start streams called");
+        funcs.start_all_streams();
+    };
+    const  on_stop_streams = () => {
+        console.log("on stop streams called");
+        funcs.stop_all_streams();
+    }
 
     const renderDialog = () => {
          if (isDeleteDialogOpen) {
              console.log(deletedRow);
-             let row = gmodel.Rows.find(r => r.id === deletedRow);
+             let row = app_state.available_cameras.find(r => r.id === deletedRow);
              let confirm_desc = "Are you sure you want to delete " + row.name + " ?";
              let confirm_msg = "Delete"
              let title = "Delete Camera"
@@ -253,7 +268,7 @@ export const CameraSettings = (props) => {
 
            <div className="p-6 bg-bgray-100 fr-history"  >
                <Grid
-                   rows={gmodel.Rows}
+                   rows={app_state.available_cameras}
                    columns={columns}
                    getRowId={getRowId}
                >

@@ -46,6 +46,7 @@ let AppView (props: {| m: AppState; dispatch:Dispatch<Msg>; |}) = // hub: Hub<Ac
             ]
          ]
 
+    (*
     let render =
         Html.div [
            prop.className ["mt-16"]
@@ -59,11 +60,13 @@ let AppView (props: {| m: AppState; dispatch:Dispatch<Msg>; |}) = // hub: Hub<Ac
                     Components.CameraSettings {| m=props.m; dispatch=dispatch; hub=hub; |}
            ]
         ]
-
+    *)
+    let render =
+        Html.div [  ]
 
     React.router [
         router.pathMode
-        router.onUrlChanged (Page.parseFromUrlSegments >> UrlChanged >> props.dispatch)
+        //router.onUrlChanged (Page.parseFromUrlSegments >> UrlChanged >> props.dispatch)
         router.children [ navigation; render ]
     ]
 

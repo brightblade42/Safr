@@ -11,6 +11,8 @@
         <Compile Include="Pages.fs" />
         <Compile Include="App.fs" />
         <Content Include="public\index.html" />
+        <Content Include="src\AppContext.ts" />
+        <Content Include="src\AppState.ts" />
         <Content Include="src\axvideo.jsx" />
         <Content Include="src\appbar.tsx" />
         <Content Include="src\goodface.tsx" />
@@ -21,6 +23,7 @@
         <Content Include="src\dialogs.tsx" />
         <Content Include="src\login.tsx" />
         <Content Include="src\progressbars.tsx" />
+        <Content Include="src\RemoteApi.ts" />
         <Content Include="src\types\images.d.ts" />
         <Folder Include="src\images" />
         <Content Include="src\index.css" />

@@ -3,9 +3,9 @@ open Safr.Client //.RemoteApi
 open Safr.Types.Paravision.Streaming
 open Safr.Types.Eyemetric
 open EyemetricFR.Shared
-open Safr.Client.Router
+//open Safr.Client.Router
 open Elmish
-open Feliz.Router
+//open Feliz.Router
 
 type LocalCamera = {
     ID: int
@@ -37,7 +37,7 @@ type FRLogStatus =
 
 type AppState = {
 
-    CurrentPage: Page
+   // CurrentPage: Page
     LoginStatus: LoginState
     FRHistoryLoading: bool //TODO: consider a Union
     MatchedFaces: IdentifiedFace list
@@ -80,13 +80,13 @@ type Msg =
    // | GetFRLogs
     | GetFRLogsDateRange of FRHistoryRange
     | GetFRLogsResponse of seq<FRLog>
-    | UrlChanged of currentPage:Page
+    //| UrlChanged of currentPage:Page
 
 let init () =
-        let nextPage = (Router.currentPath() |> Page.parseFromUrlSegments)
+        //let nextPage = (Router.currentPath() |> Page.parseFromUrlSegments)
 
         {
-            CurrentPage = nextPage
+          //  CurrentPage = nextPage
             LoginStatus = NotLoggedIn
             FRHistoryLoading = false
             FRLogs = Seq.empty  //nuthin at first
@@ -198,7 +198,7 @@ let toggle_detected_image (m:AppState) =
 module LoginFuncs =
 
     let do_login (cred: string * string ) = async {
-        return! RemoteApi.service.Login cred
+        return false //RemoteApi.service.Login cred
     }
 
     let withAsyncLoginCommand (m:AppState) (cred: string * string) =
@@ -214,7 +214,8 @@ module FRHistoryFuncs =
 
     let  get_frlog_daterange (range: FRHistoryRange) = async {
 
-        let! res = RemoteApi.service.GetFRLogByDate range.StartDate range.EndDate
+        return Seq.empty
+        (*let! res = RemoteApi.service.GetFRLogByDate range.StartDate range.EndDate
 
         return
             match res with
@@ -222,6 +223,7 @@ module FRHistoryFuncs =
             | Error e ->
                 printfn $"ERROR GETTING LOG: %A{e}"
                 Seq.empty
+                *)
     }
 
     //SIDE EFFECTS
@@ -253,4 +255,4 @@ let update (msg:Msg) (model:AppState) : AppState * Cmd<Msg> =
     //| GetFRLogs                    -> (model, Some(100)) ||> FRHistoryFuncs.withAsyncFRLogCommand
     | GetFRLogsDateRange range   -> (model, range) ||> FRHistoryFuncs.withAsyncFRLogDateRangeCommand
     | GetFRLogsResponse msg        -> (model, msg) ||> FRHistoryFuncs.on_frlogs_response
-    | UrlChanged page              -> { model with CurrentPage = page }, Cmd.none
+    //| UrlChanged page              -> { model with CurrentPage = page }, Cmd.none

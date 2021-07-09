@@ -1,20 +1,23 @@
 import React, {useState} from 'react';
 import eye from "./images/eye_logo.png";
 import { FontAwesomeIcon as FAIcon } from "@fortawesome/react-fontawesome";
+import {AppState, LoginState} from './AppState';
 
-export const LoginComponent = ({model, onLogin}) => {
+export const LoginComponent = (props) => {
+
+    let model: AppState = props.model;
 
     let [user,setUser] = React.useState("")
     let [pwd,setPwd] = React.useState("")
 
     function handle_login() {
-        console.log ("login js hand off");
+        console.log ("-- login parent hand off --");
         let cUser = user
         let cPwd = pwd
         setUser("")
         setPwd("")
 
-        onLogin(cUser, cPwd);
+        props.onLogin(cUser, cPwd);
 
     }
 
@@ -27,13 +30,17 @@ export const LoginComponent = ({model, onLogin}) => {
 
     //maybe better as an F# callback. using the tag is a but of a hack.
     function toggle_msg () {
-        return (model.LoginStatus.tag === 3) ?  "opacity-100" : "opacity-0"
+        return (model.login_status.type === "Failed") ? "opacity-100" : "opacity-0"
     }
 
+    //this isn't quite right.
+    function is_login_disabled (): boolean {
+        return (model.login_status.type === "NotLoggedIn" && user.length < 1)
+    }
 
     function is_in_flight () {
         //console.log ("Hello precious....")
-        return (model.LoginStatus.tag === 2) ?  "opacity-100" : "opacity-0"
+        return (model.login_status.type === "InFlight") ? "opacity-100" : "opacity-0"
     }
 
     const showpwd = "password"
@@ -69,7 +76,7 @@ export const LoginComponent = ({model, onLogin}) => {
                                onChange={(e)=> handlePwdChange(e)}
                                className="border rounded-lg px-3 py-2 mt-1 mb-5 text-sm w-full"/>
                         <button type="button"
-                                disabled={model.LoginStatus.tag === 3 && user.length < 1}
+                                disabled={is_login_disabled()}
                                 onClick={() => handle_login()}
                                 className="relative flex justify-center
                                 items-center transition duration-200

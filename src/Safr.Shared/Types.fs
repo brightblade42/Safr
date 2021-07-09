@@ -63,7 +63,7 @@ module Shared =
 
 
     //not used as much but, keep around
-    module Remoting =
+(*    module Remoting =
 
         type Service = {
             Recognize : unit -> Async<string>
@@ -75,3 +75,4 @@ module Shared =
         with
             static member RouteBuilder _ m = $"/api/fr/%s{m}"
 
+*)

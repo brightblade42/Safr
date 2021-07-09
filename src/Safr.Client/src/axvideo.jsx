@@ -116,8 +116,11 @@ export const AxVideo = ({cam}) => {
 
 export const VideoList = (props) => {
 
-   let app_state = props.model;
-   let available_cams = props.available_cams;
+   let app_state = props.state;
+   console.log("==== prop aroni =====")
+  // console.log(props)
+   let available_cams =app_state.available_cameras;
+
 
    let avail_cams = () => {
 
@@ -162,6 +165,8 @@ export const VideoList = (props) => {
 
    };
 
+
+
     return (
         <div className="overflow-x-scroll flex -ml-1 -mt-6 bg-gray-50 pb-0 px-1 min-h-[365px]">
             {avail_cams()}
@@ -169,5 +174,8 @@ export const VideoList = (props) => {
     )
 }
 
+/*
+
+ */
 
 

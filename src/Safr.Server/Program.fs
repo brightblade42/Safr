@@ -18,7 +18,7 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.HttpOverrides
 open FSharp.Control.Tasks.V2
 open Shared
-open Shared.Remoting
+//open Shared.Remoting
 open Safr.Types.Paravision.Streaming
 open Safr.Types.Paravision.Identification
 open Safr.Types.TPass
@@ -334,96 +334,6 @@ module Global =
             let! res = fr.update_camera cam
             return res
         }
-let serviceFunc (ctx: HttpContext) : Service =
-    let fr = ctx.GetService<FRService>() :> IFR
-
-
-    //let ag = fr.get_agent()
-    //let a =  ag.get_state() |> Async.RunSynchronously
-
-    let service = {
-
-        //Recognize = fun (img: byte array) -> async {
-        Recognize = fun () -> async {
-           (*let! res =  (FaceImage.Binary img) |> ag.recognize
-           match res with
-           | Ok pm ->
-               printfn "%A" pm
-               return "Person was potentially found, real data to follow"
-           | Error e ->  return e
-            *)
-            return "groovy"
-        }
-
-        GetMessage = fun _ -> async {
-           return "No messages here"
-        }
-
-        Login = fun cred -> async {
-
-            let user,pwd = cred
-            let res = (fr.validate_user user pwd)
-            printfn $"result from validate user: %A{res}"
-            return res  // fr.validate_user user pwd
-
-        }
-
-        GetFRLogByDate = fun startdate enddate -> async {
-
-            printfn "Hello from Remote Service"
-            let! logs = fr.get_frlog_daterange startdate enddate
-
-            //let! logs = fr.get_frlog_top count
-            //very hacky quick and dirty
-            let with_images =
-                match logs with
-                | Ok logs ->
-                    logs |> Seq.map(fun lg ->
-                        let en = fr.get_enrollment lg.identity |> Async.RunSynchronously
-                        //printfn "%A" lg.detected_img
-                        match en with
-                        | Ok (Some enr) ->
-                            let img = Convert.ToBase64String enr.pv_img
-                            {lg with matched_face = img}
-                        | _ -> lg
-
-                        ) |> Ok
-
-                | Error e -> Error e
-
-
-            return with_images //logs
-
-
-        }
-
-        GetLatestLog = fun count -> async {
-            printfn "Hello from Remote Service"
-            let! logs = fr.get_frlog_top count
-
-            //very hacky quick and dirty
-            let with_images =
-                match logs with
-                | Ok logs ->
-                    logs |> Seq.map(fun lg ->
-                        let en = fr.get_enrollment lg.identity |> Async.RunSynchronously
-                        //printfn "%A" lg.detected_img
-                        match en with
-                        | Ok (Some enr) ->
-                            let img = Convert.ToBase64String enr.pv_img
-                            {lg with matched_face = img}
-                        | _ -> lg
-
-                        ) |> Ok
-
-                | Error e -> Error e
-
-
-            return with_images //logs
-
-        }
-    }
-    service
 
 
 //don't like the _ generic param. Type inference is having a heck of a time
@@ -493,6 +403,72 @@ let add_face_handler  =
                      let msg = $"couldn't process request: %s{ex.Message}"
                      return! json {| error=msg |} next ctx
         }
+
+let login_handler =
+    fun (next: HttpFunc) (ctx: HttpContext) -> task {
+
+        try
+            let fr = ctx.GetService<FRService>() :> IFR
+            let req = ctx.Request.Body
+            use sr = new StreamReader(req)
+            let! body_str = sr.ReadToEndAsync()
+            let login = LoginCred.from body_str
+            let r =
+                match login with
+                | Ok lg ->
+                    let res = (fr.validate_user lg.user lg.password)
+                    json {| valid=res |}
+                | Error e ->
+                    json {| error=e |}
+            //let
+            return! r next ctx
+
+        with
+        | :? Exception as ex ->
+            let msg = $"couldn't process request: %s{ex.Message}"
+            return! json {| error=msg |} next ctx
+    }
+
+let frlog_handler =
+    fun (next: HttpFunc) (ctx: HttpContext) -> task {
+
+        try
+            let fr = ctx.GetService<FRService>() :> IFR
+            let req = ctx.Request.Body
+            use sr = new StreamReader(req)
+            let! body_str = sr.ReadToEndAsync()
+            let dr = Safr.Types.Eyemetric.DateRange.from body_str
+            let r =
+                match dr with
+                | Ok dd ->
+                    let logs = fr.get_frlog_daterange (Some dd.start_date) (Some dd.end_date) |> Async.RunSynchronously
+                    //not letting the detected image pass to the client for "security" reasons
+                    match logs with
+                    | Ok logs ->
+                         let nlogs =
+                             logs |> Seq.map(fun lg ->
+                             let en = fr.get_enrollment lg.identity |> Async.RunSynchronously
+                             match en with
+                             | Ok (Some enr) ->
+                                 let img = Convert.ToBase64String enr.pv_img
+                                 {lg with matched_face = img; detected_img= ""}
+                             | _ -> {lg with detected_img = ""}
+
+                             )
+
+                         json {| logs=nlogs  |}
+                    | Error e ->
+                        json {| logs=[]; error=e |}
+                 | Error e -> json {| error=e |}
+            return! r next ctx
+         with
+         | :? Exception as ex ->
+             let msg = $"couldn't process request: %s{ex.Message}"
+             return! json {| error=msg |} next ctx
+     }
+
+
+
 
 let delete_face_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
@@ -717,16 +693,7 @@ let update_camera_handler =
         }
 let webApp : HttpHandler =
 
-    let remoting =
-        Remoting.createApi()
-        |> Remoting.withRouteBuilder Service.RouteBuilder
-        |> Remoting.fromContext (serviceFunc)
-        //|> Remoting.fromValue service
-        //|> Remoting.fromValue aserver
-        |> Remoting.buildHttpHandler
-
     choose [
-        remoting
         GET >=>
             choose [
                route "/fr/enrollments" >=> get_enrollments_handler
@@ -737,6 +704,8 @@ let webApp : HttpHandler =
            ]
         POST >=>
             choose [
+                route "/fr/validate_user" >=> login_handler
+                route "/fr/logs" >=> frlog_handler
                 route "/fr/recognize" >=> recognize_handler
                 route "/fr/enrollment/create" >=> enroll_handler
                 route "/fr/enrollment/delete" >=> delete_enrollment_handler

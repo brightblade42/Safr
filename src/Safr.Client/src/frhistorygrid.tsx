@@ -23,6 +23,7 @@ import {
 
 import {DateTime} from 'luxon';
 import { FontAwesomeIcon as FAIcon } from "@fortawesome/react-fontawesome";
+import {AppState} from "./AppState";
 
 
 
@@ -62,8 +63,7 @@ const BuildConfidenceFormatter = (format_conf) => {
 
 export const FRHistoryGrid = (props) => {
 
-    const model = props.model;
-    const gmodel = props.gmodel
+    const app_state: AppState = props.state;
     const funcs = props.funcs;
     const [imageColumns] = React.useState(['detected_img','matched_face']);
     const [dateColumns] = React.useState(['matched_on']);
@@ -84,7 +84,7 @@ export const FRHistoryGrid = (props) => {
     }
 
     const is_loading = () => {
-        return model.FRHistoryLoading ? "opacity-100" : "opacity-0"
+        return app_state.fr_history_loading ? "opacity-100" : "opacity-0"
     }
 
     const columns = [
@@ -137,7 +137,7 @@ export const FRHistoryGrid = (props) => {
                 />
 
                 <button type="button"
-                        disabled={model.FRHistoryLoading}
+                        disabled={app_state.fr_history_loading}
                         onClick={on_load}
                         className="relative flex justify-center
                                 w-32 items-center transition duration-200
@@ -154,15 +154,10 @@ export const FRHistoryGrid = (props) => {
                                 <FAIcon className="text-bgray-100" icon={['fad','spinner-third']}  />
                             </span>
                 </button>
-                {/*
-                <button
-                    disabled={model.FRHistoryLoading}
-                    className="disabled:bg-gray-400 btn-indigo w-32 ml-3" onClick={on_load}>Load History</button>
-                    */}
             </div>
             <div className="px-2 fr-history -mt-12">
                <Grid
-                   rows={gmodel.Rows}
+                   rows={app_state.fr_logs}
                    columns={columns} >
 
                    <ImageTypeProvider for={imageColumns}/>
