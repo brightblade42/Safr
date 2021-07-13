@@ -34,7 +34,7 @@ export type IdentifiedFace = {
     Mask: number;
 }
 
-type FRLog = {
+export type FRLog = {
 
         identity: string;
         detected_img: string; //option //image from a camera

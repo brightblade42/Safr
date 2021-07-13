@@ -65,6 +65,8 @@ export const FRHistoryGrid = (props) => {
 
     const app_state: AppState = props.state;
     const funcs = props.funcs;
+    //const api = props.remote_api;
+
     const [imageColumns] = React.useState(['detected_img','matched_face']);
     const [dateColumns] = React.useState(['matched_on']);
     const [confidenceColumns] = React.useState(['confidence']);
@@ -86,6 +88,7 @@ export const FRHistoryGrid = (props) => {
     const is_loading = () => {
         return app_state.fr_history_loading ? "opacity-100" : "opacity-0"
     }
+
 
     const columns = [
 

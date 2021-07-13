@@ -19,6 +19,7 @@ module FRHub =
 
         match msg with
         | Action.GetAvailableCameras ->
+            printfn "GETTING CAMERAS"
             let ci = create_cam_info fr
             Response.AvailableCameras ci
 

@@ -5,6 +5,7 @@ open System.IO
 open Eyemetric.FR.Types
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Cors.Infrastructure
+open Microsoft.AspNetCore.SignalR
 open Microsoft.AspNetCore.Hosting
 open Microsoft.Extensions.DependencyInjection
 open Giraffe
@@ -345,6 +346,9 @@ let mySignalRConfig: SignalR.Settings<_,_> =
         Invoke = FRHub.invoke
         Config = None
     }
+
+
+
 
 
 let recognize_handler =
@@ -733,6 +737,24 @@ let add_deps (p: IServiceProvider) =
 
 let configCors (builder: CorsPolicyBuilder) =
     builder.WithOrigins("http://localhost:8080").AllowAnyMethod().AllowAnyHeader() |> ignore
+
+
+type MyHub() =
+    inherit Hub()
+
+    member self.SendMessageToAll(message:string) =
+        printfn $"Sending %s{message} to All the boys and girls."
+        self.Clients.All.SendAsync("ReceiveMessage", message) |> Async.AwaitTask |> Async.RunSynchronously
+
+    member self.SendIdentifiedFace(face: IdentifiedFace) =
+        printfn "sending a face"
+        self.Clients.All.SendAsync("FaceIdentified", face) |> Async.AwaitTask |> Async.StartImmediate |> ignore
+
+
+
+
+
+
 let configureApp (app: IApplicationBuilder) =
         //let fho = new ForwardedHeadersOptions() //for the reverse proxy magic
         //fho.ForwardedHeaders <- ForwardedHeaders.XForwardedFor ||| ForwardedHeaders.XForwardedProto
@@ -750,8 +772,9 @@ let configureApp (app: IApplicationBuilder) =
                  opts.AllowAnyOrigin() |> ignore
                  ()
                 )
-
-            .UseSignalR(mySignalRConfig)
+            .UseEndpoints(fun endpoints ->
+                endpoints.MapHub<MyHub>("/myhub") |> ignore )
+           // .UseSignalR(mySignalRConfig)
 
           //  .UseCors(configCors)
             .UseGiraffe webApp
@@ -759,7 +782,8 @@ let configureApp (app: IApplicationBuilder) =
 let configureServices (services: IServiceCollection) =
 
         services.AddSingleton<FRService>(add_deps) |> ignore
-        services.AddSignalR(mySignalRConfig) |> ignore //.AddMessagePackProtocol() |> ignore
+        //services.AddSignalR(mySignalRConfig) |> ignore //.AddMessagePackProtocol() |> ignore
+        services.AddSignalR() |> ignore
         services.AddCors()|> ignore
         services.AddGiraffe() |> ignore
         services.AddSingleton(ThothSerializer()) |> ignore

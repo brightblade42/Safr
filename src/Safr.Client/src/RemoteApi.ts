@@ -1,4 +1,6 @@
 
+
+
 export function RemoteApiBuilder() {
 
     let api_root = `${window.location.href}fr/`;
@@ -49,7 +51,7 @@ export function RemoteApiBuilder() {
 
     return Object.freeze({
         root: api_root,
-        validate_user: validate_user,
-        get_frlogs: get_frlogs
+        validate_user,
+        get_frlogs
     });
 }

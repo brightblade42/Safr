@@ -1,7 +1,7 @@
 import React,{ useReducer, useState}  from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import {AppState, LoginState, mockstate, init_state, CameraStream} from './AppState';
+import {AppState, LoginState, mockstate, init_state, CameraStream, FRLog } from './AppState';
 import {VideoList} from "./axvideo";
 //import { App } from './bin/App';
 import { FontAwesomeIcon as FAIcon } from "@fortawesome/react-fontawesome";
@@ -27,6 +27,7 @@ import {FRHistoryGrid} from "./frhistorygrid";
 
 //import AppContext from "./AppContext";
 import {RemoteApiBuilder} from "./RemoteApi";
+import * as signalR from '@microsoft/signalr';
 
 library.add(fas, far, fad, fal)
 
@@ -44,8 +45,6 @@ export const  Home  = ({state, dispatch}) => {
        let res = await api.validate_user("admin", "njbs1968");
 
        console.log(res);
-       let logs = await api.get_frlogs("2021-06-29T06:00", "2021-06-29T16:00");
-       console.log(logs);
        try {
            console.log("Loading remote camera data")
            //signalR call goes here.
@@ -81,18 +80,23 @@ export const  Users  = (props) => {
 
 //The state
 
-
 type LoginStateChangedMsg = {
     action: "LoginStateChanged";
-    payload: LoginState
+    payload: LoginState;
 }
 
-type DummyStateChangedMsg = {
-    action: "DummyStateChangedMsg";
-    payload: boolean
+
+type FRHistoryLoadingMsg = {
+    action: "FRHistoryLoading";
+    payload: boolean;
 }
 
-type Msg = LoginStateChangedMsg | DummyStateChangedMsg;
+type FRLogStateChangedMsg = {
+    action: "FRLogStateChanged";
+    payload: FRLog[];
+}
+
+type Msg = LoginStateChangedMsg | FRHistoryLoadingMsg | FRLogStateChangedMsg;
 
 
 const assertUnreachable = (x: never): never => {
@@ -105,8 +109,11 @@ const update  = (state: AppState, msg:Msg) => {
         case "LoginStateChanged": {
             return { ...state, login_status: msg.payload}
         }
-        case "DummyStateChangedMsg":  {
-            return state
+        case "FRHistoryLoading": {
+            return { ...state, fr_history_loading: msg.payload}
+        }
+        case "FRLogStateChanged": {
+            return {...state, fr_logs: msg.payload}
         }
     }
     return assertUnreachable(msg);
@@ -115,8 +122,28 @@ const update  = (state: AppState, msg:Msg) => {
 function App (props) {
 
     let logout = props.logout;
+    const dispatch = props.dispatch;
     let [show_camsettings,set_show_camsettings] = React.useState(true);
 
+    const api = RemoteApiBuilder();
+
+    const hub = new signalR.HubConnectionBuilder()
+        //.withUrl("http://localhost:8085/socket/fr")
+        .withUrl("http://localhost:8085/myhub")
+        .withAutomaticReconnect()
+        .configureLogging(signalR.LogLevel.Information)
+        .build();
+
+    hub.start().then(a => {
+        console.log(`hub connection started.. ${a}` );
+        hub.send("SendMessageToAll", "Hi there").then(a => {
+            console.log(`hub method invoked bro ${a}`);
+        });
+    })
+
+    hub.on("ReceiveMessage", msg => {
+        console.log(`got the server message: ${msg}`);
+    } )
     let toggle_settings = () => {
         set_show_camsettings(!show_camsettings);
     }
@@ -130,10 +157,25 @@ function App (props) {
     }
 
     let fr_history_funcs = {
-        on_load: (start, end) => { console.log(`LOADING THE FR HISTORY ${start}: ${end}`)},
+        on_load: async (start, end) => {
+            try {
+
+                dispatch({action: "FRHistoryLoading", payload: true});
+                let res = await api.get_frlogs(start, end);
+                let logs: FRLog[] = res.logs
+                dispatch({action: "FRLogStateChanged", payload: logs})
+
+            }
+            catch (err ) {
+               console.log("failed to load history logs..");
+               console.log(err);
+            } finally {
+                dispatch({action: "FRHistoryLoading", payload: false});
+            }
+        },
         format_conf: (conf: number) => {
-            console.log("format conf")
-            return (conf >= 1) ? "100%" : `${conf * 100}%`; //todo: truncate the decimals
+            let truncated = parseFloat(conf.toString().slice(0, (conf.toString().indexOf(".")) + 5)) * 100;
+            return (conf >= 1) ? "100%" : `${truncated}%`;
         }
 
     }
