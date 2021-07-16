@@ -23,15 +23,15 @@ export type CameraStream = {
 
 export type IdentifiedFace = {
 
-    ID: string;
-    Name: string;
-    Cam: string;
-    Confidence: number;
-    TimeStamp: string;
-    Image: Uint8Array; //this is gonna get weird, I know it. Convert to B64 as well.
-    Frame: Uint8Array;
-    Status: string;
-    Mask: number;
+    id: string;
+    name: string;
+    cam: string;
+    confidence: number;
+    timeStamp: string;
+    image: Uint8Array; //this is gonna get weird, I know it. Convert to B64 as well.
+    frame: Uint8Array;
+    status: string;
+    mask: number;
 }
 
 export type FRLog = {
@@ -52,8 +52,8 @@ export interface AppState {
     matched_faces: IdentifiedFace[];
     fr_watchlist: IdentifiedFace[];
     fr_logs: FRLog[];
-    streams_loading: boolean;
     fr_history_loading: boolean;
+    streams_loading: boolean;
     starting_all_streams: boolean;
     stopping_all_streams: boolean;
 

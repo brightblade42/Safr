@@ -15,8 +15,7 @@
         <Content Include="src\AppState.ts" />
         <Content Include="src\axvideo.jsx" />
         <Content Include="src\appbar.tsx" />
-        <Content Include="src\goodface.tsx" />
-        <Content Include="src\badface.tsx" />
+        <Content Include="src\facecards.tsx" />
         <Content Include="src\frhistorygrid.tsx" />
         <Content Include="src\camerasettings.tsx" />
         <Content Include="src\heroicons.tsx" />

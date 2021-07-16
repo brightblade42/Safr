@@ -9,6 +9,7 @@ open Eyemetric.FR.Logging.Enrollment
 open Eyemetric.FR.Config
 open Eyemetric.FR.Camera
 open Eyemetric.FR.Enrollment
+open Microsoft.AspNetCore.SignalR
 open Paravision
 open Paravision.Identification
 open Safr.Types.Paravision.Streaming
@@ -63,7 +64,9 @@ type FRService(config_agent:     ConfigAgent,
                cam_agent:        CameraAgent,
                fr_log_agent:     FRLogAgent,
                enroll_log_agent: EnrollLogAgent,
-               hub:              FableHubCaller<FRHub.Action, FRHub.Response>) =
+              // hub:              Option<FableHubCaller<FRHub.Action, FRHub.Response>>
+               hub:              Hub
+               ) =
 
     let mutable config_agent = config_agent
     let mutable fr_log_agent = fr_log_agent
@@ -355,7 +358,8 @@ type FRService(config_agent:     ConfigAgent,
                                      }
 
                         printfn "HELLO MCFLY!!!"
-                        hub_context.Clients.All.Send (FRHub.Response.Face id_face) |> ignore
+                        hub_context.Clients.All.SendAsync("FaceIdentified", id_face) |> Async.AwaitTask |> Async.Start
+                        //hub_context.Clients.All.Send (FRHub.Response.Face id_face) |> ignore
                         (id_face, pi, expanded_image) |||> log_matched_identity
                         ()
 
@@ -424,7 +428,8 @@ type FRService(config_agent:     ConfigAgent,
 
        let cam_info = {cam_info with available_cams = av }
 
-       hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info) |> ignore
+       hub_context.Clients.All.SendAsync("AvailableCameras", cam_info) |> Async.AwaitTask |> Async.Start
+       //hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info) |> ignore
     }
 
     let notify_clients_camera_adding (cam: CameraStream) = async {
@@ -441,7 +446,8 @@ type FRService(config_agent:     ConfigAgent,
 
        let cam_info = {cam_info with available_cams = av }
 
-       hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info) |> ignore
+       hub_context.Clients.All.SendAsync("AvailableCameras", cam_info) |> Async.AwaitTask |> Async.Start
+       //hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info) |> ignore
     }
 
 
@@ -455,20 +461,25 @@ type FRService(config_agent:     ConfigAgent,
                 else c )
 
        let cam_info = {cam_info with available_cams = av }
-
-       hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info) |> ignore
+       hub_context.Clients.All.SendAsync("AvailableCameras", cam_info) |> Async.AwaitTask |> Async.Start
+       //hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info) |> ignore
     }
 
     let notify_clients_camera_updated () = async {
         let! cam_info = get_cam_info()
-        hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info ) |> ignore
+        hub_context.Clients.All.SendAsync("AvailableCameras", cam_info) |> Async.AwaitTask |> Async.Start
     }
 
     let notify_streams_starting() = async {
-        hub_context.Clients.All.Send(FRHub.Response.StreamsStarting ) |> ignore
+        printfn "Streams Starting on Server"
+        hub_context.Clients.All.SendAsync("StreamsStarting") |> Async.AwaitTask |> Async.Start
+
+        //hub_context.Clients.All.Send(FRHub.Response.StreamsStarting ) |> ignore
     }
     let notify_streams_stopping() = async {
-        hub_context.Clients.All.Send(FRHub.Response.StreamsStopping) |> ignore
+        printfn "Streams Stopping on Server"
+        hub_context.Clients.All.SendAsync("StreamsStopping") |> Async.AwaitTask |> Async.Start
+        //hub_context.Clients.All.Send(FRHub.Response.StreamsStopping) |> ignore
     }
 
     let stop_streams () = async {
@@ -585,7 +596,6 @@ type FRService(config_agent:     ConfigAgent,
                     let! started = [cam] |> det_agent.start_decode
                     printfn $"FRSERVICE: New Cam stream started: %A{started}"
                     do! notify_clients_camera_updated ()
-                    //hub_context.Clients.All.
                     return "new camera saved"
 
                 | Error e ->  //TODO: match on exception to provide correct message
@@ -666,7 +676,8 @@ type FRService(config_agent:     ConfigAgent,
         token_timer.start()
         sub_faces_detected()
 
-    new (fr_hub: FableHubCaller<FRHub.Action, FRHub.Response>) =
+    //new (fr_hub: Option<FableHubCaller<FRHub.Action, FRHub.Response>>) =
+    new (fr_hub: Hub)=
 
         printfn "NEW UP THE FRSERVICE"
 

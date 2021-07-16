@@ -224,7 +224,8 @@ export const CameraSettings = (props) => {
             let crow = app_state.available_cameras.find(x =>  x.id === parseInt(id));
             let new_row = Object.assign(crow, changed_row)
 
-           // funcs.update_camera(new_row)
+            //TODO: UPDATE CAMERA
+             funcs.update_camera(new_row)
         }
         if (deleted) {
 

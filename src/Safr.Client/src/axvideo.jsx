@@ -139,12 +139,12 @@ export const VideoList = (props) => {
 
                if (cam.streaming) {
 
-                   if (app_state.StoppingAllStreams) {
+                   if (app_state.stopping_all_streams) {
                        return (<ConnectingVideo cam={cam} msg="Disconnecting.."/>)
                    }
                    return ( <AxVideo cam={cam} /> )
                } else {
-                   if (app_state.StartingAllStreams) {
+                   if (app_state.starting_all_streams) {
                        return (<ConnectingVideo cam={cam} msg="Connecting.."/> )
                    }
 
