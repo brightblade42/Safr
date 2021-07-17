@@ -3,21 +3,18 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import {AppState, CameraStream, FRLog, IdentifiedFace, init_state,update, Msg, LoginState} from './appstate';
 import {VideoList} from "./axvideo";
-//import { App } from './bin/App';
 import {library} from "@fortawesome/fontawesome-svg-core";
 import {fal} from '@fortawesome/pro-light-svg-icons';
 import {fas} from '@fortawesome/pro-solid-svg-icons';
 import {far} from '@fortawesome/pro-regular-svg-icons';
 import {fad} from '@fortawesome/pro-duotone-svg-icons';
 import {LoginComponent} from "./login";
-//import {AppState} from "./bin/AppState";
 import {AppBar} from "./appbar";
 import {BrowserRouter as Router, Route, Switch} from "react-router-dom";
 import {GoodFaces, BadFaces} from "./facecards";
 import {CameraSettings} from "./camerasettings";
 import {FRHistoryGrid} from "./frhistorygrid";
 
-//import AppContext from "./AppContext";
 import {RemoteApiBuilder} from "./remote_api";
 import * as signalR from '@microsoft/signalr';
 import {HubConnectionState} from '@microsoft/signalr';
@@ -25,31 +22,11 @@ import {HubConnectionState} from '@microsoft/signalr';
 library.add(fas, far, fad, fal)
 
 
-const timeout = (ms) => {
+function timeout (ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-
-export const  Home  = ({state, dispatch}) => {
-
-   const load_camera_info = async () => {
-
-      // let api = RemoteApiBuilder();
-      // let res = await api.validate_user("admin", "njbs1968");
-
-       //console.log(res);
-       try {
-           console.log("Loading remote camera data")
-           //signalR call goes here.
-           await timeout(2000);
-           console.log("Loaded remote camera data successfully")
-       } catch(err) {
-           console.log(`Load Cameras failed :  ${err}`);
-       }
-   }
-
-   //i thought, empty array meant...run only once.
-   React.useEffect(() => { load_camera_info() }, []);
+function Home({state, dispatch}) {
 
     return (
        <div  className="flex flex-col" >
@@ -285,14 +262,29 @@ interface AppProps {
 function Root () {
 
     let [state, dispatch] = React.useReducer(update, init_state());
+    let api = RemoteApiBuilder();
 
-    const login = () => {
-        dispatch({action: "LoginStateChanged", payload: {type: "LoggedIn"}})
+    function login (user, pwd) {
+        dispatch({action: "LoginStateChanged", payload: {type: "InFlight"}});
+
+        api.validate_user(user, pwd)
+            .then(a => {
+                    console.log("Login result");
+                    console.log(a);
+                    let login_state: LoginState = a.valid ? {type: "LoggedIn"} : {type: "Failed", msg: "Incorrect user name or password"};
+
+                    dispatch({action: "LoginStateChanged", payload: login_state});
+
+            })
+            .catch(err =>  {
+                console.log(`Error logging in: ${err}`);
+                dispatch({action: "LoginStateChanged", payload: {type: "Failed", msg: err}});
+            })
+
     }
 
-    const logout = () => {
+    function logout () {
         dispatch({action: "LoginStateChanged", payload: {type: "NotLoggedIn"}})
-
     }
 
     return (

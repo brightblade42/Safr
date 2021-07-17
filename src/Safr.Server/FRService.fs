@@ -64,7 +64,6 @@ type FRService(config_agent:     ConfigAgent,
                cam_agent:        CameraAgent,
                fr_log_agent:     FRLogAgent,
                enroll_log_agent: EnrollLogAgent,
-              // hub:              Option<FableHubCaller<FRHub.Action, FRHub.Response>>
                hub:              Hub
                ) =
 
