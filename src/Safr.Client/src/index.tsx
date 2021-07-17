@@ -21,7 +21,6 @@ import {HubConnectionState} from '@microsoft/signalr';
 
 library.add(fas, far, fad, fal)
 
-
 function timeout (ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
