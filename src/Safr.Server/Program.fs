@@ -3,30 +3,23 @@ module EyemetricFR.Program
 open System
 open System.IO
 open Eyemetric.FR.Types
+open EyemetricFR.Server.Types
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Cors.Infrastructure
-open Microsoft.AspNetCore.SignalR
 open Microsoft.AspNetCore.Hosting
 open Microsoft.Extensions.DependencyInjection
 open Giraffe
 
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
-open Fable.Remoting.Server
-open Fable.Remoting.Giraffe
-open Fable.SignalR
 open Microsoft.AspNetCore.Http
-open Microsoft.AspNetCore.HttpOverrides
 open FSharp.Control.Tasks.V2
-open Shared
-//open Shared.Remoting
 open Safr.Types.Paravision.Streaming
 open Safr.Types.Paravision.Identification
 open Safr.Types.TPass
 open Thoth.Json.Giraffe
 
-open EyemetricFR.Server.Types //weird. naming things is hard. lol
-
+//weird. naming things is hard. lol
 
 
 //functions shared between standard http api and F# remoting api.
@@ -335,17 +328,6 @@ module Global =
             let! res = fr.update_camera cam
             return res
         }
-
-
-//don't like the _ generic param. Type inference is having a heck of a time
-let mySignalRConfig: SignalR.Settings<_,_> =
-
-    {
-        EndpointPattern = Endpoints.Root
-        Send = FRHub.send
-        Invoke = FRHub.invoke
-        Config = None
-    }
 
 
 
@@ -736,46 +718,9 @@ let configCors (builder: CorsPolicyBuilder) =
     builder.WithOrigins("http://localhost:8080").AllowAnyMethod().AllowAnyHeader() |> ignore
 
 
-type MyHub() =
-    inherit Hub()
-
-    //need to get the Context so we can get the FRService
-
-    member self.SendMessageToAll(message:string) =
-        printfn $"Sending %s{message} to All the boys and girls."
-        self.Clients.All.SendAsync("ReceiveMessage", message) |> Async.AwaitTask |> Async.RunSynchronously
-
-    member self.GetAvailableCameras() =
-        printfn $"Retrieving available cameras"
-        let fr = self.Context.GetHttpContext().GetService<FRService>() :> IFR //not se this is the right place.
-        let cam_info  = fr.get_cam_info () |> Async.RunSynchronously
-        printfn $"%A{cam_info}"
-        self.Clients.All.SendAsync("AvailableCameras", cam_info ) |> Async.AwaitTask |> Async.StartImmediate
-
-    member self.StartAllStreams() =
-        printfn "Starting ALL the Streams! Anybody want a peanut?"
-        let fr = self.Context.GetHttpContext().GetService<FRService>() :> IFR //not se this is the right place.
-        fr.start_streams() |>  Async.Ignore |>  Async.Start
-        ()
-
-    member self.StopAllStreams() =
-        printfn "Stop ALL the Streams! I MEAN IT"
-        let fr = self.Context.GetHttpContext().GetService<FRService>() :> IFR //not se this is the right place.
-        fr.stop_streams() |>  Async.Ignore |>  Async.Start
-        ()
-    member self.SendIdentifiedFace(face: IdentifiedFace) =
-        printfn "sending a face"
-        self.Clients.All.SendAsync("FaceIdentified", face) |> Async.AwaitTask |> Async.StartImmediate
-
-    member self.UpdateCamera(cam:CameraStream) =
-        printfn $"Updating camera : %s{cam.name}"
-        let fr = self.Context.GetHttpContext().GetService<FRService>() :> IFR //not se this is the right place.
-        cam |> fr.update_camera  |> Async.Ignore |> Async.Start //Async.RunSynchronously
-
-
 
 let add_deps (p: IServiceProvider) =
-    let n_hub = p.GetRequiredService<MyHub>()
+    let n_hub = p.GetRequiredService<FRHub>()
     FRService (n_hub)
 
 
@@ -796,15 +741,12 @@ let configureApp (app: IApplicationBuilder) =
                  opts.AllowAnyOrigin() |> ignore
                  ()
                 )
-            .UseEndpoints(fun endpoints -> endpoints.MapHub<MyHub>("/myhub") |> ignore )
-           // .UseSignalR(mySignalRConfig)
-
-          //  .UseCors(configCors)
+            .UseEndpoints(fun endpoints -> endpoints.MapHub<FRHub>("/frhub") |> ignore )
             .UseGiraffe webApp
 
 let configureServices (services: IServiceCollection) =
 
-        services.AddSingleton<MyHub>() |> ignore
+        services.AddSingleton<FRHub>() |> ignore
         services.AddSingleton<FRService>(add_deps) |> ignore
         services.AddSignalR() |> ignore
         services.AddCors()|> ignore

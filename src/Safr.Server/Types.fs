@@ -3,6 +3,23 @@ open Safr.Types.Paravision.Streaming
 
 open Thoth.Json.Net
 
+type IdentifiedFace = {
+
+    ID: string
+    Name: string
+    Cam: string
+    Confidence: float
+    TimeStamp: string
+    Image: byte []
+    Frame: byte []
+    Status: string
+    Mask: float
+}
+
+type CameraInfo = {
+    available_cams: CameraStream list
+    streams: Result<StreamState, string>
+}
 type DeleteEnrollmentRequest =
     {
         fr_ids: string list

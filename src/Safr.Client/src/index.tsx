@@ -1,7 +1,7 @@
 import React, {useEffect} from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import {AppState, CameraStream, FRLog, IdentifiedFace, init_state, LoginState} from './AppState';
+import {AppState, CameraStream, FRLog, IdentifiedFace, init_state,update, Msg, LoginState} from './appstate';
 import {VideoList} from "./axvideo";
 //import { App } from './bin/App';
 import {library} from "@fortawesome/fontawesome-svg-core";
@@ -18,7 +18,7 @@ import {CameraSettings} from "./camerasettings";
 import {FRHistoryGrid} from "./frhistorygrid";
 
 //import AppContext from "./AppContext";
-import {RemoteApiBuilder} from "./RemoteApi";
+import {RemoteApiBuilder} from "./remote_api";
 import * as signalR from '@microsoft/signalr';
 import {HubConnectionState} from '@microsoft/signalr';
 
@@ -34,10 +34,10 @@ export const  Home  = ({state, dispatch}) => {
 
    const load_camera_info = async () => {
 
-       let api = RemoteApiBuilder();
-       let res = await api.validate_user("admin", "njbs1968");
+      // let api = RemoteApiBuilder();
+      // let res = await api.validate_user("admin", "njbs1968");
 
-       console.log(res);
+       //console.log(res);
        try {
            console.log("Loading remote camera data")
            //signalR call goes here.
@@ -53,133 +53,16 @@ export const  Home  = ({state, dispatch}) => {
 
     return (
        <div  className="flex flex-col" >
-           <VideoList state={state} dispatch={dispatch} />
+           <VideoList  state={state} dispatch={dispatch} />
            <GoodFaces faces={state.matched_faces} />
            <BadFaces faces={state.fr_watchlist}/>
        </div>
     )
 }
 
-export const  About  = (props) => {
-    return (
-        <div>This is about us! Cool</div>
-    )
-}
-export const  Users  = (props) => {
-    return (
-        <div >READ You DANG History1</div>
-    )
-}
-
-//The state
-
-type LoginStateChangedMsg = {
-    action: "LoginStateChanged";
-    payload: LoginState;
-}
-
-
-
-type FRHistoryLoadingMsg = {
-    action: "FRHistoryLoading";
-    payload: boolean;
-}
-
-type FRLogStateChangedMsg = {
-    action: "FRLogStateChanged";
-    payload: FRLog[];
-}
-
-type AvailableCamChangedState = {
-
-    available_cameras: CameraStream [];
-    streams_loading: boolean,
-    starting_all_streams: boolean,
-    stopping_all_streams:boolean
-}
-
-
-type AvailableCamerasChangedMsg = {
-    action: "AvailableCamerasChanged";
-    payload: AvailableCamChangedState;
-}
-type FRWatchlistChangedMsg = {
-    action: "FRWatchlistChanged";
-    payload: IdentifiedFace;
-}
-type MatchedFacesChangedMsg = {
-    action: "MatchedFacesChanged";
-    payload: IdentifiedFace;
-}
-
-type StartingAllStreamsMsg = {
-    action: "StartingAllStreams";
-    payload: boolean;
-}
-type StoppingAllStreamsMsg = {
-    action: "StoppingAllStreams";
-    payload: boolean;
-}
-
-type Msg =
-    | LoginStateChangedMsg
-    | FRHistoryLoadingMsg
-    | FRLogStateChangedMsg
-    | AvailableCamerasChangedMsg
-    | FRWatchlistChangedMsg
-    | MatchedFacesChangedMsg
-    | StoppingAllStreamsMsg
-    | StartingAllStreamsMsg
-
-
-
-function assertUnreachable (x: never): never {
-    throw new Error("UNREACHABLE MSG: Didn't expect to get here");
-}
-
-
-function update (state: AppState, msg:Msg) {
-
-    switch(msg.action) {
-        case "LoginStateChanged": {
-            return { ...state, login_status: msg.payload}
-        }
-        case "FRHistoryLoading": {
-            return { ...state, fr_history_loading: msg.payload}
-        }
-        case "FRLogStateChanged": {
-            return {...state, fr_logs: msg.payload}
-        }
-        case "AvailableCamerasChanged": {
-            const cam_state = msg.payload;
-
-            return {
-                ...state,
-                available_cameras: cam_state.available_cameras,
-                stopping_all_streams: cam_state.stopping_all_streams,
-                starting_all_streams: cam_state.starting_all_streams
-            }
-        }
-        //TODO: truncate after max length reached.
-        case "FRWatchlistChanged": {
-            return {...state, fr_watchlist: [msg.payload, ...state.fr_watchlist]}
-        }
-        case "MatchedFacesChanged": {
-            return {...state, matched_faces: [msg.payload, ...state.matched_faces]}
-        }
-        case "StartingAllStreams": {
-            return {...state, starting_all_streams: msg.payload }
-        }
-        case "StoppingAllStreams": {
-            return {...state, stopping_all_streams: msg.payload }
-        }
-    }
-    return assertUnreachable(msg);
-}
 
 //TODO:add types
 function update_available_cams  (cam_info, dispatch)  {
-    console.log("Hello mc fly")
 
     let avail = cam_info.available_cams
     let s_res = cam_info.streams
@@ -205,9 +88,7 @@ function update_available_cams  (cam_info, dispatch)  {
 
 function update_face (face: IdentifiedFace, dispatch) {
 
-    console.log(face)
     if (face.status.includes("FR")) {
-        //console.log("")
         dispatch({action: "FRWatchlistChanged", payload: face})
     } else {
         dispatch({action: "MatchedFacesChanged", payload: face})
@@ -224,8 +105,7 @@ function App (props) {
     const api = RemoteApiBuilder();
 
     const hub = new signalR.HubConnectionBuilder()
-        //.withUrl("http://localhost:8085/socket/fr")
-        .withUrl("http://localhost:8085/myhub")
+        .withUrl("http://localhost:8085/frhub")
         .withAutomaticReconnect()
         .configureLogging(signalR.LogLevel.Information)
         .build();
@@ -258,7 +138,6 @@ function App (props) {
         } );
 
         hub.on("FaceIdentified", msg => {
-            //console.log(msg);
             update_face(msg, dispatch)
         })
 
@@ -291,8 +170,6 @@ function App (props) {
                     console.log("Sweeet JEEE SUS");
                     dispatch({action: "StartingAllStreams", payload: true });
 
-
-
                 }).catch((err)=> {
                     console.log("could not call StartAllStreams on hub");
                     console.log(err);
@@ -315,14 +192,43 @@ function App (props) {
             })()
         },
 
-        start_camera: (c: CameraStream) => { console.log(`Starting : ${c.name}`)},
-        stop_camera: (c: CameraStream) => { console.log(`Stopping : ${c.name}`)},
+        start_camera: (cam: CameraStream) => {
+            try_connect(() => {
+                hub.send("StartStream", cam)
+                    .then(a => console.log("Sent Start Stream request"))
+                    .catch(err => console.log(`Error starting stream: ${err}`))
+
+            })()
+        },
+        stop_camera: (cam: CameraStream) => {
+            try_connect(() => {
+                hub.send("StopStream", cam)
+                    .then(a => console.log("Sent Stop Stream request"))
+                    .catch(err => console.log(`Error stopping stream: ${err}`))
+
+            })()
+
+        },
         update_camera: (c: CameraStream) => {
-            console.log("Update a single camera");
             try_connect(() => {
                 hub.send("UpdateCamera", c)
                     .then(a => console.log("sending update camera req"))
                     .catch(err => console.log(`Couldn't update camer: ${err}`))
+            })()
+        },
+        add_camera: (c: CameraStream) => {
+            try_connect(() => {
+                hub.send("AddCamera", c)
+                    .then(a => console.log("sending add camera req"))
+                    .catch(err => console.log(`Couldn't add camera: ${err}`))
+            })()
+        },
+
+        delete_camera: (id: number) => {
+            try_connect(() => {
+                hub.send("RemoveCamera", id)
+                    .then(a => console.log("sending delete camera req"))
+                    .catch(err => console.log(`Couldn't delete camera: ${err}`))
             })()
         }
     }
@@ -363,22 +269,17 @@ function App (props) {
                             <Home state={props.state} dispatch={props.dispatch} />
                         </div>
                     </Route>
-                    <Route path="/about">
-                        <About />
-                    </Route>
                     <Route path="/frhistory">
                         <FRHistoryGrid state={props.state} funcs={fr_history_funcs} />
                     </Route>
                 </Switch>
             </div>
         </Router>)
-
 }
 
 interface AppProps {
     state: AppState;
     dispatch: React.Dispatch<Msg>;
-
 }
 
 function Root () {

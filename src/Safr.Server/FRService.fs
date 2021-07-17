@@ -4,6 +4,7 @@ open System
 open Eyemetric.FR
 open Eyemetric.FR.Utils
 open Fable.SignalR
+open EyemetricFR.Server.Types //clean up these hideous types
 open Eyemetric.FR.Logging
 open Eyemetric.FR.Logging.Enrollment
 open Eyemetric.FR.Config
@@ -17,7 +18,6 @@ open Safr.Types.Paravision.Identification
 open Paravision.Utils
 open Safr.Types.TPass
 open Safr.Types.Eyemetric
-open Shared
 open TPass.Client.Service
 
 open Eyemetric.FR.Funcs

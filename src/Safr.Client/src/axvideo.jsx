@@ -4,7 +4,7 @@ import {CheckIn, CheckOut} from "./heroicons";
 
 const InOut = ({direction}) => ( direction ? <CheckIn/> : <CheckOut/> )
 
-export const DisabledVideo = ({cam}) => {
+export function DisabledVideo({cam})  {
     return (
 
         <div className="w-full max-w-lg flex-shrink-0 flex flex-col mr-1">
@@ -23,7 +23,7 @@ export const DisabledVideo = ({cam}) => {
     )
 }
 
-export const OfflineVideo = ({cam}) => {
+export function OfflineVideo({cam}) {
     return (
 
         <div className="w-full max-w-lg flex-shrink-0 flex flex-col mr-1">
@@ -44,7 +44,7 @@ export const OfflineVideo = ({cam}) => {
         </div>
     )
 }
-export const ConnectingVideo = ({cam, msg}) => {
+export function ConnectingVideo({cam, msg}) {
     return (
 
         <div className="w-full max-w-lg flex-shrink-0 flex flex-col mr-1">
@@ -65,7 +65,7 @@ export const ConnectingVideo = ({cam, msg}) => {
         </div>
     )
 }
-export const UpdatingVideo = ({cam, msg}) => {
+export function UpdatingVideo({cam, msg})  {
     return (
 
         <div className="w-full max-w-lg flex-shrink-0 flex flex-col mr-1">
@@ -87,7 +87,7 @@ export const UpdatingVideo = ({cam, msg}) => {
     )
 }
 
-export const AxVideo = ({cam}) => {
+export function AxVideo({cam}) {
 
     // @ts-ignore
     return (
@@ -114,15 +114,14 @@ export const AxVideo = ({cam}) => {
 }
 
 
-export const VideoList = (props) => {
+export function VideoList(props) {
 
    let app_state = props.state;
    console.log("==== prop aroni =====")
   // console.log(props)
    let available_cams =app_state.available_cameras;
 
-
-   let avail_cams = () => {
+   const avail_cams = () => {
 
        if (available_cams.length === 0) {
            return (
@@ -130,7 +129,7 @@ export const VideoList = (props) => {
            )
        }
 
-       let vid = (cam) => {
+       const create_video = (cam) => {
            //changed being made to camera, addreess, name, enabled, things like that.
            if (cam.updating) {
                return  <UpdatingVideo cam={cam} msg="Updating.." />
@@ -160,7 +159,7 @@ export const VideoList = (props) => {
        }
 
        return available_cams.map(cam => {
-            return ( <> {vid(cam)} </> )
+            return ( <> {create_video(cam)} </> )
        })
 
    };
@@ -168,7 +167,7 @@ export const VideoList = (props) => {
 
 
     return (
-        <div className="overflow-x-scroll flex -ml-1 -mt-6 bg-gray-50 pb-0 px-1 min-h-[365px]">
+        <div className="overflow-x-scroll flex -ml-1 -mt-10 bg-gray-50 pb-0 px-1 min-h-[365px]">
             {avail_cams()}
         </div>
     )

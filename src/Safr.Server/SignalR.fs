@@ -1,63 +1,63 @@
 namespace EyemetricFR
 
+open EyemetricFR.Server.Types
+open Microsoft.AspNetCore.SignalR
+open Safr.Types.Paravision.Streaming
 
-module FRHub =
+type FRHub() =
+    inherit Hub()
 
-    open Fable.SignalR
-    open FSharp.Control.Tasks.V2
-    open Shared.FRHub
+    //need to get the Context so we can get the FRService
 
-    let create_cam_info (fr: IFR) =
-        //fr.initialize_cameras() |> Async.RunSynchronously |> ignore //if not already
-        let cam_info = fr.get_cam_info () |> Async.RunSynchronously
-        cam_info
+    member self.SendMessageToAll(message:string) =
+        printfn $"Sending %s{message} to All the boys and girls."
+        self.Clients.All.SendAsync("ReceiveMessage", message) |> Async.AwaitTask |> Async.RunSynchronously
 
-    //TODO: bring CameraStream type to shared so we don't have to do this dumb conversion.
-    let update (msg: Action) (hubContext: FableHub) =
+    member self.GetAvailableCameras() =
+        printfn $"Retrieving available cameras"
+        let fr = self.Context.GetHttpContext().GetService<FRService>() :> IFR //not se this is the right place.
+        let cam_info  = fr.get_cam_info () |> Async.RunSynchronously
+        printfn $"%A{cam_info}"
+        self.Clients.All.SendAsync("AvailableCameras", cam_info ) |> Async.AwaitTask |> Async.StartImmediate
 
-        let fr = hubContext.Services.GetService(typeof<FRService>) :?> IFR
+    member self.StartAllStreams() =
+        printfn "Starting ALL the Streams! Anybody want a peanut?"
+        let fr = self.Context.GetHttpContext().GetService<FRService>() :> IFR //not se this is the right place.
+        fr.start_streams() |>  Async.Ignore |>  Async.Start
+        ()
 
-        match msg with
-        | Action.GetAvailableCameras ->
-            printfn "GETTING CAMERAS"
-            let ci = create_cam_info fr
-            Response.AvailableCameras ci
-
-        | Action.AddCamera cam ->
-            //TODO: should be a result type so we can take action for errors.
-            let res = cam |>  fr.add_camera |> Async.RunSynchronously
-            Response.Noop
-
-        | Action.RemoveCamera cam_id ->
-            let res = cam_id |> fr.remove_camera |> Async.RunSynchronously
-            Response.Noop
-
-        | Action.UpdateCamera cam ->
-            cam |> fr.update_camera  |> Async.Ignore |> Async.Start //Async.RunSynchronously
-            Response.Noop //Actual response is a broadcast in fr object
-
-        | Action.StartAllStreams ->
-            fr.start_streams () |> Async.Ignore |> Async.Start
-            Response.Noop
-
-        | Action.StopAllStreams ->
-            fr.stop_streams () |> Async.Ignore |> Async.Start
-            Response.Noop
-
-        | Action.StartStream cam ->
-            fr.start_stream cam |> Async.Ignore |> Async.Start
-            Response.Noop
-
-        | Action.StopStream cam ->
-            fr.stop_stream cam |> Async.Ignore |> Async.Start
-            Response.Noop
-
-    let invoke (msg: Action) (hubContext: FableHub) = task { return update msg hubContext  }
+    member self.StopAllStreams() =
+        printfn "Stop ALL the Streams! I MEAN IT"
+        let fr = self.Context.GetHttpContext().GetService<FRService>() :> IFR //not se this is the right place.
+        fr.stop_streams() |>  Async.Ignore |>  Async.Start
+        ()
+    member self.SendIdentifiedFace(face: IdentifiedFace) =
+        printfn "sending a face"
+        self.Clients.All.SendAsync("FaceIdentified", face) |> Async.AwaitTask |> Async.StartImmediate
 
 
-    let send (msg: Action) (hubContext: FableHub<Action, Response>) =
-        (msg , hubContext) ||> update |> hubContext.Clients.Caller.Send
+    member self.StartStream(cam:CameraStream) =
+        printfn "starting a single stream"
+        let fr = self.Context.GetHttpContext().GetService<FRService>() :> IFR //not se this is the right place.
+        cam |> fr.start_stream |> Async.Ignore |> Async.Start
 
+    member self.StopStream(cam:CameraStream) =
+        printfn "stopping a single stream"
+        let fr = self.Context.GetHttpContext().GetService<FRService>() :> IFR //not se this is the right place.
+        cam |> fr.stop_stream |> Async.Ignore |> Async.Start
 
+    member self.UpdateCamera(cam:CameraStream) =
+        printfn $"Updating camera : %s{cam.name}"
+        let fr = self.Context.GetHttpContext().GetService<FRService>() :> IFR //not se this is the right place.
+        cam |> fr.update_camera  |> Async.Ignore |> Async.Start //Async.RunSynchronously
 
+    member self.AddCamera(cam: CameraStream) =
+        printfn "Adding a new camera"
+        let fr = self.Context.GetHttpContext().GetService<FRService>() :> IFR //not se this is the right place.
+        cam |> fr.add_camera |> Async.Ignore |> Async.Start
+
+    member self.RemoveCamera(cam_id: int) =
+        printfn "removing a camera"
+        let fr = self.Context.GetHttpContext().GetService<FRService>() :> IFR //not se this is the right place.
+        cam_id |> fr.remove_camera |> Async.Ignore |> Async.Start
 

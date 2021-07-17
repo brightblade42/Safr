@@ -1,14 +1,12 @@
 import React from 'react';
 
+export const GoodFaces  = (props) => {
 
+    let faces = props.faces;
 
-export const GoodFaces  = ({faces}) => {
-
-    //let faces = props.faces;
-
-    let face_list = () => {
+    function build_faces () {
         if (faces.length === 0) {
-            return <div className="transition md:text-4xl lg:text-7xl m-auto ">Matched Faces</div>
+            return <div className="transition md:text-4xl lg:text-7xl m-auto text-green-800 opacity-10 ">Matched Faces</div>
         } else {
             return faces.map (f => {
                 return <GoodFace face={f} />
@@ -18,21 +16,20 @@ export const GoodFaces  = ({faces}) => {
 
     return (
         <div className="flex overflow-x-scroll text-bgray-200 bg-bgray-100 pt-2 pb-6 mt-0 px-4 space-x-4 min-h-[300px] ">
-            {face_list()}
+            {build_faces()}
         </div>
 
     )
 
 }
 
-
 export const BadFaces  = (props) => {
 
     let faces = props.faces;
 
-    let bf = () => {
+    function build_faces() {
         if (faces.length === 0) {
-            return <div className="transition md:text-4xl lg:text-7xl m-auto ">Watch List</div>
+            return <div className="transition md:text-4xl lg:text-7xl m-auto text-red-800 opacity-10 ">Watch List</div>
         } else {
             return faces.map (f => {
                 return <BadFace face={f} />
@@ -42,7 +39,7 @@ export const BadFaces  = (props) => {
 
     return (
         <div className="flex overflow-x-scroll text-wgray-200 bg-wgray-100 pt-0 pb-6 -mt-1 space-x-4 min-h-[300px]">
-            {bf()}
+            {build_faces()}
         </div>
 
     )
@@ -61,16 +58,7 @@ export const GoodFace = (props) => {
     }
 
     let conf_str = format_confidence(props.face.confidence);
-    /*
-    if (props.face.mask.includes("%")) {
-        mask_res = <div className="uppercase mt-1  text-center text-md font-semibold tracking-wide text-green-800">
-                    <span className="opacity-90 mr-2">mask</span>
-                    <span className="opacity-90 text-md">{props.face.mask}</span>
-                </div>
-    } else {
-        mask_res = <div className="opacity-90 uppercase mt-1 text-center text-md font-semibold tracking-wide text-yellow-700">no mask</div>
-    }
-*/
+
     if (props.face.status.includes("in")) {
         inout = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
@@ -97,19 +85,15 @@ export const GoodFace = (props) => {
                     src={b64}
                 />
 
-                    <div className="col-start-2 row-start-1 ">
-                        <div className="mt-8 text-2xl text-center font-extrabold text-green-800 tracking-wide">{conf_str}</div>
-                        {/*mask_res*/}
-
+                <div className="col-start-2 row-start-1 ">
+                    <div className="mt-8 text-2xl text-center font-extrabold text-green-800 tracking-wide">{conf_str}
                     </div>
 
-                    <div className="mt-2 justify-self-center row-start-2 col-start-2 border-t-2 pt-6">
-                        <div className="justify-self-center">
-                            <div className="uppercase font-semibold mr-1.5 text-bgray-600 text-lg text-center ">
-                                {props.face.timeStamp}
-                            </div>
-                        </div>
+                    <div className="justify-self-center pt-4 ">
+                        <div className="uppercase font-semibold mr-1.5 text-bgray-600 text-lg text-center ">{props.face.timeStamp} </div>
                     </div>
+                </div>
+
             </div>
 
             <div className="flex justify-between items-end items-center bg-bgray-100 h-12 rounded-b-md">
@@ -129,7 +113,6 @@ export const GoodFace = (props) => {
 
 export const BadFace = (props) => {
 
-    console.log(props)
     let b64 = "data:image/png;base64," + props.face.frame
     let mask_res;
 
@@ -175,7 +158,7 @@ export const BadFace = (props) => {
                     </div>
 
                     <div className="justify-self-center pt-4 ">
-                        <div className=" uppercase  font-semibold mr-1.5 text-bgray-600 text-lg text-center ">{timestamp} </div>
+                        <div className=" uppercase font-semibold mr-1.5 text-bgray-600 text-lg text-center ">{timestamp} </div>
                     </div>
                 </div>
             </div>

@@ -4,15 +4,9 @@
         <TargetFramework>net5.0</TargetFramework>
     </PropertyGroup>
     <ItemGroup>
-        <Compile Include="Server.fs" />
-        <Compile Include="Router.fs" />
-        <Compile Include="AppState.fs" />
-        <Compile Include="Components.fs" />
-        <Compile Include="Pages.fs" />
-        <Compile Include="App.fs" />
         <Content Include="public\index.html" />
-        <Content Include="src\AppContext.ts" />
-        <Content Include="src\AppState.ts" />
+        <Content Include="src\appstate.ts" />
+        <Content Include="src\remote_api.ts" />
         <Content Include="src\axvideo.jsx" />
         <Content Include="src\appbar.tsx" />
         <Content Include="src\facecards.tsx" />
@@ -22,7 +16,6 @@
         <Content Include="src\dialogs.tsx" />
         <Content Include="src\login.tsx" />
         <Content Include="src\progressbars.tsx" />
-        <Content Include="src\RemoteApi.ts" />
         <Content Include="src\types\images.d.ts" />
         <Folder Include="src\images" />
         <Content Include="src\index.css" />

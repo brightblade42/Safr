@@ -169,7 +169,7 @@ export const CameraSettings = (props) => {
     const handle_delete = () => {
         setIsDeleteDialogOpen(false)
         console.log("handle delete camera");
-        //funcs.delete_camera(deletedRow)
+        funcs.delete_camera(deletedRow)
     }
 
     const any_cams_updating = () => {
@@ -210,7 +210,7 @@ export const CameraSettings = (props) => {
             let addRow = added[0];
             let nrow = Object.assign(addRow, {id: 0} );
 
-            //funcs.add_camera(nrow);
+            funcs.add_camera(nrow);
         }
         if (changed) {
             let id = Object.keys(changed)[0];
@@ -220,7 +220,6 @@ export const CameraSettings = (props) => {
                 console.log("you so fine.. yeah, undefined. Bazinga")
                 return;
             }
-            //let crow = gmodel.Rows.find(x =>  x.id === parseInt(id));
             let crow = app_state.available_cameras.find(x =>  x.id === parseInt(id));
             let new_row = Object.assign(crow, changed_row)
 
@@ -264,10 +263,10 @@ export const CameraSettings = (props) => {
 
        <div className="absolute top-[386px] min-h-3 flex flex-col shadow-2xl" >
            <div className="text-xl py-2 font-semibold shadow-xl border-2  border-gray-300
-             text-bgray-700 text-center bg-bgray-200">Camera Settings</div>
+             text-bgray-700 text-center bg-bgray-200 ">Camera Settings</div>
            {renderDialog()}
 
-           <div className="p-6 bg-bgray-100 fr-history"  >
+           <div className="p-6 bg-bgray-100 fr-history z-10"  >
                <Grid
                    rows={app_state.available_cameras}
                    columns={columns}
