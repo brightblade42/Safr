@@ -59,14 +59,5 @@ module Types =
     }
 
 
-    type MatchedFace = {
-      ID: string
-      Name: string
-      Cam: string
-      Confidence: float
-      TimeStamp: string
-      Image: byte []
-      Status: string
-    }
 
 
