@@ -12,6 +12,7 @@ open Eyemetric.FR.Camera
 open Eyemetric.FR.Enrollment
 open Microsoft.AspNetCore.SignalR
 open Paravision
+//open Paravision.PVStreams
 open Paravision.Identification
 open Safr.Types.Paravision.Streaming
 open Safr.Types.Paravision.Identification
@@ -58,7 +59,8 @@ type IFR =
 
 type FRService(config_agent:     ConfigAgent,
                tpass_agent:      TPassAgent option,
-               det_agent:        DetectionAgent,
+               //det_agent:        DetectionAgent,
+               det_agent:        FaceDetection,
                ident_agent:      IdentificationAgent,
                enroll_agent:     EnrollmentAgent,
                cam_agent:        CameraAgent,

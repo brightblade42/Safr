@@ -15,7 +15,8 @@ module GE = Eyemetric.FR.Utils.GeneralEnrollment
 
 module Funcs =
     let init_detect_agent(conf: Configuration) = async {
-        return  DetectionAgent(conf.vid_streaming_addr.Trim(), conf.detection_socket_addr)
+        return  FaceDetection(conf.vid_streaming_addr.Trim(), conf.detection_socket_addr)
+        //return  DetectionAgent(conf.vid_streaming_addr.Trim(), conf.detection_socket_addr)
     }
 
     let init_tpass (conf: Configuration) = async {

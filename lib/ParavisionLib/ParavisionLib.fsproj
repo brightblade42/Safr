@@ -7,7 +7,7 @@
     <Compile Include="Utils.fs" />
     <Compile Include="API.fs" />
     <Compile Include="Identification.fs" />
-    <Compile Include="Streaming.fs" />
+    <Compile Include="PVStreams.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Safr.Types\Safr.Types.fsproj" />
