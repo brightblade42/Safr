@@ -10,12 +10,12 @@ type Cameras(?dbPath: string) =
     let open_conn (dbPath: string) =
         //TODO: replace with real error handling
         try
-            let conn = new SQLiteConnection(sprintf "Data Source=%s;Version=3" dbPath)
+            let conn = new SQLiteConnection $"Data Source=%s{dbPath};Version=3"
             conn.Open()
             Some conn
         with
         | :? System.Exception as ex ->
-            printfn "no bueno connection: %s" ex.Message
+            printfn $"no bueno connection: %s{ex.Message}"
             None
     let close_conn (conn: SQLiteConnection) =
         conn.Close()

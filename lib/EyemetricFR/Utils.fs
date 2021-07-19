@@ -1,12 +1,11 @@
 ﻿namespace Eyemetric.FR
 
 open System
-open Eyemetric.FR.Enrollment
 open Paravision.Identifier
 open TPass.Client.Service
 open Safr.Types.TPass
 open Safr.Types.Paravision.Identification
-
+open EyemetricFR
 module Utils =
 
     let map_async mapper asnc =
@@ -32,7 +31,7 @@ module Utils =
            //failwith "boom" //throws Generic Exception
       }
 
-    let do_enroll (enroll_agent: EnrollmentAgent) (enroll_infos: Result<EnrollmentInfo,string> []) = async {
+    let do_enroll (enroll_agent: Enrollments) (enroll_infos: Result<EnrollmentInfo,string> []) = async {
        printfn "ENROLL: preparing local data store....."
        let enroll_client (enroll_info: EnrollmentInfo) = enroll_info |> enroll_agent.enroll
        let res = enroll_infos

@@ -7,11 +7,11 @@
     <Compile Include="Types.fs" />
     <Compile Include="Database.fs" />
     <Compile Include="Logs.fs" />
-    <Compile Include="Config.fs" />
     <Compile Include="Cameras.fs" />
-    <Compile Include="Enrollment.fs" />
+    <Compile Include="Enrollments.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="Library.fs" />
+    <Compile Include="Configs.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ParavisionLib\ParavisionLib.fsproj" />

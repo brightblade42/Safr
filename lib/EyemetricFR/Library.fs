@@ -1,6 +1,6 @@
 ﻿namespace Eyemetric.FR
 open System
-open Eyemetric.FR.Enrollment
+open EyemetricFR
 open Eyemetric.FR.Types
 open Paravision
 open Paravision.Identifier
@@ -26,11 +26,8 @@ module Funcs =
             | _ -> None     //should we log, retru or none?
     }
 
-    let init_enroll_agent () = async {
-        return EnrollmentAgent(System.IO.Path.Combine(AppContext.BaseDirectory, "data/enrollment.sqlite"))
-    }
 
-    let enroll_tpass_clients (tp_agent: TPassAgent) (ident_agent: FaceIdentification) (enroll_agent: EnrollmentAgent) (clients: TPassClient []) = async {
+    let enroll_tpass_clients (tp_agent: TPassAgent) (ident_agent: FaceIdentification) (enroll_agent: Enrollments) (clients: TPassClient []) = async {
 
         //TODO: strategy for logging any errors along the way.
         let! clients_with_images = (tp_agent, clients) ||> TPE.combine_with_image
@@ -65,7 +62,7 @@ module Funcs =
         //TODO: return detailed information about enrollment? or leave that to a database query?
         return enrolled
     }
-    let enroll_general (ident_agent: FaceIdentification) (enroll_agent: EnrollmentAgent) (files: string seq) = async {
+    let enroll_general (ident_agent: FaceIdentification) (enroll_agent: Enrollments) (files: string seq) = async {
 
         //TODO: Async things in Utils mod are not as elegant as they should be. I've kludged it up a bit.
         let gen_info_with_images =
@@ -88,7 +85,7 @@ module Funcs =
         return! del_results
     }
 
-    let  delete_enrollment (ident_agent: FaceIdentification) (enroll_agent: EnrollmentAgent) (id: string)= async {
+    let  delete_enrollment (ident_agent: FaceIdentification) (enroll_agent: Enrollments) (id: string)= async {
         let! del_id = (ident_agent, id) ||> delete_identity
         let del_en = id |> enroll_agent.delete_enrollment
         return del_en
@@ -96,11 +93,11 @@ module Funcs =
     //local enrollments are what we store locallay. a combination of pvid, an image, and decriptive info.
     //Note: the naming is a little weird because in this type we are referring to an enrollment
     //as the composite of an identity+local_enrollment
-    let private delete_all_local_enrollments (enroll_agent: EnrollmentAgent) = async {
+    let private delete_all_local_enrollments (enroll_agent: Enrollments) = async {
         return! enroll_agent.delete_all_enrollments ()
     }
 
-    let delete_all_enrollments (ident_agent: FaceIdentification) (enroll_agent: EnrollmentAgent) = async {
+    let delete_all_enrollments (ident_agent: FaceIdentification) (enroll_agent: Enrollments) = async {
         //TODO: revisit this error handling. Get rid of filthy Exceptions
 
         //get all the pv idents.
@@ -115,19 +112,5 @@ module Funcs =
         return deleted_locals
     }
 
-    //Unneccesary
-    let check_existence (enroll_agent: EnrollmentAgent) (ccode: string) = async {
-        return! ccode |> enroll_agent.exists
-    }
 
-    //unnecessary
-    let  get_enrollment (enroll_agent: EnrollmentAgent) (pi: PossibleMatch) = async {
-        let enroll_info = pi |> enroll_agent.get_enrolled_details
-        return enroll_info
-    }
-
-    let get_enrollment_by_id (enroll_agent: EnrollmentAgent) (id: string) = async {
-        let enroll_info = id |> enroll_agent.get_enrolled_details_by_id
-        return enroll_info
-    }
 

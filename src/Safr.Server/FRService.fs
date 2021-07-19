@@ -4,9 +4,7 @@ open System
 open Eyemetric.FR
 open Eyemetric.FR.Utils
 open EyemetricFR.Server.Types //clean up these hideous types
-open Eyemetric.FR.Config
-//open Eyemetric.FR.Camera
-open Eyemetric.FR.Enrollment
+//open Eyemetric.FR.Config
 open Microsoft.AspNetCore.SignalR
 open Paravision
 open Paravision.Identifier
@@ -20,11 +18,11 @@ open TPass.Client.Service
 open Eyemetric.FR.Funcs
 open EyemetricFR.Logging
 
-type FRService(config_agent:       ConfigAgent,
+type FRService(config_agent:       Config,
                tpass_agent:        TPassAgent option,
                face_detector:      FaceDetection,
                identifier:         FaceIdentification,
-               enroll_agent:       EnrollmentAgent,
+               enroll_agent:       Enrollments,
                cam_agent:          Cameras,
                identified_logger:  IdentifiedLogger,
                enroll_log_agent:   EnrollmentLogger,
@@ -34,7 +32,6 @@ type FRService(config_agent:       ConfigAgent,
     let mutable config_agent = config_agent
     let mutable identified_logger = identified_logger
     let mutable enroll_log_agent = enroll_log_agent
-    //let mutable fr_agent = fr_agent
     let mutable tpass_agent  = tpass_agent
     let mutable enroll_agent = enroll_agent
     let mutable identifier  = identifier
@@ -520,7 +517,7 @@ type FRService(config_agent:       ConfigAgent,
                       printfn "STREAM HARD DISCONNECTED"
                       Async.Sleep 8000 |> Async.RunSynchronously  //timing is everything. This is shit. ;)
                       let n_streams = start_streams'() |> Async.RunSynchronously
-                      printfn "%A" n_streams
+                      printfn $"%A{n_streams}"
                       ()
                  | Ok s -> printfn $"%s{s}"
              )
@@ -639,7 +636,7 @@ type FRService(config_agent:       ConfigAgent,
 
         printfn "NEW UP THE FRSERVICE"
 
-        let conf_agent       = ConfigAgent ()
+        let conf_agent       = Config ()
         let conf             = conf_agent.get_latest_config()
         let cam_agent        = Cameras ()
         let fr_log_agent     = IdentifiedLogger ()//FRLogAgent ()
@@ -649,13 +646,12 @@ type FRService(config_agent:       ConfigAgent,
         //trying to remove FR_Agent. Too many layers
         let tpass_agent = init_tpass(c) |> Async.RunSynchronously //check opt
         let ident_agent = FaceIdentification(c.pv_api_addr)
-        let enroll_agent = init_enroll_agent () |> Async.RunSynchronously
+        let enroll_agent = Enrollments(System.IO.Path.Combine(AppContext.BaseDirectory, "data/enrollment.sqlite"))
         let det_agent = FaceDetection(c.vid_streaming_addr.Trim(), c.detection_socket_addr)
 
         FRService(conf_agent, tpass_agent, det_agent, ident_agent, enroll_agent, cam_agent, fr_log_agent, enroll_log_agent,  fr_hub)
 
 
-    //interface IFR with
     member self.get_conf () : Configuration option = config_agent.get_latest_config()
     //member self.get_agent () : FR_Agent = fr_agent
 
