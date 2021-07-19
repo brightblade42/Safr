@@ -3,17 +3,13 @@ namespace EyemetricFR
 open System
 open Eyemetric.FR
 open Eyemetric.FR.Utils
-open Fable.SignalR
 open EyemetricFR.Server.Types //clean up these hideous types
-open Eyemetric.FR.Logging
-open Eyemetric.FR.Logging.Enrollment
 open Eyemetric.FR.Config
-open Eyemetric.FR.Camera
+//open Eyemetric.FR.Camera
 open Eyemetric.FR.Enrollment
 open Microsoft.AspNetCore.SignalR
 open Paravision
-//open Paravision.PVStreams
-open Paravision.Identification
+open Paravision.Identifier
 open Safr.Types.Paravision.Streaming
 open Safr.Types.Paravision.Identification
 open Paravision.Utils
@@ -22,61 +18,27 @@ open Safr.Types.Eyemetric
 open TPass.Client.Service
 
 open Eyemetric.FR.Funcs
+open EyemetricFR.Logging
 
-
-
-type IFR =
-    abstract get_conf : unit -> Configuration option
-    abstract stop_streams: unit -> Async<StopStreamingResultList>
-    abstract start_streams: unit -> Async<StartStreamingResultList>
-    abstract stop_stream: CameraStream -> Async<Result<StopDecodeReply, string>>
-    abstract start_stream: CameraStream -> Async<Result<StartDecodeReply, string>>
-    //abstract get_streams: unit -> Asymc<
-    abstract add_camera: CameraStream -> Async<string>  //should have a better return value
-    abstract remove_camera: int -> Async<Result<int, exn>> //should have a better return value
-    abstract update_camera: CameraStream -> Async<Result<int, exn>>
-    //abstract get_cams: unit -> CameraStream list
-    abstract get_cams: unit -> Async<CameraStream list>
-    abstract get_cam_info: unit -> Async<CameraInfo>
-    abstract log_enroll_attempt: EnrollLog -> Async<Result<int, string>>
-    abstract get_frlog_top: Option<int> -> Async<Result<seq<FRLog>, exn>>
-    abstract get_frlog_daterange: Option<string> -> Option<string> -> Async<Result<seq<FRLog>, exn>>
-    abstract delete_enrollment: string -> Async<Result<int, exn>>
-    abstract delete_all_enrollments: unit -> Async<Result<int, exn>>
-    abstract get_enrollment: string -> Async<Result<EnrolledIdentity option, exn>>
-    abstract get_client_by_ccode: CCode -> Async<TPassResult<TPassClient>>
-    abstract search_tpass: SearchReq list -> Async<TPassResult<TPassClient []>>
-    abstract to_client_with_image: TPassClient [] -> Async<TPassClientWithImage[]>
-    abstract enroll_clients: TPassClientWithImage seq  -> Async<int>
-
-    abstract get_identity: GetIdentityReq -> Async<Result<Identity, string>>
-
-    abstract recognize: FaceImage -> Async<Result<PossibleMatch, string>>
-    abstract add_face: AddFaceReq -> Async<Result<FaceID, string>>
-    abstract delete_face: DeleteFaceReq -> Async<Result<FaceID, string>>
-
-    abstract validate_user: string -> string -> bool
-
-type FRService(config_agent:     ConfigAgent,
-               tpass_agent:      TPassAgent option,
-               //det_agent:        DetectionAgent,
-               det_agent:        FaceDetection,
-               ident_agent:      IdentificationAgent,
-               enroll_agent:     EnrollmentAgent,
-               cam_agent:        CameraAgent,
-               fr_log_agent:     FRLogAgent,
-               enroll_log_agent: EnrollLogAgent,
-               hub:              Hub
+type FRService(config_agent:       ConfigAgent,
+               tpass_agent:        TPassAgent option,
+               face_detector:      FaceDetection,
+               identifier:         FaceIdentification,
+               enroll_agent:       EnrollmentAgent,
+               cam_agent:          Cameras,
+               identified_logger:  IdentifiedLogger,
+               enroll_log_agent:   EnrollmentLogger,
+               hub:                Hub
                ) =
 
     let mutable config_agent = config_agent
-    let mutable fr_log_agent = fr_log_agent
+    let mutable identified_logger = identified_logger
     let mutable enroll_log_agent = enroll_log_agent
     //let mutable fr_agent = fr_agent
     let mutable tpass_agent  = tpass_agent
     let mutable enroll_agent = enroll_agent
-    let mutable ident_agent  = ident_agent
-    let mutable det_agent    = det_agent
+    let mutable identifier  = identifier
+    let mutable face_detector    = face_detector
     let mutable cam_agent    = cam_agent
     let mutable hub_context  = hub
     let mutable handling_face_detection = false
@@ -122,52 +84,48 @@ type FRService(config_agent:     ConfigAgent,
         matched_on = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss") //TODO: face.TimeStamp
         status = face.Status
         location = face.Cam
-      } |> fr_log_agent.log
+      } |> identified_logger.log
 
-    //return top N fr log item
-    let get_frlog_top (count: Option<int>) = async {
-        return! count |> fr_log_agent.get_top
-    }
 
-    let get_frlog_daterange (startdate: Option<string>) (enddate: Option<string>) = async {
+    let get_frlog_daterange' (startdate: Option<string>) (enddate: Option<string>) = async {
         printfn $"FR SERVICE: get_frlog daterange %A{startdate} : %A{enddate}"
-        return! (startdate, enddate) ||> fr_log_agent.get_by_daterange
+        return! (startdate, enddate) ||> identified_logger.get_by_daterange
     }
-    let get_enrollment (id: string) = async {
+
+    let get_enrollment' (id: string) = async {
         return enroll_agent.get_enrolled_details_by_id id  //should this be async as well?
     }
-    let log_enroll_attempt (item: EnrollLog) = async { return! item |> enroll_log_agent.log }
+    let log_enroll_attempt' (item: EnrollLog) = async { return! item |> enroll_log_agent.log }
 
-    let delete_enrollment (fr_id: string) = async {
-        return! (ident_agent, enroll_agent, fr_id) |||> Funcs.delete_enrollment
+    let delete_enrollment' (fr_id: string) = async {
+        return! (identifier, enroll_agent, fr_id) |||> Funcs.delete_enrollment
     }
 
-
-    let delete_all_enrollments () = async {
-        return! (ident_agent, enroll_agent) ||> Funcs.delete_all_enrollments
+    let delete_all_enrollments' () = async {
+        return! (identifier, enroll_agent) ||> Funcs.delete_all_enrollments
     }
 
-    let get_client_by_ccode (ccode: CCode) = async {
+    let get_client_by_ccode' (ccode: CCode) = async {
         let tpa = tpass_agent.Value
         return! ccode |> tpa.get_client_by_ccode
     }
 
-    let search_tpass (search_req: SearchReq list) = async {
+    let search_tpass' (search_req: SearchReq list) = async {
         let tpa = tpass_agent.Value
         return! search_req |> tpa.search_client
     }
 
-    let to_client_with_image (clients: TPassClient []) = async {
+    let to_client_with_image' (clients: TPassClient []) = async {
         let tpa = tpass_agent.Value
         return! (tpa, clients) ||> Eyemetric.FR.Utils.TPassEnrollment.combine_with_image
     }
 
-    let enroll_clients (clients: TPassClientWithImage seq) = async {
+    let enroll_clients' (clients: TPassClientWithImage seq) = async {
 
         //TODO: What if tpass_reg fails? Should log that for later retry
 
         let tpa = tpass_agent.Value
-        let! new_idents =  (ident_agent, clients) ||> TPassEnrollment.create_enrollments
+        let! new_idents =  (identifier, clients) ||> TPassEnrollment.create_enrollments
         printfn $"ENROLL: PV identities created: %i{new_idents.Length}"
 
         let! enrolled = (enroll_agent, new_idents) ||> Utils.do_enroll //TODO: we can do better than this name
@@ -194,12 +152,12 @@ type FRService(config_agent:     ConfigAgent,
         return enroll_count
     }
 
-    let recognize (face: FaceImage) = async { return! face |> ident_agent.detect_identity }
+    let recognize' (face: FaceImage) = async { return! face |> identifier.detect_identity }
 
-    let add_face (req: AddFaceReq) = async { return! req |> ident_agent.add_face }
-    let delete_face (req: DeleteFaceReq) = async { return! req |> ident_agent.delete_face }
+    let add_face' (req: AddFaceReq) = async { return! req |> identifier.add_face }
+    let delete_face' (req: DeleteFaceReq) = async { return! req |> identifier.delete_face }
 
-    let get_identity (req: GetIdentityReq) = async { return! req |> ident_agent.get_identity }
+    let get_identity' (req: GetIdentityReq) = async { return! req |> identifier.get_identity }
 
     //TODO: Checkin calls may change when updated specifically for other TPASS Client types (Visitor . Employee
     let create_checkin_rec (compId: int) (ccode: int) =
@@ -262,7 +220,7 @@ type FRService(config_agent:     ConfigAgent,
         | (EmployeeOrUser e, 0)  -> (e.name, check_out tcl)
         | _ -> ("Unknown", None)
 
-    let validate_user(user: string)(pass:string) =
+    let validate_user'(user: string)(pass:string) =
 
             let tpa = tpass_agent.Value
             let cred = UserPass (user, pass)
@@ -315,7 +273,7 @@ type FRService(config_agent:     ConfigAgent,
         match cropped_face with
         | None -> return None
         | Some cropped ->
-            let! pm =  (B64Encoding cropped) |> ident_agent.detect_identity
+            let! pm =  (B64Encoding cropped) |> identifier.detect_identity
             return
                 match pm with
                 | Ok p ->  Some p
@@ -401,7 +359,7 @@ type FRService(config_agent:     ConfigAgent,
         |> ignore
         ()
 
-    let get_cams () = async {
+    let get_cams' () = async {
 
        let! tcams = None |> cam_agent.get_cameras //|> Async.RunSynchronously
        cams <-
@@ -411,17 +369,17 @@ type FRService(config_agent:     ConfigAgent,
        return cams
     }
 
-    let get_cam_info () = async {
+    let get_cam_info' () = async {
 
-        let! cams    = get_cams()
-        let! streams = det_agent.async_get_streams()
+        let! cams    = get_cams'()
+        let! streams = face_detector.async_get_streams()
 
         return { available_cams = cams; streams = streams }
     }
 
     let notify_clients_camera_updating (cam: CameraStream) = async {
 
-       let! cam_info = get_cam_info()
+       let! cam_info = get_cam_info'()
        let av = cam_info.available_cams |>
                 List.map (fun (c:CameraStream) ->
                 if c.id = cam.id then {c with updating = true}
@@ -435,7 +393,7 @@ type FRService(config_agent:     ConfigAgent,
 
     let notify_clients_camera_adding (cam: CameraStream) = async {
 
-       let! cam_info = get_cam_info()
+       let! cam_info = get_cam_info'()
        let max_id (list: CameraStream list) =
            List.fold (fun acc (elem: CameraStream) -> if acc > elem.id then acc else elem.id ) 0 list
 
@@ -454,7 +412,7 @@ type FRService(config_agent:     ConfigAgent,
 
     let notify_clients_camera_deleting (id: int) = async {
 
-       let! cam_info = get_cam_info()
+       let! cam_info = get_cam_info'()
 
        let av = cam_info.available_cams |>
                 List.map (fun (c:CameraStream) ->
@@ -467,7 +425,7 @@ type FRService(config_agent:     ConfigAgent,
     }
 
     let notify_clients_camera_updated () = async {
-        let! cam_info = get_cam_info()
+        let! cam_info = get_cam_info'()
         hub_context.Clients.All.SendAsync("AvailableCameras", cam_info) |> Async.AwaitTask |> Async.Start
     }
 
@@ -483,32 +441,32 @@ type FRService(config_agent:     ConfigAgent,
         //hub_context.Clients.All.Send(FRHub.Response.StreamsStopping) |> ignore
     }
 
-    let stop_streams () = async {
+    let stop_streams'() = async {
 
-       let! cams = get_cams()
+       let! cams = get_cams'()
        do! notify_streams_stopping()
-       let! sx = cams |> det_agent.stop_decode
+       let! sx = cams |> face_detector.stop_decode
        printfn $"%A{sx}"
        do! notify_clients_camera_updated ()
        return sx
     }
 
-    let start_streams () = async {
+    let start_streams' () = async {
 
-       let! cams = get_cams()
+       let! cams = get_cams'()
        do! notify_streams_starting()
        let only_enabled = cams |> Seq.filter (fun x -> x.enabled) |>   List.ofSeq
        //reset the cache, value may have changed
        id_cache <- CacheMap(get_identity_cache_expiry()) //TODO: Use this?
-       let! x = only_enabled |> det_agent.start_decode
+       let! x = only_enabled |> face_detector.start_decode
        do! notify_clients_camera_updated ()
 
        return x
     }
 
-    let start_stream (cam: CameraStream) = async {
+    let start_stream' (cam: CameraStream) = async {
 
-        let! cams = get_cams()
+        let! cams = get_cams'()
         let cam_lst = cams |> Seq.filter(fun x -> x.name = cam.name) |> List.ofSeq
 
         match cam_lst.Length with
@@ -517,7 +475,7 @@ type FRService(config_agent:     ConfigAgent,
         | _ ->
 
             do! notify_clients_camera_updating cam
-            let! res = cam_lst |> det_agent.start_decode
+            let! res = cam_lst |> face_detector.start_decode
             do! notify_clients_camera_updated ()
 
             return
@@ -528,16 +486,16 @@ type FRService(config_agent:     ConfigAgent,
                 | _ -> Error $"Could not start camera stream: %s{cam.name}"
     }
 
-    let stop_stream (cam: CameraStream) = async {
+    let stop_stream' (cam: CameraStream) = async {
       //start a single stream
-        let! cams = get_cams()
+        let! cams = get_cams'()
         let cam_lst = cams |> Seq.filter(fun x -> x.name = cam.name) |> List.ofSeq
         match cam_lst.Length with
         | 0 ->
             return Error $"no available cameras named %s{cam.name}"
         | _ ->
             do! notify_clients_camera_updating cam
-            let! res = cam_lst |> det_agent.stop_decode
+            let! res = cam_lst |> face_detector.stop_decode
             do! notify_clients_camera_updated ()
             return
                 match res with
@@ -551,17 +509,17 @@ type FRService(config_agent:     ConfigAgent,
 
          if not handling_face_detection then
 
-             det_agent.face_detected.Add(fun face_info ->
+             face_detector.face_detected.Add(fun face_info ->
                  match face_info with
                  | Ok f -> f |> handle_detection
                  | Error e -> printfn $"face detection FAIL: %s{e} ")
 
-             let disconn_sub = det_agent.stream_disconnected.Subscribe(fun dc ->
+             let disconn_sub = face_detector.stream_disconnected.Subscribe(fun dc ->
                  match dc with
                  | Error ex ->
                       printfn "STREAM HARD DISCONNECTED"
                       Async.Sleep 8000 |> Async.RunSynchronously  //timing is everything. This is shit. ;)
-                      let n_streams = start_streams() |> Async.RunSynchronously
+                      let n_streams = start_streams'() |> Async.RunSynchronously
                       printfn "%A" n_streams
                       ()
                  | Ok s -> printfn $"%s{s}"
@@ -580,7 +538,7 @@ type FRService(config_agent:     ConfigAgent,
              connection = $"rtsp://%s{user}:%s{password}@%s{cam.ipaddress}/axis-media/media.amp"
              detect_frame_rate = 1
        }
-    let add_camera (cam: CameraStream) = async {
+    let add_camera' (cam: CameraStream) = async {
 
         //set default user/pass
         //TODO: use default user/pass from config.
@@ -594,7 +552,7 @@ type FRService(config_agent:     ConfigAgent,
                 | Ok _ ->
 
                     do! notify_clients_camera_adding(cam)
-                    let! started = [cam] |> det_agent.start_decode
+                    let! started = [cam] |> face_detector.start_decode
                     printfn $"FRSERVICE: New Cam stream started: %A{started}"
                     do! notify_clients_camera_updated ()
                     return "new camera saved"
@@ -607,9 +565,9 @@ type FRService(config_agent:     ConfigAgent,
             }
     }
 
-    let remove_camera (id: int) = async {
+    let remove_camera' (id: int) = async {
 
-        let! to_delete' = get_cams()
+        let! to_delete' = get_cams'()
         let to_delete = to_delete' |> Seq.filter(fun c -> c.id = id) |> List.ofSeq
 
         match to_delete.Length with
@@ -623,7 +581,7 @@ type FRService(config_agent:     ConfigAgent,
                     | Ok _ ->
                             //do! notify_clients_camera_update ()  doing this twice is odd. Reasons?
                             let msg =  "a camera was deleted"
-                            let! stopped = to_delete |> det_agent.stop_decode
+                            let! stopped = to_delete |> face_detector.stop_decode
                             printfn $"FRSERVICE: stopped removed cam streams. %A{stopped} "
                             do! notify_clients_camera_updated ()
                             printfn "%s" msg
@@ -635,7 +593,7 @@ type FRService(config_agent:     ConfigAgent,
     }
 
 
-    let update_camera (updated_cam: CameraStream) = async {
+    let update_camera'(updated_cam: CameraStream) = async {
 
        do! notify_clients_camera_updating(updated_cam)
        let updated_cam = updated_cam |> set_camera_defaults
@@ -645,14 +603,14 @@ type FRService(config_agent:     ConfigAgent,
        //IMPORTANT: we have to stop the running camera stream before updating its information.
        //otherwise the streaming service will become out of sync and unstable and that's just a bad time.
        //TODO: reject if camera id doesn't match existing camera. That's not cool bro
-       let! current_cams = get_cams()
+       let! current_cams = get_cams'()
        //find the current (old) camera to be updated
        let old_cam = current_cams |> Seq.filter(fun x -> x.id = updated_cam.id) |> Seq.head
 
-       let! strm_res = [old_cam] |> det_agent.stop_decode
+       let! strm_res = [old_cam] |> face_detector.stop_decode
        printfn $"FRSERVICE: old cam cam stream stopped : %i{old_cam.id} %s{old_cam.name}"
        let! res = cam_agent.update_camera updated_cam
-       let! cams = get_cams()
+       let! cams = get_cams'()
 
        return!
             async {
@@ -661,7 +619,7 @@ type FRService(config_agent:     ConfigAgent,
                 | Ok _ ->
                     let ncam = cams |> Seq.filter(fun x -> x.id = updated_cam.id) |> List.ofSeq
                     //StartStreamingResultList (lol what is this?)
-                    let! strm_res = ncam |> det_agent.start_decode
+                    let! strm_res = ncam |> face_detector.start_decode
                     printfn $"FRSERVICE: updated cam stream started : %i{ncam.Head.id} %s{ncam.Head.name}"
                     do! notify_clients_camera_updated ()
                     let msg = "a camera was updated"
@@ -677,59 +635,53 @@ type FRService(config_agent:     ConfigAgent,
         token_timer.start()
         sub_faces_detected()
 
-    //new (fr_hub: Option<FableHubCaller<FRHub.Action, FRHub.Response>>) =
     new (fr_hub: Hub)=
 
         printfn "NEW UP THE FRSERVICE"
 
-        let conf_agent = ConfigAgent ()
-        let conf = conf_agent.get_latest_config()
-        let cam_agent = CameraAgent ()
-        let fr_log_agent = FRLogAgent ()
-        let enroll_log_agent = Enrollment.EnrollLogAgent() //EnrollLogger?
+        let conf_agent       = ConfigAgent ()
+        let conf             = conf_agent.get_latest_config()
+        let cam_agent        = Cameras ()
+        let fr_log_agent     = IdentifiedLogger ()//FRLogAgent ()
+        let enroll_log_agent = EnrollmentLogger()
         let c = conf.Value
-
-        //let ag = FR_Agent(c)
-        //TODO: this is dependent on tpass being able to provide us a jwt token. not the best place for it.
-        //let res = ag.init() |> Async.RunSynchronously //might be ok since this is a startup only thing?
 
         //trying to remove FR_Agent. Too many layers
         let tpass_agent = init_tpass(c) |> Async.RunSynchronously //check opt
-        let ident_agent = init_ident_agent(c) |> Async.RunSynchronously
+        let ident_agent = FaceIdentification(c.pv_api_addr)
         let enroll_agent = init_enroll_agent () |> Async.RunSynchronously
-        let det_agent = init_detect_agent (c) |> Async.RunSynchronously
+        let det_agent = FaceDetection(c.vid_streaming_addr.Trim(), c.detection_socket_addr)
 
         FRService(conf_agent, tpass_agent, det_agent, ident_agent, enroll_agent, cam_agent, fr_log_agent, enroll_log_agent,  fr_hub)
 
 
-    interface IFR with
-        member self.get_conf () : Configuration option = config_agent.get_latest_config()
-        //member self.get_agent () : FR_Agent = fr_agent
+    //interface IFR with
+    member self.get_conf () : Configuration option = config_agent.get_latest_config()
+    //member self.get_agent () : FR_Agent = fr_agent
 
-        member self.get_cams () : Async<CameraStream list> = get_cams()
-        member self.get_cam_info () : Async<CameraInfo> = get_cam_info()
-        member self.start_streams () = start_streams ()
-        member self.stop_streams () = stop_streams ()
-        member self.start_stream (cam: CameraStream) = start_stream cam
-        member self.stop_stream (cam: CameraStream) = stop_stream cam
-        member self.add_camera (cam: CameraStream) = add_camera cam
-        member self.remove_camera (id: int) = remove_camera id //should have a better return value
-        member self.update_camera (cam: CameraStream) = update_camera cam
-        member self.log_enroll_attempt (item: EnrollLog) = log_enroll_attempt item
+    member self.get_cameras () : Async<CameraStream list> = get_cams'()
+    member self.get_camera_info () : Async<CameraInfo> = get_cam_info'()
+    member self.start_streams () = start_streams'()
+    member self.stop_streams () = stop_streams'()
+    member self.start_stream (cam: CameraStream) = start_stream' cam
+    member self.stop_stream (cam: CameraStream) = stop_stream' cam
+    member self.add_camera (cam: CameraStream) = add_camera' cam
+    member self.remove_camera (id: int) = remove_camera' id //should have a better return value
+    member self.update_camera (cam: CameraStream) = update_camera' cam
+    member self.log_enroll_attempt (item: EnrollLog) = log_enroll_attempt' item
 
-        member self.delete_enrollment (fr_id: string) = delete_enrollment fr_id
-        member self.delete_all_enrollments () = delete_all_enrollments ()
+    member self.delete_enrollment (fr_id: string) = delete_enrollment' fr_id
+    member self.delete_all_enrollments () = delete_all_enrollments' ()
 
-        member self.get_client_by_ccode (ccode: CCode) = get_client_by_ccode ccode
-        member self.search_tpass (search_req: SearchReq list) = search_tpass search_req
-        member self.to_client_with_image (clients: TPassClient []) = to_client_with_image clients
-        member self.enroll_clients (clients: TPassClientWithImage seq) = enroll_clients clients
-        member self.get_identity (req: GetIdentityReq) = get_identity req
+    member self.get_client_by_ccode (ccode: CCode) = get_client_by_ccode' ccode
+    member self.search_tpass (search_req: SearchReq list) = search_tpass' search_req
+    member self.to_client_with_image (clients: TPassClient []) = to_client_with_image' clients
+    member self.enroll_clients (clients: TPassClientWithImage seq) = enroll_clients' clients
+    member self.get_identity (req: GetIdentityReq) = get_identity' req
 
-        member self.get_enrollment (id:string) = get_enrollment id
-        member self.recognize (face: FaceImage) = recognize face
-        member self.add_face (req: AddFaceReq) = add_face req
-        member self.delete_face (req: DeleteFaceReq) = delete_face req
-        member self.validate_user (user:string) (pass:string) = validate_user user pass
-        member self.get_frlog_top (count: Option<int>) = get_frlog_top count
-        member self.get_frlog_daterange (startdate: Option<string>) (enddate: Option<string>)= get_frlog_daterange startdate enddate
+    member self.get_enrollment (id:string) = get_enrollment' id
+    member self.recognize (face: FaceImage) = recognize' face
+    member self.add_face (req: AddFaceReq) = add_face' req
+    member self.delete_face (req: DeleteFaceReq) = delete_face' req
+    member self.validate_user (user:string) (pass:string) = validate_user' user pass
+    member self.get_frlog_daterange (startdate: Option<string>) (enddate: Option<string>)= get_frlog_daterange' startdate enddate

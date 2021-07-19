@@ -6,9 +6,9 @@
   <ItemGroup>
     <Compile Include="Types.fs" />
     <Compile Include="Database.fs" />
-    <Compile Include="Log.fs" />
+    <Compile Include="Logs.fs" />
     <Compile Include="Config.fs" />
-    <Compile Include="Camera.fs" />
+    <Compile Include="Cameras.fs" />
     <Compile Include="Enrollment.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="Library.fs" />

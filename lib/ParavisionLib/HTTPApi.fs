@@ -10,7 +10,16 @@ open Safr.Types.Paravision.Streaming
 
 //esentially mirrors the Paravision remote api
 [<AutoOpen>]
-module API =
+module HTTPApi =
+
+    type HttpApiResult<'T> =
+        | Success of 'T
+        | TimedOutError of string
+        | UnhandledError of Exception
+        | StreamAlreadyBeingDecoded of (string * string)
+        | StreamNotBeingDecoded of (string * string)
+        | HTTPResponseError of string
+        | FaceImageInvalid of string
 
     let create_client (handler: HttpClientHandler option) =
         match handler with | Some h -> new HttpClient(h) | None -> new HttpClient()
@@ -49,14 +58,6 @@ module API =
     //TODO:may need to be configurable 30 secs may not be the goldilocks zone
     //let ctok = new CancellationTokenSource(60000) //nothing lives more than 10 seconds
 
-    type APIResult<'T> =
-        | Success of 'T
-        | TimedOutError of string
-        | UnhandledError of Exception
-        | StreamAlreadyBeingDecoded of (string * string)
-        | StreamNotBeingDecoded of (string * string)
-        | HTTPResponseError of string
-        | FaceImageInvalid of string
 
     let private get (client: HttpClient) (url :Uri) = async {
 
@@ -118,7 +119,6 @@ module API =
         let req = new HttpRequestMessage(HttpMethod.Post, uri)
         try
 
-            //let ctok = new CancellationTokenSource(60000) //nothing lives more than 10 seconds
             let ctok = new CancellationTokenSource(240000) //nothing lives more than 10 seconds
             req.Content <- bytes |> image_content
             let! resp = client.SendAsync(req, ctok.Token) |> Async.AwaitTask
@@ -155,10 +155,6 @@ module API =
     }
 
 
-//    let build_stream_error (res: string) =
- //           match res with
-
-
     let private post_json (client: HttpClient) (uri: Uri) (body: string) = async {
         let req = (HttpMethod.Post, uri ) ||> request
         try
@@ -179,27 +175,16 @@ module API =
     }
 
     let private start_decode_json (cam_stream: CameraStream) =
-            let x = $""" {{ "name": "%s{cam_stream.name}",
+            let json_str = $""" {{ "name": "%s{cam_stream.name}",
                           "source": "%s{cam_stream.connection}",
                           "skip_identical_frames": true,
                           "detect_frame_rate": %i{cam_stream.detect_frame_rate},
-                          "detect_mask": true
-                        }}
-                     """
-            printfn "%s" x
-            x
+                          "detect_mask": false
+                        }}"""
+            json_str
 
 
-            //TODO: this is per pv docs but only name and source options are being picked up.
-
-            (* $"""
-                    {{"name": "%s{cam_stream.name}", "source": "%s{cam_stream.connection}", "skip_identical_frames": true,
-                     "detect_frame_rate": %i{cam_stream.detect_frame_rate}}}
-                    """
-            *)
-
-    let private stop_decode_json (cam_stream: CameraStream) =
-        $""" {{"name": "%s{cam_stream.name}" }} """
+    let private stop_decode_json (cam_stream: CameraStream) = $""" {{"name": "%s{cam_stream.name}" }} """
 
      //models the paravision Streaming api
     module Streaming =
@@ -258,8 +243,8 @@ module API =
         let add_face_to_identity (client: HttpClient) (make_url: UriBuilder)  (req: AddFaceReq) = async {
 
             printfn "====== Add face to identity"
-            //return! (client, ("api/identities" |> make_url), img_bytes) |||> post_image
-            // req.Content <- bytes |> image_content
+            //TODO: use req type to set confidence. hard coded to 0.8 at the moment
+
             return!
                 match req.image with
                 | Binary fb ->

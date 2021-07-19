@@ -2,10 +2,10 @@
 
 open System
 open Eyemetric.FR.Enrollment
+open Paravision.Identifier
 open TPass.Client.Service
 open Safr.Types.TPass
 open Safr.Types.Paravision.Identification
-open Paravision.Identification
 
 module Utils =
 
@@ -121,7 +121,7 @@ module Utils =
 
             }
 
-        let create_enrollment (id_agent: IdentificationAgent) (client: TPassClientWithImage) = async {
+        let create_enrollment (id_agent: FaceIdentification) (client: TPassClientWithImage) = async {
 
               //TODO: add special Error type for when Duplicates are detected.
               //we might want to say.. hey..an identity very much like this one exists
@@ -142,7 +142,7 @@ module Utils =
             }
 
 
-        let create_enrollments (id_agent: IdentificationAgent) (clients: TPassClientWithImage seq) = async {
+        let create_enrollments (id_agent: FaceIdentification) (clients: TPassClientWithImage seq) = async {
             return! clients |> Seq.map(fun x ->  (id_agent, x) ||> create_enrollment) |> Async.Parallel
         }
 
@@ -198,7 +198,7 @@ module Utils =
             return! general_infos |> combine_with_image |> Async.Parallel
         }
 
-        let create_enrollment (id_agent: IdentificationAgent) (candidate: GeneralInfoWithImage) = async {
+        let create_enrollment (id_agent: FaceIdentification) (candidate: GeneralInfoWithImage) = async {
             let gi = candidate.info
              //Identity creation process.
              //TODO:
@@ -223,7 +223,7 @@ module Utils =
             | None -> return Error (sprintf "could not create identity. No image found for candidate: %A" gi)
         }
 
-        let create_enrollments (id_agent: IdentificationAgent) (candidates: Async<GeneralInfoWithImage []>) = async  {
+        let create_enrollments (id_agent: FaceIdentification) (candidates: Async<GeneralInfoWithImage []>) = async  {
              let! candidates = candidates
              return! candidates |> Seq.map (fun (x:GeneralInfoWithImage) -> (id_agent, x) ||> create_enrollment) |> Async.Parallel
          }

@@ -26,7 +26,7 @@ module PVStreams =
     type StopStreamingResultList = StreamingResult<Result<StopDecodeReply,string> list>  //Hoochie Mama!
 
     //function type aliases.
-    type stream_api_call = HttpClient -> (string -> Uri) -> CameraStream -> Async<APIResult<string>>
+    type stream_api_call = HttpClient -> (string -> Uri) -> CameraStream -> Async<HttpApiResult<string>>
     type reply_builder<'T> = string -> Result<'T, string>
 
     type FaceDetection(stream_addr: string, socket_addr: string, ?eventContext: SynchronizationContext) =
@@ -87,7 +87,7 @@ module PVStreams =
                     if not kill_loop then
                         let! result = (client, make_stream_url, cam) |||> stream_call
                         match result with
-                        | APIResult.Success r ->
+                        | HttpApiResult.Success r ->
                             let reply = r |> to_reply //to_stop_decode_reply
                             let res =
                                 match reply with
@@ -135,15 +135,15 @@ module PVStreams =
 
             let conn_sub = web_socket.Connected.Subscribe(fun x ->
                  socket_killed <- false
-                 cam_stream_connected.Trigger(x.Namespace)
+                 cam_stream_connected.Trigger(x.Namespace) //TODO: is this being utilized
                 )
 
+            //TODO: what is diff between Error vs Exception in context of a web socket?
             let err_sub = web_socket.ErrorReceived.Subscribe(fun x ->
                  printfn "==============================================================="
                  printfn $"Error from PV WebSocket : %s{x.Namespace} :: %s{x.Value}"
                  printfn "==============================================================="
                 )
-
 
             let exn_sub = web_socket.ExceptionOccurred.Subscribe(fun x ->
                  socket_killed <- true
@@ -152,6 +152,7 @@ module PVStreams =
 
                 )
 
+            //The ALL important face detection event.
             let msg_recv_sub = web_socket.EventReceived.Subscribe(faces_detected)
 
             let discon_sub = web_socket.Disconnected.Subscribe(fun x ->
@@ -160,6 +161,7 @@ module PVStreams =
                  )
 
             socket_subs <- [conn_sub; err_sub; exn_sub;msg_recv_sub;discon_sub]
+
 
 
         let connect_socket () = async {
@@ -208,12 +210,12 @@ module PVStreams =
 
 
         //I feel like Bind is what this sort of thing is for.
-        let handle_api_result (res: APIResult<string>) =
+        let handle_api_result (res: HttpApiResult<string>) =
                 match res with
-                | APIResult.Success str -> Ok str
-                | APIResult.TimedOutError t -> Error t
-                | APIResult.UnhandledError e -> Error e.Message
-                | APIResult.HTTPResponseError e -> Error e
+                | HttpApiResult.Success str -> Ok str
+                | HttpApiResult.TimedOutError t -> Error t
+                | HttpApiResult.UnhandledError e -> Error e.Message
+                | HttpApiResult.HTTPResponseError e -> Error e
 
         let build_socket_connection (a_streams: Result<StreamState, string> option  ) = async {
             sub_socket_events() //this destroys and creates new socket. evil but easy.

@@ -769,6 +769,8 @@ module Paravision =
 
 
           static member to_str (pm: PossibleMatch) = Encode.Auto.toString(2, pm)
+          static member from (json: string) =
+              Decode.fromString PossibleMatch.Decoder json
         let to_possible_identity (json: string) =
           Decode.fromString PossibleMatch.Decoder json
 

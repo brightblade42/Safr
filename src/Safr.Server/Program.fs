@@ -31,18 +31,18 @@ module Global =
 
     let start_all_streams (ctx: HttpContext) =
        task {
-            let fr = ctx.GetService<FRService>() :> IFR
+            let fr = ctx.GetService<FRService>() //:> IFR
             return! fr.start_streams()
        }
     let stop_all_streams (ctx: HttpContext) =
        task {
-            let fr = ctx.GetService<FRService>() :> IFR
+            let fr = ctx.GetService<FRService>() //:> IFR
             return! fr.stop_streams()
        }
 
     let delete_enrollment (ctx: HttpContext) (delete_request: DeleteEnrollmentRequest) =
        task {
-                let fr = ctx.GetService<FRService>() :> IFR
+                let fr = ctx.GetService<FRService>() //:> IFR
 
                 return
                     delete_request.fr_ids
@@ -56,7 +56,7 @@ module Global =
 
     let delete_all_enrollments (ctx: HttpContext) =
         task {
-                let fr = ctx.GetService<FRService>() :> IFR
+                let fr = ctx.GetService<FRService>() //:> IFR
                 let! res = fr.delete_all_enrollments ()
                 return res
         }
@@ -99,7 +99,7 @@ module Global =
 
     let enroll (ctx: HttpContext) (enroll_request: EnrollRequest) =
           task {
-                let fr = ctx.GetService<FRService>() :> IFR
+                let fr = ctx.GetService<FRService>() //:> IFR
 
                 //narrow = 1  wide = many
                 let (narrow_search, wide_search) =
@@ -279,7 +279,7 @@ module Global =
     let recognize (ctx: HttpContext) (face: FaceImage) =
         task {
 
-                let  fr  = ctx.GetService<FRService>() :> IFR
+                let  fr  = ctx.GetService<FRService>() //:> IFR
                 let! res = face |> fr.recognize
 
                 return
@@ -292,39 +292,39 @@ module Global =
     let add_face (ctx: HttpContext) (id: string) (face: FaceImage) =
         task {
 
-            let  fr = ctx.GetService<FRService>() :> IFR
+            let  fr = ctx.GetService<FRService>() //:> IFR
             return! { id = id; image=face; confidence= Some 0.8; } |> fr.add_face
         }
 
     let delete_face (ctx: HttpContext) (id: string) (face_id: int) =
         task {
 
-            let  fr = ctx.GetService<FRService>() :> IFR
+            let  fr = ctx.GetService<FRService>() //:> IFR
             return! { id = id; face_id = face_id } |> fr.delete_face
         }
 
     let get_identity (ctx: HttpContext) (id: string) =
         task {
-            let fr = ctx.GetService<FRService>() :> IFR
+            let fr = ctx.GetService<FRService>() //:> IFR
             return! { id=id  } |> fr.get_identity
         }
 
     let add_camera (ctx: HttpContext) (cam: CameraStream)  =
         task {
-            let fr = ctx.GetService<FRService>() :> IFR
+            let fr = ctx.GetService<FRService>() // :> IFR
             let! res = fr.add_camera cam
             return res //a plain string which is ridicoolus. should at least be a RESULT type
         }
     let remove_camera (ctx: HttpContext) (id: int)  =
         task {
-            let fr = ctx.GetService<FRService>() :> IFR
+            let fr = ctx.GetService<FRService>() //:> IFR
             let! res = fr.remove_camera id
             return res
         }
 
     let update_camera (ctx: HttpContext) (cam: CameraStream) =
         task {
-            let fr = ctx.GetService<FRService>() :> IFR
+            let fr = ctx.GetService<FRService>() //:> IFR
             let! res = fr.update_camera cam
             return res
         }
@@ -394,7 +394,7 @@ let login_handler =
     fun (next: HttpFunc) (ctx: HttpContext) -> task {
 
         try
-            let fr = ctx.GetService<FRService>() :> IFR
+            let fr = ctx.GetService<FRService>() //:> IFR
             let req = ctx.Request.Body
             use sr = new StreamReader(req)
             let! body_str = sr.ReadToEndAsync()
@@ -419,7 +419,7 @@ let frlog_handler =
     fun (next: HttpFunc) (ctx: HttpContext) -> task {
 
         try
-            let fr = ctx.GetService<FRService>() :> IFR
+            let fr = ctx.GetService<FRService>() //:> IFR
             let req = ctx.Request.Body
             use sr = new StreamReader(req)
             let! body_str = sr.ReadToEndAsync()

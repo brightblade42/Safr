@@ -3,8 +3,9 @@ open System
 open Eyemetric.FR.Enrollment
 open Eyemetric.FR.Types
 open Paravision
-open Paravision.Identification
+open Paravision.Identifier
 open Safr.Types.Paravision.Identification
+open Safr.Types.Paravision.Streaming
 open TPass.Client.Service
 
 open Safr.Types.TPass
@@ -14,10 +15,6 @@ module TPE = Eyemetric.FR.Utils.TPassEnrollment   //alias, if yer into that whol
 module GE = Eyemetric.FR.Utils.GeneralEnrollment
 
 module Funcs =
-    let init_detect_agent(conf: Configuration) = async {
-        return  FaceDetection(conf.vid_streaming_addr.Trim(), conf.detection_socket_addr)
-        //return  DetectionAgent(conf.vid_streaming_addr.Trim(), conf.detection_socket_addr)
-    }
 
     let init_tpass (conf: Configuration) = async {
         let tpass_agent = TPassAgent(conf.tpass_api_addr.Trim(),UserPass (conf.tpass_user, conf.tpass_pwd),  false)
@@ -29,15 +26,11 @@ module Funcs =
             | _ -> None     //should we log, retru or none?
     }
 
-    let init_ident_agent(conf: Configuration) = async {
-        return IdentificationAgent(conf.pv_api_addr)
-    }
-
     let init_enroll_agent () = async {
         return EnrollmentAgent(System.IO.Path.Combine(AppContext.BaseDirectory, "data/enrollment.sqlite"))
     }
 
-    let enroll_tpass_clients (tp_agent: TPassAgent) (ident_agent: IdentificationAgent) (enroll_agent: EnrollmentAgent) (clients: TPassClient []) = async {
+    let enroll_tpass_clients (tp_agent: TPassAgent) (ident_agent: FaceIdentification) (enroll_agent: EnrollmentAgent) (clients: TPassClient []) = async {
 
         //TODO: strategy for logging any errors along the way.
         let! clients_with_images = (tp_agent, clients) ||> TPE.combine_with_image
@@ -72,7 +65,7 @@ module Funcs =
         //TODO: return detailed information about enrollment? or leave that to a database query?
         return enrolled
     }
-    let enroll_general (ident_agent: IdentificationAgent) (enroll_agent: EnrollmentAgent) (files: string seq) = async {
+    let enroll_general (ident_agent: FaceIdentification) (enroll_agent: EnrollmentAgent) (files: string seq) = async {
 
         //TODO: Async things in Utils mod are not as elegant as they should be. I've kludged it up a bit.
         let gen_info_with_images =
@@ -85,17 +78,17 @@ module Funcs =
 
         return enrolled
     }
-    let private delete_identity (ident_agent: IdentificationAgent) (id: string) = async {
+    let private delete_identity (ident_agent: FaceIdentification) (id: string) = async {
           let! res =  id |> ident_agent.delete_identity
           return res
     }
-    let private delete_all_identities (ident_agent: IdentificationAgent) (idents: Identity list): Async<Result<Identity,string> []>  = async {
+    let private delete_all_identities (ident_agent: FaceIdentification) (idents: Identity list): Async<Result<Identity,string> []>  = async {
 
         let del_results = idents |> Seq.map ( fun x -> (ident_agent,x.id) ||> delete_identity) |> Async.Parallel
         return! del_results
     }
 
-    let  delete_enrollment (ident_agent: IdentificationAgent) (enroll_agent: EnrollmentAgent) (id: string)= async {
+    let  delete_enrollment (ident_agent: FaceIdentification) (enroll_agent: EnrollmentAgent) (id: string)= async {
         let! del_id = (ident_agent, id) ||> delete_identity
         let del_en = id |> enroll_agent.delete_enrollment
         return del_en
@@ -107,11 +100,11 @@ module Funcs =
         return! enroll_agent.delete_all_enrollments ()
     }
 
-    let delete_all_enrollments (ident_agent: IdentificationAgent) (enroll_agent: EnrollmentAgent) = async {
+    let delete_all_enrollments (ident_agent: FaceIdentification) (enroll_agent: EnrollmentAgent) = async {
         //TODO: revisit this error handling. Get rid of filthy Exceptions
 
         //get all the pv idents.
-        let! ids  = ident_agent.get_identities //TODO: determine why this is a prop and not a func.
+        let! ids  = ident_agent.get_identities() //TODO: determine why this is a prop and not a func.
         let! deleted_idents =
             match ids with
             | Ok ids -> (ident_agent, ids) ||> delete_all_identities
