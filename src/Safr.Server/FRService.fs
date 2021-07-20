@@ -2,9 +2,8 @@ namespace EyemetricFR
 
 open System
 open Eyemetric.FR
-open Eyemetric.FR.Utils
+//open Eyemetric.FR.Utils
 open EyemetricFR.Server.Types //clean up these hideous types
-//open Eyemetric.FR.Config
 open Microsoft.AspNetCore.SignalR
 open Paravision
 open Paravision.Identifier
@@ -13,13 +12,12 @@ open Safr.Types.Paravision.Identification
 open Paravision.Utils
 open Safr.Types.TPass
 open Safr.Types.Eyemetric
-open TPass.Client.Service
-
+open TPass
 open Eyemetric.FR.Funcs
 open EyemetricFR.Logging
 
 type FRService(config_agent:       Config,
-               tpass_agent:        TPassAgent option,
+               tpass_service:        TPassService option,
                face_detector:      FaceDetection,
                identifier:         FaceIdentification,
                enroll_agent:       Enrollments,
@@ -32,7 +30,7 @@ type FRService(config_agent:       Config,
     let mutable config_agent = config_agent
     let mutable identified_logger = identified_logger
     let mutable enroll_log_agent = enroll_log_agent
-    let mutable tpass_agent  = tpass_agent
+    let mutable tpass_service  = tpass_service
     let mutable enroll_agent = enroll_agent
     let mutable identifier  = identifier
     let mutable face_detector    = face_detector
@@ -43,7 +41,7 @@ type FRService(config_agent:       Config,
 
     let token_timer = SimpleTimer (84_600_000, fun () ->   //23.5hrs
         async {
-            match tpass_agent with
+            match tpass_service with
             | Some tpa ->
                 printfn "TRYING TOKEN TIMER REFRESH"
                 let res = tpa.initialize() |> Async.RunSynchronously
@@ -103,17 +101,17 @@ type FRService(config_agent:       Config,
     }
 
     let get_client_by_ccode' (ccode: CCode) = async {
-        let tpa = tpass_agent.Value
+        let tpa = tpass_service.Value
         return! ccode |> tpa.get_client_by_ccode
     }
 
     let search_tpass' (search_req: SearchReq list) = async {
-        let tpa = tpass_agent.Value
+        let tpa = tpass_service.Value
         return! search_req |> tpa.search_client
     }
 
     let to_client_with_image' (clients: TPassClient []) = async {
-        let tpa = tpass_agent.Value
+        let tpa = tpass_service.Value
         return! (tpa, clients) ||> Eyemetric.FR.Utils.TPassEnrollment.combine_with_image
     }
 
@@ -121,11 +119,11 @@ type FRService(config_agent:       Config,
 
         //TODO: What if tpass_reg fails? Should log that for later retry
 
-        let tpa = tpass_agent.Value
+        let tpa = tpass_service.Value
         let! new_idents =  (identifier, clients) ||> TPassEnrollment.create_enrollments
         printfn $"ENROLL: PV identities created: %i{new_idents.Length}"
 
-        let! enrolled = (enroll_agent, new_idents) ||> Utils.do_enroll //TODO: we can do better than this name
+        let! enrolled = new_idents |> enroll_agent.batch_enroll //TODO: we can do better than this name
         let enroll_count = enrolled |> Array.sumBy(fun x -> match x with | Ok c -> c | _ -> 0)
 
         //TODO: we may want to keep track of local enroll count, vs what tpass accepted.
@@ -166,7 +164,7 @@ type FRService(config_agent:       Config,
     //TODO: Checkin / OUT for types other than studentsd
     let check_in (tpc: TPassClient) =
 
-        let tpa = tpass_agent.Value
+        let tpa = tpass_service.Value
 
         let check_fn () =
             match tpc with
@@ -187,7 +185,7 @@ type FRService(config_agent:       Config,
 
     let check_out (tpc: TPassClient) =
 
-        let tpa = tpass_agent.Value
+        let tpa = tpass_service.Value
 
         let check_fn () =
             match tpc with
@@ -219,7 +217,7 @@ type FRService(config_agent:       Config,
 
     let validate_user'(user: string)(pass:string) =
 
-            let tpa = tpass_agent.Value
+            let tpa = tpass_service.Value
             let cred = UserPass (user, pass)
             let is_valid = tpa.validate_user cred |> Async.RunSynchronously
 
@@ -251,7 +249,7 @@ type FRService(config_agent:       Config,
 
     let get_enrolled_details (pmatch: PossibleMatch option) = async {
 
-        let tpa = tpass_agent.Value
+        let tpa = tpass_service.Value
         match pmatch with
         | Some pm when ((pm.identities.Head.id |> is_cached |> not) && pmatch |> is_confident) ->
               let! client = pm.identities.Head.id |> tpa.get_pv_client
@@ -644,12 +642,13 @@ type FRService(config_agent:       Config,
         let c = conf.Value
 
         //trying to remove FR_Agent. Too many layers
-        let tpass_agent = init_tpass(c) |> Async.RunSynchronously //check opt
+        //let tpass_agent = init_tpass(c) |> Async.RunSynchronously //check opt
+        let tpass_service = init_tpass(c) |> Async.RunSynchronously //check opt
         let ident_agent = FaceIdentification(c.pv_api_addr)
         let enroll_agent = Enrollments(System.IO.Path.Combine(AppContext.BaseDirectory, "data/enrollment.sqlite"))
         let det_agent = FaceDetection(c.vid_streaming_addr.Trim(), c.detection_socket_addr)
 
-        FRService(conf_agent, tpass_agent, det_agent, ident_agent, enroll_agent, cam_agent, fr_log_agent, enroll_log_agent,  fr_hub)
+        FRService(conf_agent, tpass_service, det_agent, ident_agent, enroll_agent, cam_agent, fr_log_agent, enroll_log_agent,  fr_hub)
 
 
     member self.get_conf () : Configuration option = config_agent.get_latest_config()
