@@ -1,19 +1,15 @@
 namespace EyemetricFR
 
 open System
-open Eyemetric.FR
-//open Eyemetric.FR.Utils
 open EyemetricFR.Server.Types //clean up these hideous types
 open Microsoft.AspNetCore.SignalR
-open Paravision
-open Paravision.Identifier
-open Safr.Types.Paravision.Streaming
-open Safr.Types.Paravision.Identification
-open Paravision.Utils
-open Safr.Types.TPass
-open Safr.Types.Eyemetric
-open TPass
-open Eyemetric.FR.Funcs
+open EyemetricFR.Types
+open EyemetricFR.TPass.Types
+open EyemetricFR.Paravision.Types.Streaming
+open EyemetricFR.Paravision.Types.Identification
+open EyemetricFR.Utils
+open EyemetricFR.Identifier
+open EyemetricFR.Funcs //Why?
 open EyemetricFR.Logging
 
 type FRService(config_agent:       Config,
@@ -112,7 +108,7 @@ type FRService(config_agent:       Config,
 
     let to_client_with_image' (clients: TPassClient []) = async {
         let tpa = tpass_service.Value
-        return! (tpa, clients) ||> Eyemetric.FR.Utils.TPassEnrollment.combine_with_image
+        return! (tpa, clients) ||> TPassEnrollment.combine_with_image
     }
 
     let enroll_clients' (clients: TPassClientWithImage seq) = async {

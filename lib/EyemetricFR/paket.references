@@ -1,3 +1,8 @@
 Dapper
 System.Data.SQLite
 FSharp.Core
+FSharp.Data
+Base64UrlEncoder
+Thoth.Json
+Thoth.Json.Net
+H.Socket.IO

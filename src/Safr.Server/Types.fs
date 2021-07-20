@@ -1,5 +1,5 @@
 module EyemetricFR.Server.Types
-open Safr.Types.Paravision.Streaming
+open EyemetricFR.Paravision.Types.Streaming
 
 open Thoth.Json.Net
 

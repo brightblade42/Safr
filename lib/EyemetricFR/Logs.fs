@@ -1,24 +1,8 @@
 namespace EyemetricFR
 
 open System
-open System.Data.SQLite
-open Eyemetric.FR
-open Safr.Types.Eyemetric
 
 module Logging  =
-
-    let private open_conn (dbPath: string) =
-        //TODO: replace with real error handling
-        try
-            printfn $"opening data connection for %s{dbPath}"
-            let conn = new SQLiteConnection$"Data Source=%s{dbPath};Version=3"
-            conn.Open()
-            Some conn
-        with
-        | :? System.Exception as ex ->
-            printfn $"no bueno moreno connection: %s{ex.Message}"
-            None
-
 
     type IdentifiedLogger(?dbPath: string) =
 

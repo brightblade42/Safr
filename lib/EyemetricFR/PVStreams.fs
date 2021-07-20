@@ -1,4 +1,4 @@
-namespace Paravision
+namespace EyemetricFR
 
 open System
 open System.Net.Http
@@ -7,7 +7,9 @@ open System.Threading
 
 open H.Socket.IO
 open H.Socket.IO.EventsArgs
-open Safr.Types.Paravision.Streaming
+open EyemetricFR.Paravision.Types.Streaming
+open EyemetricFR.HTTPApi
+open EyemetricFR.HTTPApi.Paravision
 
 [<AutoOpen>]
 module PVStreams =
@@ -114,8 +116,8 @@ module PVStreams =
                     return StreamingResult.Success stream_msg
             }
 
-        let stop_streams = build_stream_call Streaming.stop_decode to_stop_decode_reply
-        let start_streams = build_stream_call Streaming.start_decode to_start_decode_reply
+        let stop_streams = build_stream_call stop_decode to_stop_decode_reply
+        let start_streams = build_stream_call start_decode to_start_decode_reply
 
         let socket_timeout_ms = 10000
         let mutable web_socket = new SocketIoClient()
@@ -240,7 +242,7 @@ module PVStreams =
 
         let update_active_streams() = async {
 
-            let! streams = (client, make_stream_url) ||> Streaming.get_streams
+            let! streams = (client, make_stream_url) ||> get_streams
             let strms = streams |> handle_api_result
 
             let a_streams =

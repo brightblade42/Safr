@@ -2,8 +2,7 @@ namespace EyemetricFR
 
 open EyemetricFR.Server.Types
 open Microsoft.AspNetCore.SignalR
-open Safr.Types.Paravision.Streaming
-
+open EyemetricFR.Paravision.Types.Streaming
 type FRHub() =
     inherit Hub()
 

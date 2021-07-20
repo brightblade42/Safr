@@ -1,18 +1,34 @@
-﻿namespace Eyemetric.FR
+﻿namespace EyemetricFR
 
 open System
 open System.Data
 open System.Collections.Generic
 open Dapper
 open Types
-open Safr.Types.Paravision.Identification
-open Safr.Types.Paravision.Streaming
-open Safr.Types.TPass
-open Safr.Types.Eyemetric
+open EyemetricFR.Paravision.Types.Identification
+open EyemetricFR.Paravision.Types.Streaming
+open EyemetricFR.TPass.Types
 
 [<AutoOpen>]
 module Database =
 
+    open System.Data.SQLite
+
+    let open_conn (dbPath: string) =
+        //TODO: replace with real error handling
+        try
+            printfn $"opening data connection for %s{dbPath}"
+            let conn = new SQLiteConnection$"Data Source=%s{dbPath};Version=3"
+            conn.Open()
+            Some conn
+        with
+        | :? System.Exception as ex ->
+            printfn $"no bueno moreno connection: %s{ex.Message}"
+            None
+
+    let close_conn (conn: SQLiteConnection) =
+        conn.Close()
+        conn.Dispose()
     ///TODO: only handle specific errors, bubble up the truly exceptional
     let execute (conn:IDbConnection) (sql:string) (parameters:_)=
         try
@@ -23,7 +39,7 @@ module Database =
             Ok result
         with
         | ex ->
-            printfn "execute query failed %s" ex.Message
+            printfn $"execute query failed %s{ex.Message}"
             Error ex
 
     let query_single (conn:IDbConnection) (sql:string) (parameters:IDictionary<string, obj> option) =

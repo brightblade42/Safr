@@ -5,17 +5,20 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Types.fs" />
+    <Compile Include="ParavisionTypes.fs" />
+    <Compile Include="TPassTypes.fs" />
     <Compile Include="Database.fs" />
+    <Compile Include="HTTPApi.fs" />
+    <Compile Include="TPassHTTPApi.fs" />
+    <Compile Include="PVStreams.fs" />
+    <Compile Include="Identifier.fs" />
+    <Compile Include="TPassService.fs" />
+    <Compile Include="Utils.fs" />
     <Compile Include="Logs.fs" />
+    <Compile Include="Configs.fs" />
     <Compile Include="Cameras.fs" />
     <Compile Include="Enrollments.fs" />
-    <Compile Include="Utils.fs" />
     <Compile Include="Library.fs" />
-    <Compile Include="Configs.fs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\ParavisionLib\ParavisionLib.fsproj" />
-    <ProjectReference Include="..\TPassLib\TPassLib.fsproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

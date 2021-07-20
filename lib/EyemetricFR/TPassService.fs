@@ -1,8 +1,8 @@
-namespace TPass
+namespace EyemetricFR
 
 open System
-open Safr.Types.TPass
-open TPass.HTTPApi
+open EyemetricFR.TPass.Types
+open EyemetricFR.TPassApi //Http
 
 type TPassService (url: string, cred: Credential, cert_check: bool) =
 
@@ -22,6 +22,102 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
         | false -> create_client (Some disable_cert_validation)
 
     let make_url = url |> create_url
+
+
+    let (|IsVisitor|IsStudent|IsEmployee|IsVolunteer|IsParent|IsUnknown|) (input:string) =
+        let line = input.ToLower()
+        match line with
+        | line when  line.Contains("visitor") -> IsVisitor
+        | line when  line.Contains("student") -> IsStudent
+        | line when  line.Contains("employee") -> IsEmployee
+        | line when  line.Contains("volunteer") -> IsVolunteer
+        | line when  line.Contains("parent") -> IsParent
+        | _ -> IsUnknown
+
+      ///match against line to find out what type of TPassClient it is and return it's string name
+    let grp_client_types (line:string): string =
+        match line with
+        | IsVisitor  -> "Visitor"
+        | IsStudent  -> "Student"
+        | IsEmployee -> "EmployeeOrUser"
+        | IsVolunteer -> "Volunteer"
+        | IsParent -> "Parent"
+        | IsUnknown -> "Unknown"
+
+      ///Empty result is no results. Get em outa here! Also skips over any Errored Searches. This may not be great.
+    let filter_empty_results (tpr: TPassResult<string>) =
+        match tpr with | Success s -> s.Length <> 0 | _ -> false
+
+      ///search results return array of json objects that represent different types
+      ///and automatic parsing doesn't quite work. We need to help things along.
+      ///The first step is splitting each object at it's close bracket.
+    let split_json_obj (tpr: TPassResult<string>)  =
+        match tpr with | Success s -> s.Split([|'}'|], StringSplitOptions.None)  | _ -> [||]
+
+      ///convert to an array of TPassClients
+      ///if any conversion is empty or malformed, we
+      ///return item as None from match,.
+      ///we filter out any items that are None and
+      ///return the values out of the option type.
+    let to_clients (s_res: (string * string []) []) =
+          s_res |> Array.map (fun x ->
+             match (fst x) with
+             | "Visitor" ->
+                (snd x) |> Array.map (fun x ->
+                     match (Visitor.from x) with
+                     | Ok v -> Visitor v |> Some
+                     | Error e ->
+                       printfn $"Visit Error %s{e}"
+                       None )
+             | "Student" ->
+                (snd x) |> Array.map (fun x ->
+                     match (Student.from x) with
+                     | Ok s -> Student s |> Some
+                     | Error e ->
+                       printfn $"Student Error %s{e}"
+
+                       None )
+             | "EmployeeOrUser" ->
+                (snd x) |> Array.map (fun x ->
+                     match (EmployeeOrUser.from x) with
+                     | Ok emp -> EmployeeOrUser emp |> Some
+                     | Error e ->
+                       printfn $"Student Error %s{e}"
+
+                       None )
+             | _ -> [|None|]
+            )
+           |> Array.collect id
+           |> Array.filter (fun x -> x.IsSome)
+           |> Array.map (fun x -> x.Value)
+
+      //takes and array of TPassResult<string> which represents
+      //a sequence of search results.
+    let parse_search_results (sr: TPassResult<string> []) =
+         //printfn "RES: %A" (sr |> Array.truncate 100)
+         sr
+         |> Array.filter filter_empty_results
+         |> Array.map split_json_obj
+         |> Array.collect id
+         |> Array.filter (fun x -> x.Length > 1)
+         |> Array.map (fun x -> x.TrimStart([|'[';','|])) //fixes funky format created by split
+         |> Array.map (fun x -> x + "}")
+         |> Array.groupBy grp_client_types
+         |> to_clients
+
+
+    let split_search_results (search_results: TPassClient seq) =
+
+        let is_student (x: TPassClient)  = match x with | Student s -> true | _ -> false
+        let is_visitor (x: TPassClient)  = match x with | Visitor v -> true | _ -> false
+        let is_employee (x: TPassClient)  = match x with | EmployeeOrUser _ -> true | _ -> false
+        //separate into distinct Client types
+        let students = search_results |> Seq.filter is_student |> Seq.map(fun (Student x) -> x)
+        let visitors = search_results |> Seq.filter is_visitor |> Seq.map(fun (Visitor x) -> x)
+        let employees = search_results |> Seq.filter is_employee |> Seq.map(fun (EmployeeOrUser x) -> x)
+
+        (students, visitors, employees)
+
 
     let try_search_client_single (req: SearchReq) = async {
 
@@ -46,7 +142,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
 
        let! search_results = search req
 
-       return Search.parse_search_results search_results
+       return parse_search_results search_results
     }
 
     let try_checkin_client (ch_in: CheckInRecord) = async {
@@ -103,7 +199,8 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
 
         if  json.ToLower().Contains("visitor") then
 
-             match (json |> to_visitor_reply) with
+             //match (json |> to_visitor_reply) with
+             match (Visitor.from json ) with
              | Ok v -> v |> Visitor |> Some
              | Error e ->
                  printfn $"Parse Error: %s{e}"
@@ -111,7 +208,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
 
         elif json.ToLower().Contains("student") then
 
-            match (json |> to_student_reply) with
+            match (Student.from json) with
             | Ok s -> s |> Student  |> Some
             | Error e ->
                 printfn $"Parse Error: %s{e}"
@@ -119,7 +216,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
 
         elif json.ToLower().Contains("employee") then
 
-            match (json |> to_employee_or_user_reply) with
+            match (EmployeeOrUser.from json) with
             | Ok emp -> emp |> EmployeeOrUser |> Some
             | Error e ->
                 printfn $"Parse Error: %s{e}"
@@ -192,7 +289,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
 
         try
             printfn "==== Retrieving auth token ==== "
-            let! tok =  HTTPApi.get_token client cred make_url
+            let! tok =  get_token client cred make_url
             token_pair <- Some tok
             return Success true
 
@@ -206,7 +303,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
     member self.validate_user (cred: Credential) = async {
         try
             printfn "==== Retrieving token for USER ==== "
-            let! tok =  HTTPApi.get_token client cred make_url
+            let! tok =  get_token client cred make_url
             return Success true
         with
         | e ->

@@ -1,9 +1,8 @@
-namespace Paravision
+namespace EyemetricFR
 
-open System.Threading
+open EyemetricFR.Paravision.Types.Identification
 open HTTPApi
-open HTTPApi.Identification
-open Safr.Types.Paravision.Identification
+open HTTPApi.Paravision
 
 module Identifier =
 

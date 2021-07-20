@@ -1,24 +1,29 @@
 namespace EyemetricFR
-
 open System
-open Eyemetric.FR
-open System.Data.SQLite
-
+open EyemetricFR.TPass.Types
 type Enrollments(?dbPath: string) =
 
     let def_db_path = System.IO.Path.Combine(AppContext.BaseDirectory, "data/enrollment.sqlite")
-    let open_conn (dbPath: string) =
-        //TODO: replace with real error handling
-        try
-            let conn = new SQLiteConnection $"Data Source=%s{dbPath};Version=3"
-            conn.Open()
-            Some conn
-        with
-        | :? System.Exception as ex ->
-            printfn $"no bueno moreno connection: %s{ex.Message}"
-            None
     let pth = (dbPath, def_db_path) ||> defaultArg
     let conn = (open_conn  pth).Value
+
+
+    member self.batch_enroll(enroll_infos: Result<EnrollmentInfo, string> []) = async {
+
+       printfn "ENROLL: preparing local data store....."
+       let enroll_client (enroll_info: EnrollmentInfo) = enroll_info |> self.enroll
+
+       let res = enroll_infos
+                 |> Array.map(fun x ->
+                     match x with
+                     | Ok en -> en |> enroll_client |> Some
+                     | _     -> None
+                     )
+                 |> Array.filter(fun x -> x.IsSome)
+                 |> Array.map (fun x-> x.Value)
+       return res
+
+    }
 
     member self.enroll enroll_info = Queries.Enrollment.enroll conn enroll_info
     member self.get_enrolled_details_by_id (id: string ) = Queries.Enrollment.get_enrollment conn id

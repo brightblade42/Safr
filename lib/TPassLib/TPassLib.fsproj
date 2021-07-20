@@ -5,8 +5,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Utils.fs" />
-    <Compile Include="API.fs" />
-    <Compile Include="Library.fs" />
+    <Compile Include="HTTPApi.fs" />
+    <Compile Include="TPassService.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Safr.Types\Safr.Types.fsproj" />

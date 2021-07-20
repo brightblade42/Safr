@@ -1,18 +1,17 @@
-﻿namespace TPass
+namespace EyemetricFR
 
 open System
 open System.Net.Http
 open System.Net.Http.Headers
 open System.Text
-open Safr.Types.TPass
-//open System.IdentityModel.Tokens.Jwt
+open EyemetricFR.TPass.Types
 open Base64UrlEncoder
-module HTTPApi =
+
+module TPassApi =
 
     type TokenPair = (AuthToken * Result<JWToken, string> option)
 
     let from_url64 (b64: string) = Encoder.Decode(b64)
-
 
     let from_url642 (b64: string) =
         let paddings = 3 - ((b64.Length + 3) % 4)
@@ -24,7 +23,7 @@ module HTTPApi =
         url64.Replace('-','+').Replace('_','/')
     let private from_b64 = from_url64 >> Convert.FromBase64String >> Encoding.UTF8.GetString
 
-    let private to_jwtoken2 = from_b64 >> JWToken.parse
+   // let private to_jwtoken2 = from_b64 >> JWToken.parse
     let private to_jwtoken tstr =
         let x = tstr |> from_b64
         printfn "TOKEN: %s" x
@@ -145,6 +144,17 @@ module HTTPApi =
             | false -> Error resp.ReasonPhrase
     }
 
+    let swap_img_uri (uri: Uri) =
+        //TODO: This is hacky bullshit.
+        let env_swap = Environment.GetEnvironmentVariable("IMG_URL_TYPE")
+        match env_swap with
+        //| "internal" ->
+        | "internal" ->
+             let ext_url = uri.ToString()
+             ext_url.Replace("173.220.177.75", "192.168.3.12") |> Uri
+        | _ ->
+            uri
+
 
     let get_version (client: HttpClient) (make_url: UriBuilder) = async {
         return! (client, "version" |> make_url, None ) |||> get
@@ -212,7 +222,8 @@ module HTTPApi =
     }
     let download_image (client: HttpClient) (url: string) = async {
 
-        let uri = url |> Uri |> TPass.Utils.swap_img_uri
+        //let uri = url |> Uri |> TPass.Utils.swap_img_uri
+        let uri = url |> Uri |> swap_img_uri
         let req =  (HttpMethod.Get, uri) ||> request
         let! resp = client.SendAsync(req) |> Async.AwaitTask
         return! resp.Content.ReadAsByteArrayAsync() |> Async.AwaitTask

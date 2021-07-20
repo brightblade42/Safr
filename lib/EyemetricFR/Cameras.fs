@@ -1,25 +1,10 @@
 namespace EyemetricFR
 open System
-open Eyemetric.FR
-open System.Data.SQLite
-open Safr.Types.Paravision.Streaming
+open EyemetricFR.Paravision.Types.Streaming
 
 module Queries = Queries.Camera
 
 type Cameras(?dbPath: string) =
-    let open_conn (dbPath: string) =
-        //TODO: replace with real error handling
-        try
-            let conn = new SQLiteConnection $"Data Source=%s{dbPath};Version=3"
-            conn.Open()
-            Some conn
-        with
-        | :? System.Exception as ex ->
-            printfn $"no bueno connection: %s{ex.Message}"
-            None
-    let close_conn (conn: SQLiteConnection) =
-        conn.Close()
-        conn.Dispose()
 
     let def_db_path = System.IO.Path.Combine(AppContext.BaseDirectory, "data/config.sqlite")
     let db_path = (dbPath, def_db_path) ||> defaultArg

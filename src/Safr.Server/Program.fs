@@ -2,7 +2,7 @@ module EyemetricFR.Program
 
 open System
 open System.IO
-open Eyemetric.FR.Types
+open EyemetricFR.Types
 open EyemetricFR.Server.Types
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Cors.Infrastructure
@@ -14,9 +14,10 @@ open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 open Microsoft.AspNetCore.Http
 open FSharp.Control.Tasks.V2
-open Safr.Types.Paravision.Streaming
-open Safr.Types.Paravision.Identification
-open Safr.Types.TPass
+open EyemetricFR.TPass.Types
+open EyemetricFR.Paravision.Types.Streaming
+open EyemetricFR.Paravision.Types.Identification
+
 open Thoth.Json.Giraffe
 
 //weird. naming things is hard. lol
@@ -423,7 +424,7 @@ let frlog_handler =
             let req = ctx.Request.Body
             use sr = new StreamReader(req)
             let! body_str = sr.ReadToEndAsync()
-            let dr = Safr.Types.Eyemetric.DateRange.from body_str
+            let dr = DateRange.from body_str
             let r =
                 match dr with
                 | Ok dd ->
