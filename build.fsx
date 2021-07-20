@@ -72,7 +72,8 @@ Target.create "Publish" (fun _ ->
     [ appPublishPath ] |> Shell.cleanDirs
     Tools.dotnet publishArgs serverSrcPath
     [ appPublishPath </> "appsettings.Development.json" ] |> File.deleteAll
-    Tools.dotnet $"fable --outDir %s{fableBuildPath} --run yarn snowpack build" clientSrcPath
+    Tools.yarn $"snowpack build" clientSrcPath
+    //Tools.dotnet $"fable --outDir %s{fableBuildPath} --run yarn snowpack build" clientSrcPath
     Shell.mv "./build" $"%s{appPublishPath}/public"
 )
 

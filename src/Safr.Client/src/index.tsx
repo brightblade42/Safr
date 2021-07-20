@@ -80,8 +80,10 @@ function App (props) {
 
     const api = RemoteApiBuilder();
 
+    let endpoint = `${window.location.href}frhub`;
+    endpoint = `http://localhost:8085/frhub`;
     const hub = new signalR.HubConnectionBuilder()
-        .withUrl("http://localhost:8085/frhub")
+        .withUrl(endpoint)
         .withAutomaticReconnect()
         .configureLogging(signalR.LogLevel.Information)
         .build();

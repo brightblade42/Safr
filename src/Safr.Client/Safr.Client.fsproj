@@ -22,9 +22,6 @@
         <Content Include="src\index.tsx" />
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\Safr.Shared\Safr.Shared.fsproj" />
-    </ItemGroup>
-    <ItemGroup>
       <EmbeddedResource Remove="src\vendor\svgs\**" />
       <EmbeddedResource Remove="src\vendor\**" />
     </ItemGroup>

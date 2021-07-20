@@ -45,6 +45,7 @@ export type LoginState =
     | { type: "Failed"; msg: string }
 
 export interface AppState {
+
     login_status: LoginState;
     available_cameras: CameraStream[] ;
     matched_faces: IdentifiedFace[];
@@ -226,7 +227,7 @@ export const mockstate = {
 
 export const init_state  = () :AppState => {
     return {
-        login_status: { type: "LoggedIn"},
+        login_status: { type: "NotLoggedIn"},
         available_cameras: [], //mockstate.available_cameras,
         matched_faces: [],
         fr_watchlist: [],
