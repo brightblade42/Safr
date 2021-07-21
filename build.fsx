@@ -73,6 +73,7 @@ Target.create "Publish" (fun _ ->
     Tools.dotnet publishArgs serverSrcPath
     [ appPublishPath </> "appsettings.Development.json" ] |> File.deleteAll
     Tools.yarn $"snowpack build" clientSrcPath
+    //not compiling any F# to JS at the moment.
     //Tools.dotnet $"fable --outDir %s{fableBuildPath} --run yarn snowpack build" clientSrcPath
     Shell.mv "./build" $"%s{appPublishPath}/public"
 )

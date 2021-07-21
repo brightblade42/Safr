@@ -1,9 +1,11 @@
 namespace EyemetricFR
 
 open System
-open EyemetricFR.TPass.Types
-open EyemetricFR.TPassApi //Http
-
+//open EyemetricFR.TPassApi //Http
+open EyemetricFR.HTTPApi
+open EyemetricFR.HTTPApi.Auth
+open EyemetricFR.HTTPApi.TPass
+open EyemetricFR.TPass.Types   //NOTE: types override any types with same name from earlier defined modules
 type TPassService (url: string, cred: Credential, cert_check: bool) =
 
     let error_evt = Event<string>()
@@ -104,19 +106,6 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
          |> Array.map (fun x -> x + "}")
          |> Array.groupBy grp_client_types
          |> to_clients
-
-
-    let split_search_results (search_results: TPassClient seq) =
-
-        let is_student (x: TPassClient)  = match x with | Student s -> true | _ -> false
-        let is_visitor (x: TPassClient)  = match x with | Visitor v -> true | _ -> false
-        let is_employee (x: TPassClient)  = match x with | EmployeeOrUser _ -> true | _ -> false
-        //separate into distinct Client types
-        let students = search_results |> Seq.filter is_student |> Seq.map(fun (Student x) -> x)
-        let visitors = search_results |> Seq.filter is_visitor |> Seq.map(fun (Visitor x) -> x)
-        let employees = search_results |> Seq.filter is_employee |> Seq.map(fun (EmployeeOrUser x) -> x)
-
-        (students, visitors, employees)
 
 
     let try_search_client_single (req: SearchReq) = async {
@@ -269,15 +258,6 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
                 | e -> async { return Error e.Message }
             | None -> async { return Error "Need a valid token to make TPass calls" }
     }
-
-    let get_img_url (c: TPassClient option) =
-       ("", c) ||> Option.fold(fun _ c ->
-        match c with
-        | Visitor vr ->  vr.imgUrl
-        | Student sr -> sr.imgUrl
-        | EmployeeOrUser emp -> emp.imgUrl)
-
-    let client_img = get_img_url >> get_image
 
     let p_log (item: 'T) (label: string) =
         printfn "======================================="

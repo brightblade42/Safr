@@ -28,7 +28,7 @@ module PVStreams =
     type StopStreamingResultList = StreamingResult<Result<StopDecodeReply,string> list>  //Hoochie Mama!
 
     //function type aliases.
-    type stream_api_call = HttpClient -> (string -> Uri) -> CameraStream -> Async<HttpApiResult<string>>
+    type stream_api_call = HttpClient -> (string -> Uri) -> CameraStream -> Async<HttpResult<string>>
     type reply_builder<'T> = string -> Result<'T, string>
 
     type FaceDetection(stream_addr: string, socket_addr: string, ?eventContext: SynchronizationContext) =
@@ -89,7 +89,7 @@ module PVStreams =
                     if not kill_loop then
                         let! result = (client, make_stream_url, cam) |||> stream_call
                         match result with
-                        | HttpApiResult.Success r ->
+                        | HttpResult.Success r ->
                             let reply = r |> to_reply //to_stop_decode_reply
                             let res =
                                 match reply with
@@ -212,12 +212,12 @@ module PVStreams =
 
 
         //I feel like Bind is what this sort of thing is for.
-        let handle_api_result (res: HttpApiResult<string>) =
+        let handle_api_result (res: HttpResult<string>) =
                 match res with
-                | HttpApiResult.Success str -> Ok str
-                | HttpApiResult.TimedOutError t -> Error t
-                | HttpApiResult.UnhandledError e -> Error e.Message
-                | HttpApiResult.HTTPResponseError e -> Error e
+                | HttpResult.Success str -> Ok str
+                | HttpResult.TimedOutError t -> Error t
+                | HttpResult.UnhandledError e -> Error e.Message
+                | HttpResult.HTTPResponseError e -> Error e
 
         let build_socket_connection (a_streams: Result<StreamState, string> option  ) = async {
             sub_socket_events() //this destroys and creates new socket. evil but easy.

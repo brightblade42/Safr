@@ -300,6 +300,7 @@ module Identification =
 
       static member to_str (ident: Identity) = Encode.Auto.toString(2, ident)
       static member from (json: string) = Decode.fromString Identity.Decoder json
+      static member from_many (json: string) = Decode.fromString (Decode.list Identity.Decoder) json
 
 
     let to_identities json = Decode.fromString (Decode.list Identity.Decoder) json

@@ -9,7 +9,6 @@
     <Compile Include="TPassTypes.fs" />
     <Compile Include="Database.fs" />
     <Compile Include="HTTPApi.fs" />
-    <Compile Include="TPassHTTPApi.fs" />
     <Compile Include="PVStreams.fs" />
     <Compile Include="Identifier.fs" />
     <Compile Include="TPassService.fs" />
