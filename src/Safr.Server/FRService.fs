@@ -9,7 +9,7 @@ open EyemetricFR.Paravision.Types.Streaming
 open EyemetricFR.Paravision.Types.Identification
 open EyemetricFR.Utils
 open EyemetricFR.Identifier
-open EyemetricFR.Funcs //Why?
+//open EyemetricFR.Funcs //Why?
 open EyemetricFR.Logging
 
 type FRService(config_agent:       Config,
@@ -98,13 +98,13 @@ type FRService(config_agent:       Config,
 
         let! ids = identifier.get_identities()
         //pv
-        let! deleted_identities =
+        let deleted_identities =
             match ids with
-            | Ok ids -> ids |> Seq.map (fun x -> identifier.delete_identity x.id) |> Async.Parallel
+            | Ok ids -> ids |> Seq.map (fun x -> identifier.delete_identity x.id) |> Async.Parallel |> Async.RunSynchronously
             | Error e -> failwith $"could not get current identity list from paravision: %s{e}"
         //eyemetric
         let deleted_locals = enrollments.delete_all_enrollments ()
-        return deleted_locals
+        return! deleted_locals
     }
 
     let get_client_by_ccode' (ccode: CCode) = async {
@@ -408,7 +408,6 @@ type FRService(config_agent:       Config,
        let cam_info = {cam_info with available_cams = av }
 
        hub_context.Clients.All.SendAsync("AvailableCameras", cam_info) |> Async.AwaitTask |> Async.Start
-       //hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info) |> ignore
     }
 
 
@@ -423,7 +422,6 @@ type FRService(config_agent:       Config,
 
        let cam_info = {cam_info with available_cams = av }
        hub_context.Clients.All.SendAsync("AvailableCameras", cam_info) |> Async.AwaitTask |> Async.Start
-       //hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info) |> ignore
     }
 
     let notify_clients_camera_updated () = async {
@@ -435,12 +433,10 @@ type FRService(config_agent:       Config,
         printfn "Streams Starting on Server"
         hub_context.Clients.All.SendAsync("StreamsStarting") |> Async.AwaitTask |> Async.Start
 
-        //hub_context.Clients.All.Send(FRHub.Response.StreamsStarting ) |> ignore
     }
     let notify_streams_stopping() = async {
         printfn "Streams Stopping on Server"
         hub_context.Clients.All.SendAsync("StreamsStopping") |> Async.AwaitTask |> Async.Start
-        //hub_context.Clients.All.Send(FRHub.Response.StreamsStopping) |> ignore
     }
 
     let stop_streams'() = async {
@@ -641,25 +637,34 @@ type FRService(config_agent:       Config,
 
         printfn "NEW UP THE FRSERVICE"
 
-        let conf_agent       = Config ()
-        let conf             = conf_agent.get_latest_config()
-        let cam_agent        = Cameras ()
-        let fr_log_agent     = IdentifiedLogger ()//FRLogAgent ()
-        let enroll_log_agent = EnrollmentLogger()
+        let conf_agent        = Config ()
+        let conf              = conf_agent.get_latest_config()
+        let cam_agent         = Cameras ()
+        let fr_logger         = IdentifiedLogger ()//FRLogAgent ()
+        let enrollment_logger = EnrollmentLogger()
         let c = conf.Value
 
-        //trying to remove FR_Agent. Too many layers
-        //let tpass_agent = init_tpass(c) |> Async.RunSynchronously //check opt
-        let tpass_service = init_tpass(c) |> Async.RunSynchronously //check opt
+        let tpass_service = FRService.init_tpass(c) |> Async.RunSynchronously //check opt
         let ident_agent = FaceIdentification(c.pv_api_addr)
         let enroll_agent = Enrollments(System.IO.Path.Combine(AppContext.BaseDirectory, "data/enrollment.sqlite"))
         let det_agent = FaceDetection(c.vid_streaming_addr.Trim(), c.detection_socket_addr)
 
-        FRService(conf_agent, tpass_service, det_agent, ident_agent, enroll_agent, cam_agent, fr_log_agent, enroll_log_agent,  fr_hub)
+        FRService(conf_agent, tpass_service, det_agent, ident_agent, enroll_agent, cam_agent, fr_logger, enrollment_logger,  fr_hub)
 
+
+
+    static member init_tpass(conf: Configuration) = async {
+
+        let tpass_agent = TPassService(conf.tpass_api_addr.Trim(),UserPass (conf.tpass_user, conf.tpass_pwd),  false)
+
+        let! is_init = tpass_agent.initialize()
+        return
+            match is_init with
+            | Success _ -> Some tpass_agent
+            | _ -> None     //should we log, retru or none?
+    }
 
     member self.get_conf () : Configuration option = config_agent.get_latest_config()
-    //member self.get_agent () : FR_Agent = fr_agent
 
     member self.get_cameras () : Async<CameraStream list> = get_cams'()
     member self.get_camera_info () : Async<CameraInfo> = get_cam_info'()

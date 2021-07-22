@@ -600,9 +600,6 @@ let delete_all_enrollments_handler =
         }
 
 
-
-
-
 let get_enrollments_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {

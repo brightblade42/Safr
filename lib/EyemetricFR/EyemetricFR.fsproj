@@ -14,9 +14,6 @@
     <Compile Include="TPassService.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="Logs.fs" />
-    <Compile Include="Configs.fs" />
-    <Compile Include="Cameras.fs" />
-    <Compile Include="Enrollments.fs" />
     <Compile Include="Library.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

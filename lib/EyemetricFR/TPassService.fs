@@ -7,25 +7,26 @@ open EyemetricFR.HTTPApi.Auth
 open EyemetricFR.HTTPApi.TPass
 open EyemetricFR.TPass.Types   //NOTE: types override any types with same name from earlier defined modules
 
-type TPassService (url: string, cred: Credential, cert_check: bool) =
+module SearchHelper =
 
-    let error_evt = Event<string>()
-    let mutable token_pair: TokenPair option = None
-    let to_tpass_result_async (sr: Async<Result<string, string>>) = async {
-       let! s = sr
-       return
-           match s with
-           | Ok res -> Success res
-           | Error e -> TPassError (Exception e) //is that what we really want?
-    }
+     //=================================================================================================== ===========
+     //We get out results as a series of Succes or Error cases where each Success contains a string repr.
+     //of json array of objects.  The series of Success or Failure cases is the aggregation of a
+     //a Fork-join parallel function of all the search requests we've passed to it.
 
-    let client =
-        match cert_check with
-        | true  -> create_client None
-        | false -> create_client (Some disable_cert_validation)
+     //The json results may represent a variation of TPassClients. Visitors, Student, Employees etc.
+     //The json parser can't really figure out which types to convert these into at this point and so we must
+     //prepare the data first by lending a hand with some parsing.
+     //=================================================================================================== ===========
+     //Parsing steps.
+     // Split the string by its end } bracket which denotes the end of an object.
+     // This gives us an array of json objects repr as strings,at this point the obj format is not correct so we fix that
+     // See parse_search_result_function.
+     // After the array of json strings is in proper object format we examine each one and convert it into a proper
+     // TPassClient object.
+     // We then Group the TPass client objects into their respective Types and return a grouped result for further processing
 
-    let make_url = create_url url
-
+      ///match against contents of line input and return the corresponding Tag.
     let (|IsVisitor|IsStudent|IsEmployee|IsVolunteer|IsParent|IsUnknown|) (input:string) =
         let line = input.ToLower()
         match line with
@@ -107,6 +108,25 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
          |> to_clients
 
 
+type TPassService (url: string, cred: Credential, cert_check: bool) =
+
+    let error_evt = Event<string>()
+    let mutable token_pair: TokenPair option = None
+    let to_tpass_result_async (sr: Async<Result<string, string>>) = async {
+       let! s = sr
+       return
+           match s with
+           | Ok res -> Success res
+           | Error e -> TPassError (Exception e) //is that what we really want?
+    }
+
+    let client =
+        match cert_check with
+        | true  -> create_client None
+        | false -> create_client (Some disable_cert_validation)
+
+    let make_url = create_url url
+
     let try_search_client_single (req: SearchReq) = async {
          return!
             match token_pair with
@@ -127,7 +147,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
             |> Async.Parallel
 
        let! search_results = search req
-       return parse_search_results search_results
+       return SearchHelper.parse_search_results search_results
     }
 
     let try_checkin_client (ch_in: CheckInRecord) = async {
