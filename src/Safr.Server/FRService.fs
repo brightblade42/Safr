@@ -16,7 +16,7 @@ type FRService(config_agent:       Config,
                tpass_service:        TPassService option,
                face_detector:      FaceDetection,
                identifier:         FaceIdentification,
-               enroll_agent:       Enrollments,
+               enrollments:       Enrollments,
                cam_agent:          Cameras,
                identified_logger:  IdentifiedLogger,
                enroll_log_agent:   EnrollmentLogger,
@@ -27,7 +27,7 @@ type FRService(config_agent:       Config,
     let mutable identified_logger = identified_logger
     let mutable enroll_log_agent = enroll_log_agent
     let mutable tpass_service  = tpass_service
-    let mutable enroll_agent = enroll_agent
+    let mutable enrollments = enrollments
     let mutable identifier  = identifier
     let mutable face_detector    = face_detector
     let mutable cam_agent    = cam_agent
@@ -84,16 +84,27 @@ type FRService(config_agent:       Config,
     }
 
     let get_enrollment' (id: string) = async {
-        return enroll_agent.get_enrolled_details_by_id id  //should this be async as well?
+        return enrollments.get_enrolled_details_by_id id  //should this be async as well?
     }
     let log_enroll_attempt' (item: EnrollLog) = async { return! item |> enroll_log_agent.log }
 
+
     let delete_enrollment' (fr_id: string) = async {
-        return! (identifier, enroll_agent, fr_id) |||> Funcs.delete_enrollment
+        let! del_id = identifier.delete_identity fr_id
+        return enrollments.delete_enrollment fr_id
     }
 
     let delete_all_enrollments' () = async {
-        return! (identifier, enroll_agent) ||> Funcs.delete_all_enrollments
+
+        let! ids = identifier.get_identities()
+        //pv
+        let! deleted_identities =
+            match ids with
+            | Ok ids -> ids |> Seq.map (fun x -> identifier.delete_identity x.id) |> Async.Parallel
+            | Error e -> failwith $"could not get current identity list from paravision: %s{e}"
+        //eyemetric
+        let deleted_locals = enrollments.delete_all_enrollments ()
+        return deleted_locals
     }
 
     let get_client_by_ccode' (ccode: CCode) = async {
@@ -119,7 +130,7 @@ type FRService(config_agent:       Config,
         let! new_idents =  (identifier, clients) ||> TPassEnrollment.create_enrollments
         printfn $"ENROLL: PV identities created: %i{new_idents.Length}"
 
-        let! enrolled = new_idents |> enroll_agent.batch_enroll //TODO: we can do better than this name
+        let! enrolled = new_idents |> enrollments.batch_enroll //TODO: we can do better than this name
         let enroll_count = enrolled |> Array.sumBy(fun x -> match x with | Ok c -> c | _ -> 0)
 
         //TODO: we may want to keep track of local enroll count, vs what tpass accepted.

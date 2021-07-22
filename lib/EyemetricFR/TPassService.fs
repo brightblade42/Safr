@@ -6,6 +6,7 @@ open EyemetricFR.HTTPApi
 open EyemetricFR.HTTPApi.Auth
 open EyemetricFR.HTTPApi.TPass
 open EyemetricFR.TPass.Types   //NOTE: types override any types with same name from earlier defined modules
+
 type TPassService (url: string, cred: Credential, cert_check: bool) =
 
     let error_evt = Event<string>()
@@ -20,11 +21,10 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
 
     let client =
         match cert_check with
-        | true -> create_client None
+        | true  -> create_client None
         | false -> create_client (Some disable_cert_validation)
 
-    let make_url = url |> create_url
-
+    let make_url = create_url url
 
     let (|IsVisitor|IsStudent|IsEmployee|IsVolunteer|IsParent|IsUnknown|) (input:string) =
         let line = input.ToLower()
@@ -96,7 +96,6 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
       //takes and array of TPassResult<string> which represents
       //a sequence of search results.
     let parse_search_results (sr: TPassResult<string> []) =
-         //printfn "RES: %A" (sr |> Array.truncate 100)
          sr
          |> Array.filter filter_empty_results
          |> Array.map split_json_obj
@@ -109,7 +108,6 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
 
 
     let try_search_client_single (req: SearchReq) = async {
-
          return!
             match token_pair with
             | Some tok ->
@@ -122,7 +120,6 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
     }
 
     let try_search_client (req: SearchReq list) = async {
-
        let search (req: SearchReq list)=
             req
             |> List.map try_search_client_single
@@ -130,7 +127,6 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
             |> Async.Parallel
 
        let! search_results = search req
-
        return parse_search_results search_results
     }
 
@@ -146,7 +142,6 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
             | None -> async { return Error "Need a valid token to make TPass calls" }
     }
     let try_get_recent_checkin  (ccode: bigint) (compid: int) (date: DateTime) = async {
-
         let cc = string ccode
         let comp = string compid
 
@@ -162,7 +157,6 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
 
 
     let try_checkout_client (ch_out: CheckOutRecord) = async {
-
        return!
             match token_pair with
             | Some tok ->
@@ -174,21 +168,16 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
     }
 
     let get_image (url: string) = async {
-
-            try
-                let! x = download_image client url
-                return Ok x
-            with
-            | e ->
-                return Error e.Message
+        try
+            let! x = download_image client url
+            return Ok x
+        with
+        | e -> return Error e.Message
     }
 
     //TODO: this is a little hackey, is there a better way then a string match?
     let to_tpass_client (json: string)  =
-
         if  json.ToLower().Contains("visitor") then
-
-             //match (json |> to_visitor_reply) with
              match (Visitor.from json ) with
              | Ok v -> v |> Visitor |> Some
              | Error e ->
@@ -196,7 +185,6 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
                  None
 
         elif json.ToLower().Contains("student") then
-
             match (Student.from json) with
             | Ok s -> s |> Student  |> Some
             | Error e ->
@@ -204,9 +192,8 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
                 None //failwith "could not parse"
 
         elif json.ToLower().Contains("employee") then
-
             match (EmployeeOrUser.from json) with
-            | Ok emp -> emp |> EmployeeOrUser |> Some
+            | Ok emp -> Some (EmployeeOrUser emp)
             | Error e ->
                 printfn $"Parse Error: %s{e}"
                 None //failwith "could not parse"
@@ -276,7 +263,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
         with
         | e ->
             printfn $"==== unable to get token ==== %s{e.Message}"
-            e.Message |> error_evt.Trigger
+            error_evt.Trigger e.Message
             return TPassError e
     }
 
@@ -288,84 +275,70 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
         with
         | e ->
             printfn $"==== unable to get user  token ==== %s{e.Message}"
-            e.Message |> error_evt.Trigger
+            error_evt.Trigger e.Message
             return TPassError e
     }
     member self.get_pv_client (id: PVID) = async {
-
            let! client_res = try_get_pv_client id
            return
                match client_res with
-               | Ok c when c = "" ->
-                   PVNotRegisteredError id
-               | Ok c ->
-                   let tp_client = c |> to_tpass_client
-                   Success tp_client.Value
-
+               | Ok c when c = "" -> PVNotRegisteredError id
+               | Ok c -> Success (to_tpass_client c).Value
                | Error e -> TPassError (Exception e)
 
     }
 
     member self.get_client_by_ccode (ccode: CCode) = async {
-
            let! client_res =  try_get_client_by_ccode ccode
            let (CCode code) = ccode
 
            return
                match client_res with
-               | Ok c when c = "" ->
-                   ClientNotFound code
+               | Ok c when c = "" -> ClientNotFound code
                | Ok c ->
-                   let tp_client = c |> to_tpass_client
-                   match tp_client with
-                   | Some client ->
-                       Success client
-                   | None ->
-                       ClientNotFound code
+                   match (to_tpass_client c) with
+                   | Some client -> Success client
+                   | None -> ClientNotFound code
                | Error e -> TPassError (Exception e)
     }
 
 
     member self.search_client (search_req:  SearchReq list) = async {
+           let! search_results =  (try_search_client search_req) |> Async.Catch
 
-       let! search_results =  (try_search_client search_req) |> Async.Catch
-
-       return
-           match search_results with
-           | Choice1Of2 search -> Success search
-           | Choice2Of2 exn    -> TPassError exn
+           return
+               match search_results with
+               | Choice1Of2 search -> Success search
+               | Choice2Of2 exn    -> TPassError exn
     }
 
     member self.get_client_image(uri: Uri) = async {
-
-           let! image_res =  uri.ToString() |> get_image
+           let! image_res = get_image (uri.ToString())
            return
                match image_res with
                | Ok bytes -> Success bytes
-               | Error e -> TPassError (Exception e)
+               | Error e  -> TPassError (Exception e)
 
     }
     member self.checkin_student (ch_rec: CheckInRecord) = async {
-
            let! res = try_checkin_client ch_rec
-           (res, "try_checkin_client") ||> p_log
+           p_log res "try_checkin_client"
            return
                match res with
-               | Ok r -> Success r
+               | Ok r    -> Success r
                | Error e -> TPassError (Exception e)
 
     }
     member self.checkout_student (ch_rec: CheckOutRecord) = async  {
-
            let! recent_rec = (try_get_recent_checkin ch_rec.ccode ch_rec.compId ch_rec.date)
-           (recent_rec, "recent_checkin") ||> p_log
+           p_log recent_rec "recent_checkin"
 
            let CMatch (record:string) = async {
                match (CheckInRecord.from record) with
                | Ok r ->
                    let ch_rec = {ch_rec with pkid = r.pkid}
                    let! checkout_res = try_checkout_client ch_rec
-                   (checkout_res, "try_checkout_client") ||> p_log
+                   p_log checkout_res "try_checkout_client"
                    match checkout_res with
                    | Ok res -> return Success res
                    | Error e -> return TPassError (Exception e)
@@ -381,25 +354,21 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
     }
 
     member self.register_pv (ccode: string) (pv_id: string) = async {
-
            let! reg_res =  try_register_pv_id ccode pv_id
-
            return
                match reg_res with
                | Ok reg ->
-                   (reg, "try_register_pv_id") ||> p_log
+                   p_log reg "try_register_pv_id"
                    Success reg
                | Error e -> TPassError (Exception e)
     }
 
     member self.update_pv (ccode: string) (pv_id: string) = async {
-
            let! reg_res = try_update_pv_id ccode pv_id
-
            return
                match reg_res with
                | Ok reg ->
-                   (reg, "try_update_pv_id") ||> p_log
+                   p_log reg "try_update_pv_id"
                    Success reg
                | Error e -> TPassError (Exception e)
     }

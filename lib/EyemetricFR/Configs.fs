@@ -3,7 +3,6 @@ open System
 
 module Queries = Queries.Config
 
-
 type Config(?db_path: string) =
     let def_config_db = System.IO.Path.Combine(AppContext.BaseDirectory, "data/config.sqlite")
     let db_path' = (db_path, def_config_db) ||> defaultArg

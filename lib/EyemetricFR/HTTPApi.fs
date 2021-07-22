@@ -45,7 +45,7 @@ module HTTPApi =
         let private to_jwtoken tstr =
             let x = from_b64 tstr
             printfn $"TOKEN: %s{x}"
-            JWToken.parse x
+            JWToken.from x
 
         let to_token_pair token_resp: TokenPair  =
            (token_resp.token, None) //parsing jwt token is a nightmare
@@ -363,7 +363,7 @@ module HTTPApi =
             let! token =  post_json_with_tok client (make_url "token") json None
 
             return
-                match (Result.bind TokenResponse.parse token) with
+                match (Result.bind TokenResponse.from token) with
                 | Ok t    ->  Auth.to_token_pair t
                 | Error e -> failwith $"could not parse JWT token from response: %s{e}"
 

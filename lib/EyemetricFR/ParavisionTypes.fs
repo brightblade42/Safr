@@ -7,6 +7,7 @@ open FSharp.Data.JsonExtensions
 module Streaming =
 
     type CameraID = CameraID of int
+
     [<CLIMutable>]
     type CameraStream =
         {
@@ -38,15 +39,13 @@ module Streaming =
                 secure             = get.Optional.Field "enabled"    Decode.bool |> Option.defaultValue false
                 updating           = get.Optional.Field "updating"    Decode.bool |> Option.defaultValue false
           })
-        static member from (json: string) = Decode.fromString CameraStream.Decoder json
+        static member from json = Decode.fromString CameraStream.Decoder json
 
     //TODO: consideration for a later feature where we use more than one server/service to process face data
     type CameraGroup = {
-
         name:     string
         address:  string //machine address that handles the decoding of a set of camera streams.
         streams:  CameraStream  list
-
     }
 
     //MessageTypes representing json structures returned from Paravision api.
@@ -120,6 +119,7 @@ module Streaming =
 
             })
 
+        static member from json = Decode.fromString StreamState.Decoder json
 
     type Coord =
       { x: float; y: float }
@@ -200,10 +200,8 @@ module Streaming =
           timestamp = get.Required.At ["timestamp"] Decode.datetime
         })
 
-    type FrameData =
-        {
-            data: DetectedFacesReply
-        }
+    type FrameData = { data: DetectedFacesReply }
+
     type InnerMessage =
       { message: string }
 
@@ -223,8 +221,7 @@ module Streaming =
 
 
     (* Helper methods to converting from json string to Record type *)
-    let to_stream_state (json:string) =
-      Decode.fromString StreamState.Decoder json
+    let to_stream_state (json:string) = Decode.fromString StreamState.Decoder json
 
     let to_stop_decode_reply (json: string) =
       Decode.fromString StopDecodeReply.Decoder json

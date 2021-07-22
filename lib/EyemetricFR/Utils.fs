@@ -90,34 +90,9 @@ module Utils =
        member self.start() = agent.Start()
        member self.stop() = agent.Post true
 
-
-
-
-   let swap_img_uri_old (client: TPassClient) (uri: Uri) =
-        //TODO: This is hacky bullshit.
-        let env_swap = Environment.GetEnvironmentVariable("IMG_URL_TYPE")
-        match env_swap with
-        //match swap with
-        | "internal" ->
-
-            let photo_type =
-                match client with
-                | Student _ -> "Students"
-                | _ ->  "Others"
-
-            let host = uri.Host
-            if host = "173.220.177.75" then
-               let img = uri.Segments |> Array.last
-               Uri ((sprintf "https://192.168.3.12/tpassk12v2/Images/Photos/%s/%s" photo_type img))
-            else
-               uri
-        | _ ->
-            uri
-
    let swap_img_uri (uri: Uri) =
         //TODO: This is hacky bullshit.
-        let env_swap = Environment.GetEnvironmentVariable("IMG_URL_TYPE")
-        match env_swap with
+        match Environment.GetEnvironmentVariable("IMG_URL_TYPE") with
         //| "internal" ->
         | "internal" ->
              let ext_url = uri.ToString()
@@ -161,9 +136,7 @@ module Utils =
 
                 return!
                   clients
-                  |> Seq.filter (fun x ->
-                      let y = "fun!"
-                      (x |> TPassClient.image_url).Length > 1)
+                  |> Seq.filter (fun x -> (x |> TPassClient.image_url).Length > 1)
                   |> Seq.map(fun x -> (x, Uri (x |> TPassClient.image_url)) ||> merge_image)
                   |> Async.Parallel
 
@@ -171,15 +144,12 @@ module Utils =
 
         let combine_with_image (tpass: TPassService) (clients: TPassClient []) = async {
 
-
                 let merge_image (client: TPassClient) (url: string) = async {
                   //TODO: uri hack. REMOVE THIS ASAP!
 
                   let image =
                       match url.Length with //the dreaded empty
-                      | 0 ->
-                         None
-
+                      | 0 -> None
                       | _ ->
                           let uri = Uri url
                           let img = uri |> tpass.get_client_image |> Async.RunSynchronously
@@ -187,18 +157,14 @@ module Utils =
                           | Success im -> Some im
                           | _ -> None
 
-
                   return { client = client; image = image }
                 }
 
-
                 return!
                   clients
-                //  |> Seq.filter (fun x -> (x |> TPassClient.image_url).Length > 1)
-                  |> Seq.map(fun x -> (x, (x |> TPassClient.image_url)) ||> merge_image)
+                  |> Seq.map(fun x -> merge_image x (TPassClient.image_url x))
                   |> Async.Parallel
-
-            }
+        }
 
         let create_enrollment (id_agent: FaceIdentification) (client: TPassClientWithImage) = async {
 
@@ -220,9 +186,8 @@ module Utils =
 
             }
 
-
         let create_enrollments (id_agent: FaceIdentification) (clients: TPassClientWithImage seq) = async {
-            return! clients |> Seq.map(fun x ->  (id_agent, x) ||> create_enrollment) |> Async.Parallel
+            return! clients |> Seq.map(create_enrollment id_agent) |> Async.Parallel
         }
 
 (*

@@ -7,26 +7,25 @@ open EyemetricFR.Paravision.Types.Identification
 
 type CompID =  string
 type IDOrName = string  //a code or a name fragment for TPAss to use as a look up.
-//type SearchType = | Student | All
 type PVID =  string //TODO: should really be a proper GUID
 type CCode = CCode of string //perhaps an int
 type SearchType = string
-type SearchReq = (IDOrName * SearchType * CompID)
+type SearchReq = IDOrName * SearchType * CompID
 type Credential = | UserPass of (string * string)
 
 type LoginCred =
     {
-    user: string
-    password: string
+        user: string
+        password: string
     }
+
     static member Decoder: Decoder<LoginCred> =
         Decode.object (fun get -> {
             user  = get.Required.At ["user"]  Decode.string
             password  = get.Required.At ["password"]  Decode.string
         })
 
-    static member from (json: string) =
-      Decode.fromString LoginCred.Decoder json
+    static member from json = Decode.fromString LoginCred.Decoder json
 
 type AuthToken = string
 
@@ -50,17 +49,17 @@ type JWToken =
 
     })
 
-    static member parse (json:string) = Decode.fromString JWToken.Decoder json
+    static member from json = Decode.fromString JWToken.Decoder json
 
 type TokenResponse =
     { token: string }
+
     static member Decoder: Decoder<TokenResponse> =
         Decode.object (fun get -> {
             token = get.Required.At ["token"] Decode.string
         })
 
-    static member parse (json:string) =
-        Decode.fromString TokenResponse.Decoder json
+    static member from json = Decode.fromString TokenResponse.Decoder json
 
 type SearchKind = Student | All
 type SearchTerm = SearchTerm of string
@@ -120,11 +119,7 @@ type EmployeeOrUser =
 
           })
 
-
-        static member from (json: string) =
-          Decode.fromString EmployeeOrUser.Decoder json
-
-
+        static member from json = Decode.fromString EmployeeOrUser.Decoder json
 
 type Visitor =
     {
@@ -165,7 +160,7 @@ type Visitor =
           })
 
 
-    static member from (json: string) = Decode.fromString Visitor.Decoder json
+    static member from json = Decode.fromString Visitor.Decoder json
 
 type Student =
   {
@@ -234,7 +229,7 @@ type Student =
          aptmnId     = get.Optional.At [ "aptmnId" ]       Decode.int        |> Option.defaultValue -1
 
        })
-  static member from (json: string) = Decode.fromString Student.Decoder json
+  static member from json = Decode.fromString Student.Decoder json
 
 type TPassClient =
 
@@ -242,28 +237,27 @@ type TPassClient =
     | Visitor of Visitor
     | EmployeeOrUser of EmployeeOrUser
 
-    static member to_str (tc: TPassClient) =
-        match tc with
+    static member to_str tpass_client =
+        match tpass_client with
         | Student s -> Encode.Auto.toString(4, s)
         | Visitor v -> Encode.Auto.toString(4, v)
         | EmployeeOrUser emp -> Encode.Auto.toString(4, emp)
-        | _ -> ""
 
-    static member image_url (tc: TPassClient) =
-        match tc with
+    static member image_url tpass_client =
+        match tpass_client with
         | Student s -> s.imgUrl
         | Visitor v -> v.imgUrl
         | EmployeeOrUser emp -> emp.imgUrl
 
 
-    static member status (tc: TPassClient) =
-        match tc with
+    static member status tpass_client =
+        match tpass_client with
         | Student s -> s.status
         | Visitor v -> v.status
         | EmployeeOrUser emp -> emp.status
 
-    static member ccode (tc: TPassClient) =
-        match tc with
+    static member ccode tpass_client =
+        match tpass_client with
         | Student s -> s.ccode
         | Visitor v -> v.ccode
         | EmployeeOrUser emp -> emp.ccode
@@ -272,6 +266,7 @@ type TPassClientWithImage = {
       client: TPassClient
       image: byte array option
 }
+
 type CheckInRecord =
    {
      pkid: int
@@ -281,8 +276,10 @@ type CheckInRecord =
      date: DateTime
      timeIn: DateTime
    }
+
    static member create(pkid: int, ccode: bigint, compId: int, flag: string, date: DateTime, timeIn: DateTime) =
        { pkid=pkid; ccode=ccode; compId=compId; flag=flag; date=date; timeIn=timeIn }
+
    static member Decoder: Decoder<CheckInRecord> =
      Decode.object ( fun get -> {
        pkid   = get.Required.At ["pkid"]   Decode.int
@@ -293,17 +290,16 @@ type CheckInRecord =
        timeIn = get.Required.At ["timeIn"] Decode.datetime
      })
 
-   static member from (json: string) =
-      Decode.fromString CheckInRecord.Decoder json
+   static member from json = Decode.fromString CheckInRecord.Decoder json
 
-   static member to_str (ch_rec: CheckInRecord) =
+   static member to_str checkin_rec =
      let enc =  Encode.object [
-          "pkid",   Encode.int  ch_rec.pkid
-          "compId", Encode.int ch_rec.compId
-          "ccode",  Encode.bigint ch_rec.ccode
-          "flag",   Encode.string ch_rec.flag
-          "date",   Encode.datetime ch_rec.date
-          "timeIn", Encode.datetime ch_rec.timeIn
+          "pkid",   Encode.int      checkin_rec.pkid
+          "compId", Encode.int      checkin_rec.compId
+          "ccode",  Encode.bigint   checkin_rec.ccode
+          "flag",   Encode.string   checkin_rec.flag
+          "date",   Encode.datetime checkin_rec.date
+          "timeIn", Encode.datetime checkin_rec.timeIn
      ]
      enc.ToString()
 
@@ -320,6 +316,7 @@ type CheckOutRecord =
    }
    static member create(pkid: int, ccode: bigint, compId: int, flag: string, date: DateTime, timeOut: DateTime) =
        { pkid=pkid; ccode=ccode; compId=compId; flag=flag; date=date; timeOut=timeOut }
+
    static member Decoder: Decoder<CheckOutRecord> =
      Decode.object ( fun get -> {
         pkid    = get.Required.At ["pkid"]    Decode.int
@@ -330,16 +327,16 @@ type CheckOutRecord =
         timeOut = get.Required.At ["timeOut"] Decode.datetime
      })
 
-   static member from (json: string) = Decode.fromString CheckOutRecord.Decoder json
+   static member from json = Decode.fromString CheckOutRecord.Decoder json
 
-   static member to_str (ch_rec: CheckOutRecord) =
+   static member to_str checkout =
      let enc = Encode.object [
-         "pkid",    Encode.int      ch_rec.pkid
-         "compId",  Encode.int      ch_rec.compId
-         "ccode",   Encode.bigint   ch_rec.ccode
-         "flag",    Encode.string   ch_rec.flag
-         "date",    Encode.datetime ch_rec.date
-         "timeOut", Encode.datetime ch_rec.timeOut
+         "pkid",    Encode.int      checkout.pkid
+         "compId",  Encode.int      checkout.compId
+         "ccode",   Encode.bigint   checkout.ccode
+         "flag",    Encode.string   checkout.flag
+         "date",    Encode.datetime checkout.date
+         "timeOut", Encode.datetime checkout.timeOut
      ]
      enc.ToString()
 

@@ -34,28 +34,19 @@ module PVStreams =
     type FaceDetection(stream_addr: string, socket_addr: string, ?eventContext: SynchronizationContext) =
 
         let client = create_client None
-        let stream_url = sprintf "http://%s" stream_addr
-        let socket_url = sprintf "ws://%s"  socket_addr
 
-        let make_stream_url = stream_url |> create_url
+        let stream_url      = $"http://%s{stream_addr}"
+        let socket_url      = $"ws://%s{socket_addr}"
+        let make_stream_url = create_url stream_url
 
         let mutable _active_streams: Result<StreamState, string> option = None
         let mutable cam_streams: CameraStream list option = None
         //let mutable stream_health:  Result<StreamHealth, string> option = None
         ///wraps an event to run in a synchronization context, if provided in constructor
-        /// This is particularly useful when running from a GUI Thread
-        let event_with_context (evt:Event<'T>) =
-           fun state ->
-                match eventContext with
-                | None ->
-                    evt.Trigger(state)
-                | Some ctx ->
-                    ctx.Post((fun _ -> evt.Trigger(state)), null)
 
         let face_detected_event = new Event<Result<string * DetectedFacesReply, string>>()  //return the PV type
         let socket_error = new Event<Result<string, exn>>() //coming soon
         let cam_stream_connected = new Event<string>() //string might not bet enough.
-        let fire_face_detected = face_detected_event |> event_with_context
         //internal web socket event handler. called when face detection images are received from PV
         let faces_detected (se: SocketIoEventEventArgs) =
 
@@ -69,7 +60,7 @@ module PVStreams =
                 |> to_detected_faces_reply
                 |> Result.map (fun x -> (ns, x))
 
-            fire_face_detected  detect_info
+            face_detected_event.Trigger detect_info
 
         //Todo: some things to do
         //create an event to nofity whenever the health of the streams goes off.
@@ -87,12 +78,11 @@ module PVStreams =
 
                 for cam in cams do
                     if not kill_loop then
-                        let! result = (client, make_stream_url, cam) |||> stream_call
-                        match result with
+                        let! res = stream_call client make_stream_url cam
+                        match res with
                         | HttpResult.Success r ->
-                            let reply = r |> to_reply //to_stop_decode_reply
                             let res =
-                                match reply with
+                                match (to_reply r) with
                                 | Ok dec ->  Ok dec
                                 | Error e -> Error e
 
@@ -116,7 +106,7 @@ module PVStreams =
                     return StreamingResult.Success stream_msg
             }
 
-        let stop_streams = build_stream_call stop_decode to_stop_decode_reply
+        let stop_streams  = build_stream_call stop_decode to_stop_decode_reply
         let start_streams = build_stream_call start_decode to_start_decode_reply
 
         let socket_timeout_ms = 10000
@@ -126,6 +116,7 @@ module PVStreams =
         let mutable socket_subs:IDisposable list = List.Empty
 
         let dispose_web_socket() = web_socket.Dispose()
+
         let sub_socket_events () =
 
             if socket_subs.Length > 0 then
@@ -134,20 +125,19 @@ module PVStreams =
                 web_socket.Dispose()
                 web_socket <- new SocketIoClient()
 
-
-            let conn_sub = web_socket.Connected.Subscribe(fun x ->
+            let socket_conn_sub = web_socket.Connected.Subscribe(fun x ->
                  socket_killed <- false
                  cam_stream_connected.Trigger(x.Namespace) //TODO: is this being utilized
                 )
 
             //TODO: what is diff between Error vs Exception in context of a web socket?
-            let err_sub = web_socket.ErrorReceived.Subscribe(fun x ->
+            let socket_err_sub = web_socket.ErrorReceived.Subscribe(fun x ->
                  printfn "==============================================================="
                  printfn $"Error from PV WebSocket : %s{x.Namespace} :: %s{x.Value}"
                  printfn "==============================================================="
                 )
 
-            let exn_sub = web_socket.ExceptionOccurred.Subscribe(fun x ->
+            let socket_exn_sub = web_socket.ExceptionOccurred.Subscribe(fun x ->
                  socket_killed <- true
                  dispose_web_socket()
                  socket_error.Trigger(Error x.Value)
@@ -155,16 +145,14 @@ module PVStreams =
                 )
 
             //The ALL important face detection event.
-            let msg_recv_sub = web_socket.EventReceived.Subscribe(faces_detected)
+            let msg_received_sub = web_socket.EventReceived.Subscribe(faces_detected)
 
-            let discon_sub = web_socket.Disconnected.Subscribe(fun x ->
+            let socket_disconnected_sub = web_socket.Disconnected.Subscribe(fun x ->
                  if not socket_killed then //disconnected but not fatal.
                      socket_error.Trigger(Error (Exception $"NOT KILLED: Socket disconnected: %s{x.Reason}"))
                  )
 
-            socket_subs <- [conn_sub; err_sub; exn_sub;msg_recv_sub;discon_sub]
-
-
+            socket_subs <- [socket_conn_sub; socket_err_sub; socket_exn_sub;msg_received_sub;socket_disconnected_sub]
 
         let connect_socket () = async {
             try
@@ -203,68 +191,56 @@ module PVStreams =
                 return Error ex
         }
 
-
         let unpack_stream_info(sinfo: Result<StreamState, string> option) =
             match sinfo with
             | Some (Ok streams) -> Some streams
-            | Some (Error e) ->  None
+            | Some (Error _) ->  None
             | None -> None
-
 
         //I feel like Bind is what this sort of thing is for.
         let handle_api_result (res: HttpResult<string>) =
                 match res with
-                | HttpResult.Success str -> Ok str
-                | HttpResult.TimedOutError t -> Error t
-                | HttpResult.UnhandledError e -> Error e.Message
+                | HttpResult.Success str         -> Ok str
+                | HttpResult.TimedOutError t     -> Error t
+                | HttpResult.UnhandledError e    -> Error e.Message
                 | HttpResult.HTTPResponseError e -> Error e
 
         let build_socket_connection (a_streams: Result<StreamState, string> option  ) = async {
             sub_socket_events() //this destroys and creates new socket. evil but easy.
-            let! conn = connect_socket()
-            match conn with
+            match! (connect_socket()) with
             | Ok is_conn when is_conn ->
-                let strms = a_streams |> unpack_stream_info
-                match strms with
+                match (unpack_stream_info a_streams) with
                 | Some s ->
                     //we only connect to namespaces that the pv server is already running, which are active_streams
-                    let s_names = s.streams |> List.map (fun x -> x.name.TrimStart [|'/'|] )
-                    let! ns_conn = s_names |> connect_socket_namespaces
+                    let s_names  = s.streams |> List.map (fun x -> x.name.TrimStart [|'/'|] )
+                    let! ns_conn = connect_socket_namespaces s_names
                     printfn $"Connected to namespaces %A{ns_conn}"
                     ()
-                | None ->
-                    printfn "no active streams to connect"
-            | Ok _ -> printfn "Did not connect to Socket"
-            | Error e ->
-                printfn $"Socket conn Error from ConnectToStream: %s{e}"
+                | None -> printfn "no active streams to connect"
+
+            | Ok _    -> printfn "Did not connect to Socket"
+            | Error e -> printfn $"Socket conn Error from ConnectToStream: %s{e}"
 
         }
 
         let update_active_streams() = async {
-
-            let! streams = (client, make_stream_url) ||> get_streams
-            let strms = streams |> handle_api_result
+            let! streams = get_streams client make_stream_url
 
             let a_streams =
-                match strms with
-                | Ok stream ->
-                    let new_active_streams = (to_stream_state stream)
-                    (Some new_active_streams)
-                | Error e ->
-                    printfn $"Get Streams Error: %s{e}"
-                    _active_streams
+                match (handle_api_result streams) with
+                | Ok stream -> (Some (StreamState.from stream))
+                | Error _   -> _active_streams //TODO: Handle the error
 
-            _active_streams <- a_streams //ooooh it's mutable....
+            _active_streams <- a_streams
             return ()
         }
-        let update_camera_streams(cams: CameraStream list) =
-            cam_streams <- Some(cams)
+        let update_camera_streams cams = cam_streams <- Some(cams)
 
-        let start_decoding(cams: CameraStream list ): Async<StartStreamingResultList> = async {
-            let! res = cams |> start_streams
+        let start_decoding cams: Async<StartStreamingResultList> = async {
+            let! res = start_streams cams
 
             match res with
-            | Success srs ->
+            | Success _ ->
                 do! update_active_streams ()
                 do! build_socket_connection(_active_streams)
             | ConnectionError ce ->
@@ -274,11 +250,10 @@ module PVStreams =
             return res
         }
 
-        let stop_decoding(cams: CameraStream list): Async<StopStreamingResultList> = async {
-            let! res = cams |> stop_streams
-
+        let stop_decoding cams: Async<StopStreamingResultList> = async {
+            let! res = stop_streams cams
             match res with
-            | Success srs ->
+            | Success _ ->
                 do! update_active_streams ()
                 do! build_socket_connection(_active_streams)
             | ConnectionError ce ->
@@ -288,11 +263,9 @@ module PVStreams =
             return res
         }
 
-        member self.start_decode (streams: CameraStream list) =
-            start_decoding streams
+        member self.start_decode cams = start_decoding cams
 
-        member self.stop_decode (streams: CameraStream list) =
-            stop_decoding streams
+        member self.stop_decode  cams = stop_decoding cams
 
         member self.async_get_streams(?timeout) = async {
             do! update_active_streams ()
