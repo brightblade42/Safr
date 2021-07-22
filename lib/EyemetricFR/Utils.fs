@@ -119,7 +119,7 @@ module Utils =
     //we can only enroll people with valid images, duh That's the point.
     //if the search result doesn't contain an image url then there is no image,
     //filter em out. NOTE: this doesn't validate the url, just that the url field contains something..
-   module TPassEnrollment =
+   module Enrollment =
 
         let combine_with_image (tpass: TPassService) (clients: TPassClient []) = async {
 
@@ -145,7 +145,7 @@ module Utils =
                   |> Async.Parallel
         }
 
-        let create_enrollment (id_agent: FaceIdentification) (client: TPassClientWithImage) = async {
+        let create_enrollment_info (id_agent: FaceIdentification) (client: TPassClientWithImage) = async {
 
               //TODO: add special Error type for when Duplicates are detected.
               //we might want to say.. hey..an identity very much like this one exists
@@ -166,5 +166,5 @@ module Utils =
             }
 
         let create_enrollments (id_agent: FaceIdentification) (clients: TPassClientWithImage seq) = async {
-            return! clients |> Seq.map(create_enrollment id_agent) |> Async.Parallel
+            return! clients |> Seq.map(create_enrollment_info id_agent) |> Async.Parallel
         }

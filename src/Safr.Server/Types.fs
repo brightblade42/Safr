@@ -1,6 +1,5 @@
-module EyemetricFR.Server.Types
+namespace Safr
 open EyemetricFR.Paravision.Types.Streaming
-
 open Thoth.Json.Net
 
 type IdentifiedFace = {
@@ -20,6 +19,7 @@ type CameraInfo = {
     available_cams: CameraStream list
     streams: Result<StreamState, string>
 }
+
 type DeleteEnrollmentRequest =
     {
         fr_ids: string list
@@ -29,9 +29,7 @@ type DeleteEnrollmentRequest =
             fr_ids = get.Required.At ["fr_ids"] (Decode.list  Decode.string)
           })
 
-    static member from (json: string) =
-       Decode.fromString DeleteEnrollmentRequest.Decoder json
-
+    static member from json = Decode.fromString DeleteEnrollmentRequest.Decoder json
 
 
 type EnrollCandidate =
@@ -42,6 +40,7 @@ type EnrollCandidate =
         comp_id: string
         confidence: float
     }
+
     static member Decoder: Decoder<EnrollCandidate> =
         Decode.object (fun get -> {
             ccode = get.Optional.At ["ccode"] Decode.string |> Option.defaultValue ""
@@ -51,8 +50,7 @@ type EnrollCandidate =
             confidence = get.Optional.At ["confidence"] Decode.float |> Option.defaultValue 0.0
             })
 
-    static member from (json: string) =
-        Decode.fromString EnrollCandidate.Decoder json
+    static member from json = Decode.fromString EnrollCandidate.Decoder json
 
 type EnrollRequest  =
     {
@@ -66,8 +64,7 @@ type EnrollRequest  =
             candidates = get.Required.At["candidates"] (Decode.list EnrollCandidate.Decoder)
             })
 
-    static member from (json: string) =
-        Decode.fromString EnrollRequest.Decoder json
+    static member from json = Decode.fromString EnrollRequest.Decoder json
 
 type GetIdentityRequest =
     {
@@ -77,7 +74,9 @@ type GetIdentityRequest =
         Decode.object (fun get -> {
            fr_id = get.Required.Field "fr_id" Decode.string
             })
-    static member from (json: string) = Decode.fromString GetIdentityRequest.Decoder json
+    static member from json = Decode.fromString GetIdentityRequest.Decoder json
+
+
 type UpdateCameraRequest =
     {
         camera: CameraStream
@@ -88,7 +87,7 @@ type UpdateCameraRequest =
 
       })
 
-    static member from (json: string) = Decode.fromString UpdateCameraRequest.Decoder json
+    static member from json = Decode.fromString UpdateCameraRequest.Decoder json
 
 type RemoveCameraRequest =
     {
@@ -114,8 +113,8 @@ type AddFaceRequest =
             fr_id = get.Required.At ["fr_id"] Decode.string
           })
 
-    static member from (json: string) =
-       Decode.fromString AddFaceRequest.Decoder json
+    static member from json = Decode.fromString AddFaceRequest.Decoder json
+
 type DeleteFaceRequest =
     {
         fr_id: string
@@ -127,5 +126,4 @@ type DeleteFaceRequest =
             face_id = get.Required.At ["face_id"] Decode.int
           })
 
-    static member from (json: string) =
-       Decode.fromString DeleteFaceRequest.Decoder json
+    static member from json = Decode.fromString DeleteFaceRequest.Decoder json

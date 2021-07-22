@@ -1,9 +1,8 @@
-module EyemetricFR.Program
+module Safr.Program
 
 open System
 open System.IO
-open EyemetricFR.Types
-open EyemetricFR.Server.Types
+open EyemetricFR
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Cors.Infrastructure
 open Microsoft.AspNetCore.Hosting
@@ -20,31 +19,12 @@ open EyemetricFR.Paravision.Types.Identification
 
 open Thoth.Json.Giraffe
 
-//weird. naming things is hard. lol
-
-
-//functions shared between standard http api and F# remoting api.
-//NOTE: The remoting api allows for regular http access but I'm having odd issues, so there
-//are separate httphandlers for non-f# clients.
 [<RequireQualifiedAccess>]
-module Global =
-//Shared functions
-
-    let start_all_streams (ctx: HttpContext) =
-       task {
-            let fr = ctx.GetService<FRService>() //:> IFR
-            return! fr.start_streams()
-       }
-    let stop_all_streams (ctx: HttpContext) =
-       task {
-            let fr = ctx.GetService<FRService>() //:> IFR
-            return! fr.stop_streams()
-       }
+module Helpers =
 
     let delete_enrollment (ctx: HttpContext) (delete_request: DeleteEnrollmentRequest) =
        task {
-                let fr = ctx.GetService<FRService>() //:> IFR
-
+                let fr = ctx.GetService<FRService>()
                 return
                     delete_request.fr_ids
                     |> List.map (fun fr_id ->
@@ -54,13 +34,6 @@ module Global =
                             | Error e -> Error (fr_id, e)
                             )
        }
-
-    let delete_all_enrollments (ctx: HttpContext) =
-        task {
-                let fr = ctx.GetService<FRService>() //:> IFR
-                let! res = fr.delete_all_enrollments ()
-                return res
-        }
 
     let private create_log_item (result: string) (client: TPassClientWithImage) (ident: IdentityItem list option )  (msg: string option) =
 
@@ -97,10 +70,10 @@ module Global =
          //<!doctype html> in bytes. TPASS returns html when an image url is not found..workaround it.
          [|60uy; 33uy; 100uy; 111uy; 99uy; 116uy;|] <> bytes.[0..5]
 
-
+    ///This function is a SPICY MEATABALL! TODO: rework this madness
     let enroll (ctx: HttpContext) (enroll_request: EnrollRequest) =
           task {
-                let fr = ctx.GetService<FRService>() //:> IFR
+                let fr = ctx.GetService<FRService>()
 
                 //narrow = 1  wide = many
                 let (narrow_search, wide_search) =
@@ -159,16 +132,14 @@ module Global =
                 //store this for final results.
                 let search_count = all_clients.Length //the number of results. compare with enrollments.
 
-
-                printfn "ENROLL: Search Count : %i"  search_count
-
+                printfn $"ENROLL: Search Count : %i{search_count}"
 
                 let! tpc_with_image = all_clients |> fr.to_client_with_image
-                let (client_with_img, client_no_img) =
+                let client_with_img, client_no_img =
                     tpc_with_image
                     |> Array.partition(fun (x:TPassClientWithImage) ->
                         match x.image with
-                        | (Some img) -> img |> validate_binary
+                        | Some img -> img |> validate_binary
                         | None -> false
                         )
 
@@ -179,14 +150,14 @@ module Global =
                     let! r =  item |> fr.log_enroll_attempt
                     ()
 
-                printfn "ENROLL: client with image count: %i" client_with_img.Length
-                printfn "ENROLL: client with NO image count: %i" client_no_img.Length
+                printfn $"ENROLL: client with image count: %i{client_with_img.Length}"
+                printfn $"ENROLL: client with NO image count: %i{client_no_img.Length}"
 
                 let enrollable_maybe = //, recognize_fails) =
                     client_with_img
                     |> Array.map(fun tpci ->
                          let r = fr.recognize (Binary tpci.image.Value) |> Async.RunSynchronously
-                         printfn "PROGRAM: Rec result: %A" r
+                         printfn $"PROGRAM: Rec result: %A{r}"
                          match r with
                          | Ok rr -> Ok (tpci, rr.identities |> Some)
                          | Error e  -> Error (tpci, e) //failed requests?
@@ -232,23 +203,21 @@ module Global =
 
                 //enrollable maybe.. could be enrollable or duplicate
                 //recognize fails.. got a result from pv that was no good. "Bad Request" TODO: get something more better tan that.
-
                 //LOG potential Duplicates
                 //i would comint the map and for loop but don't know how to do the async bit in the loop. gives error.
                 let duplicate_logs =
-                             duplicates_maybe
-                             |> Array.map(fun item ->  (fst item, snd item, Some "duplicate") |||> create_fail_log_item)
-
+                     duplicates_maybe
+                     |> Array.map(fun item ->  (fst item, snd item, Some "duplicate") |||> create_fail_log_item)
 
                 for item in duplicate_logs do
                     let! r = item |> fr.log_enroll_attempt
                     ()
 
                 printfn $"ENROLL: %i{enrollable.Length} enrollable out of %i{search_count} candidates"
-                let! enroll_count = enrollable
-                                    |> Array.map (fun x -> fst x) //extract the tpass portion
-                                    |> fr.enroll_clients
-
+                let! enroll_count =
+                    enrollable
+                    |> Array.map (fun x -> fst x) //extract the tpass portion
+                    |> fr.enroll_clients
 
                 printfn "===================================================="
                 printfn "                !! Quick SUMMARY !! "
@@ -260,11 +229,10 @@ module Global =
                 printfn "===================================================="
                 printfn "                !!   FAILS  !!"
                 printfn "===================================================="
-                printfn " NO IMG: %i " no_img_logs.Length
-                printfn " DUPES: %i " 0 //duplicate_logs.Length
-                printfn " RECOGNIZE FAILED: %i"  recognize_fails.Length
+                printfn $" NO IMG: %i{no_img_logs.Length} "
+                printfn $" DUPES: {0} " //duplicate_logs.Length
+                printfn $" RECOGNIZE FAILED: %i{recognize_fails.Length}"
                 printfn "===================================================="
-
 
                 return
                     {|
@@ -277,10 +245,11 @@ module Global =
                     |}
 
          }
+
     let recognize (ctx: HttpContext) (face: FaceImage) =
         task {
 
-                let  fr  = ctx.GetService<FRService>() //:> IFR
+                let  fr  = ctx.GetService<FRService>()
                 let! res = face |> fr.recognize
 
                 return
@@ -290,72 +259,30 @@ module Global =
                     | Error e -> Error e
         }
 
-    let add_face (ctx: HttpContext) (id: string) (face: FaceImage) =
-        task {
-
-            let  fr = ctx.GetService<FRService>() //:> IFR
-            return! { id = id; image=face; confidence= Some 0.8; } |> fr.add_face
-        }
-
-    let delete_face (ctx: HttpContext) (id: string) (face_id: int) =
-        task {
-
-            let  fr = ctx.GetService<FRService>() //:> IFR
-            return! { id = id; face_id = face_id } |> fr.delete_face
-        }
-
-    let get_identity (ctx: HttpContext) (id: string) =
-        task {
-            let fr = ctx.GetService<FRService>() //:> IFR
-            return! { id=id  } |> fr.get_identity
-        }
-
-    let add_camera (ctx: HttpContext) (cam: CameraStream)  =
-        task {
-            let fr = ctx.GetService<FRService>() // :> IFR
-            let! res = fr.add_camera cam
-            return res //a plain string which is ridicoolus. should at least be a RESULT type
-        }
-    let remove_camera (ctx: HttpContext) (id: int)  =
-        task {
-            let fr = ctx.GetService<FRService>() //:> IFR
-            let! res = fr.remove_camera id
-            return res
-        }
-
-    let update_camera (ctx: HttpContext) (cam: CameraStream) =
-        task {
-            let fr = ctx.GetService<FRService>() //:> IFR
-            let! res = fr.update_camera cam
-            return res
-        }
-
-
-
-
+//HTTP Handlers
 
 let recognize_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-
             try
                 let img = ctx.Request.Form.Files.GetFile("image")
                 use mem = new MemoryStream()
-                mem |> img.OpenReadStream().CopyTo
+                img.OpenReadStream().CopyTo mem
+                let face = FaceImage.Binary (mem.ToArray())
+                let  fr  = ctx.GetService<FRService>()
+                let! res = fr.recognize face
 
-                //let fr = ctx.GetService<FRService>() :> IFR
-                let face = mem.ToArray() |> FaceImage.Binary
-
-                match! (Global.recognize ctx face) with
-                | Ok pm -> return! json pm next ctx
-                | Error e -> return! json {face_count =0; identities = List.empty } next ctx
+                match res with
+                //TODO: Use confidence from config
+                | Ok pm ->
+                    return! json {pm with identities = pm.identities |> List.filter(fun f -> f.confidence > 0.9) } next ctx
+                | Error e ->
+                    return! json {face_count =0; identities = List.empty } next ctx
 
             with
             | :? Exception as ex ->
                     return! json {face_count =0; identities = List.empty } next ctx
-
         }
-
 
 let add_face_handler  =
     fun  (next: HttpFunc) (ctx: HttpContext)  ->
@@ -369,13 +296,15 @@ let add_face_handler  =
                 else
 
                     let fr_id = qs.Item("fr_id").Item(0) //only one
-
                     let img = ctx.Request.Form.Files.GetFile("image")
                     use mem = new MemoryStream()
-                    mem |> img.OpenReadStream().CopyTo
-                    let face = mem.ToArray() |> FaceImage.Binary
+                    img.OpenReadStream().CopyTo mem
+                    let face = FaceImage.Binary (mem.ToArray())
 
-                    match! (Global.add_face ctx fr_id face) with
+                    let  fr = ctx.GetService<FRService>()
+                    let! res =  fr.add_face { id = fr_id; image=face; confidence= Some 0.8; }
+
+                    match res with
                     | Ok f_id ->
                          return! json {| fr_id= fr_id; face_id = f_id.id |}  next ctx
                     | Error e ->
@@ -395,20 +324,19 @@ let login_handler =
     fun (next: HttpFunc) (ctx: HttpContext) -> task {
 
         try
-            let fr = ctx.GetService<FRService>() //:> IFR
+            let fr = ctx.GetService<FRService>()
             let req = ctx.Request.Body
             use sr = new StreamReader(req)
             let! body_str = sr.ReadToEndAsync()
             let login = LoginCred.from body_str
-            let r =
+            let login_res =
                 match login with
                 | Ok lg ->
                     let res = (fr.validate_user lg.user lg.password)
                     json {| valid=res |}
-                | Error e ->
-                    json {| error=e |}
-            //let
-            return! r next ctx
+                | Error e -> json {| error=e |}
+
+            return! login_res next ctx
 
         with
         | :? Exception as ex ->
@@ -418,17 +346,16 @@ let login_handler =
 
 let frlog_handler =
     fun (next: HttpFunc) (ctx: HttpContext) -> task {
-
         try
-            let fr = ctx.GetService<FRService>() //:> IFR
+            let fr = ctx.GetService<FRService>()
             let req = ctx.Request.Body
             use sr = new StreamReader(req)
             let! body_str = sr.ReadToEndAsync()
             let dr = DateRange.from body_str
             let r =
                 match dr with
-                | Ok dd ->
-                    let logs = fr.get_frlog_daterange (Some dd.start_date) (Some dd.end_date) |> Async.RunSynchronously
+                | Ok range ->
+                    let logs = fr.get_frlog_daterange (Some range.start_date) (Some range.end_date) |> Async.RunSynchronously
                     //not letting the detected image pass to the client for "security" reasons
                     match logs with
                     | Ok logs ->
@@ -454,28 +381,26 @@ let frlog_handler =
              return! json {| error=msg |} next ctx
      }
 
-
-
-
 let delete_face_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
             try
                 let req = ctx.Request.Body
-                use sr = new StreamReader(req)
-                let! body_str = sr.ReadToEndAsync()
+                use sr  = new StreamReader(req)
+                let! body_str     = sr.ReadToEndAsync()
                 let face_req_body = DeleteFaceRequest.from body_str
 
                 match face_req_body with
-                | Ok f_req ->
-                    match! (Global.delete_face ctx f_req.fr_id f_req.face_id) with
-                    | Ok f_id ->
-                        return! json {| fr_id= f_req.fr_id; face_id= f_id.id |} next ctx
-                    | Error e ->
+                | Ok req ->
+                    let  fr = ctx.GetService<FRService>()
+                    let! del_res =  fr.delete_face { id = req.fr_id; face_id = req.face_id }
 
+                    match del_res  with
+                    | Ok f_id -> return! json {| fr_id= req.fr_id; face_id= f_id.id |} next ctx
+                    | Error e ->
                          let msg =
                              match e with
-                             | "NOT FOUND" -> $"enrollment with fr_id: %s{f_req.fr_id} and face_id: %i{f_req.face_id} could not be found"
+                             | "NOT FOUND" -> $"enrollment with fr_id: %s{req.fr_id} and face_id: %i{req.face_id} could not be found"
                              | _ -> $"could not not complete delete face request. %s{e}"
                          return! json {| error=msg |} next ctx
 
@@ -486,9 +411,8 @@ let delete_face_handler =
             | :? Exception as ex ->
                  let msg = $"couldn't process request: %s{ex.Message}"
                  return! json {| error=msg |} next ctx
-
-
         }
+
 let get_identity_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
@@ -497,12 +421,12 @@ let get_identity_handler =
                 use sr = new StreamReader(req)
                 let! body_str = sr.ReadToEndAsync()
 
-                let get_ident_req = GetIdentityRequest.from body_str
-                match get_ident_req with
+                match (GetIdentityRequest.from body_str) with
                 | Ok id_req ->
-                    match! (Global.get_identity ctx id_req.fr_id) with
-                    | Ok ident ->
-                        return! json ident next ctx
+                    let fr = ctx.GetService<FRService>()
+                    let! id_res = fr.get_identity { id= id_req.fr_id  }
+                    match id_res with
+                    | Ok ident -> return! json ident next ctx
                     | Error e ->
                         let msg = $"could not get identity info. %s{e}"
                         return! json {| error=msg |} next ctx
@@ -514,20 +438,17 @@ let get_identity_handler =
                   let msg = $"could not process get identity request. %s{ex.Message}"
                   return! json {| error=msg |} next ctx
         }
+
 let enroll_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-
-            let req = ctx.Request.Body
-            use sr = new StreamReader(req)
+            use sr = new StreamReader(ctx.Request.Body)
             let! body_str = sr.ReadToEndAsync()
 
-            let enroll_req = EnrollRequest.from body_str
-            match enroll_req with
+            match (EnrollRequest.from body_str) with
             | Ok ereq ->
                 printfn "%A" ereq
-
-                let! enroll_res = Global.enroll ctx ereq
+                let! enroll_res = Helpers.enroll ctx ereq
                 let duplicates_maybe = enroll_res.duplicates
 
                 let dupe_results =
@@ -541,7 +462,6 @@ let enroll_handler =
                     |> Array.map (fun x -> x.Value)
 
                 //json results  TODO: return better json results. Perhaps build proper datatype
-
                 let jb = {|
                           search_count = enroll_res.search_count
                           enroll_count = enroll_res.enroll_count
@@ -558,21 +478,18 @@ let enroll_handler =
         }
 
 let delete_enrollment_handler =
-
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-
             let req = ctx.Request.Body
             use sr = new StreamReader(req)
             let! body_str = sr.ReadToEndAsync()
-
             let enroll_req = DeleteEnrollmentRequest.from body_str
+
             match enroll_req with
             | Ok delete_request ->
+                let! delete_results = Helpers.delete_enrollment ctx delete_request
 
-                let! delete_results = Global.delete_enrollment ctx delete_request
-
-                let final_res = delete_results |> List.map (fun res ->
+                let  final_res = delete_results |> List.map (fun res ->
                         match res with
                         | Ok (fr_id, r) when r = 0 -> {| fr_id = fr_id; result = "fail"; msg = "fr_id was not found" |}
                         | Ok (fr_id, _) -> {| fr_id = fr_id; result = "success"; msg = "" |}
@@ -581,15 +498,15 @@ let delete_enrollment_handler =
 
                 return! json {| delete_results=final_res |} next ctx
 
-             | Error e ->
-                 return! json {| error="could not parse json input. Looks invalid." |} next ctx
+             | Error e -> return! json {| error="could not parse json input. Looks invalid." |} next ctx
        }
 
 let delete_all_enrollments_handler =
-
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-            let! del_res = Global.delete_all_enrollments ctx
+            let fr = ctx.GetService<FRService>()
+            let! del_res = fr.delete_all_enrollments ()
+
             match del_res with
             | Ok r ->
                 let msg = $"%i{r} enrollments have been deleted"
@@ -599,11 +516,9 @@ let delete_all_enrollments_handler =
                 return! json {| error=msg |} next ctx
         }
 
-
 let get_enrollments_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-
             //use sr = new StreamReader(ctx.Request.Body)
             //let! body_str = sr.ReadToEndAsync()
            return! json {| message="Coming Soon!" |} next ctx
@@ -614,53 +529,56 @@ let start_camera_streams_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
 
-            let! strms = Global.start_all_streams ctx
-            return! json {| msg=strms |} next ctx
+            let fr = ctx.GetService<FRService>()
+            let! streams = fr.start_streams()
+
+            return! json {| msg=streams |} next ctx
         }
+
 let stop_camera_streams_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-            let! strms = Global.stop_all_streams ctx
-            return! json {| msg=strms |} next ctx
+            let fr = ctx.GetService<FRService>()
+            let! streams =  fr.stop_streams()
+            return! json {| msg=streams |} next ctx
         }
 let add_camera_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-
             let req = ctx.Request.Body
             use sr = new StreamReader(req)
             let! body_str = sr.ReadToEndAsync()
-
             let cam_stream = CameraStream.from body_str
+
             match cam_stream with
             | Ok c ->
-                let! res = Global.add_camera ctx c
+                let fr = ctx.GetService<FRService>()
+                let! res = fr.add_camera c
                 return! json {| msg=res |} next ctx
-             | Error e ->
-                 return!  json {| msg=e |} next ctx
-
+             | Error e -> return!  json {| msg=e |} next ctx
         }
+
 let remove_camera_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-
             let req = ctx.Request.Body
-            use sr = new StreamReader(req)
+            use sr  = new StreamReader(req)
             let! body_str = sr.ReadToEndAsync()
-
             let rem_cam_req = RemoveCameraRequest.from body_str
+
             match rem_cam_req with
             | Ok cr ->
-                let! res = Global.remove_camera ctx cr.cam_id
+                let fr = ctx.GetService<FRService>()
+                let! res = fr.remove_camera cr.cam_id
                 return! json {| msg= $"removed camera with id: %i{cr.cam_id}" |} next ctx
-            | Error e ->
-                return! json {| msg = $"Could not remove camera:  %s{e}"  |} next ctx
+
+            | Error e -> return! json {| msg = $"Could not remove camera:  %s{e}"  |} next ctx
 
         }
+
 let update_camera_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-
             let req = ctx.Request.Body
             use sr = new StreamReader(req)
             let! body_str = sr.ReadToEndAsync()
@@ -669,19 +587,19 @@ let update_camera_handler =
             match update_cam_req with
             | Ok ur ->
                     let cam = ur.camera
-                    let! res = Global.update_camera ctx cam
+                    let fr = ctx.GetService<FRService>()
+                    let! res = fr.update_camera cam
                     return! json {| msg="Camera has been updated" |} next ctx
-            | Error e ->
-                return! json {| msg = $"Could not update camera:  %s{e}"  |} next ctx
 
+            | Error e -> return! json {| msg = $"Could not update camera:  %s{e}"  |} next ctx
         }
+
 let webApp : HttpHandler =
 
     choose [
         GET >=>
             choose [
                route "/fr/enrollments" >=> get_enrollments_handler
-               //route "/fr/init-cameras" >=> init_camera_streams_handler
                route "/fr/start-streams" >=> start_camera_streams_handler
                route "/fr/stop-streams" >=> stop_camera_streams_handler
                route "/fr/enrollment/delete-all" >=> delete_all_enrollments_handler
@@ -709,12 +627,8 @@ let webApp : HttpHandler =
     ]
 
 
-
-
-
 let configCors (builder: CorsPolicyBuilder) =
     builder.WithOrigins("http://localhost:8080").AllowAnyMethod().AllowAnyHeader() |> ignore
-
 
 
 let add_deps (p: IServiceProvider) =
@@ -723,6 +637,7 @@ let add_deps (p: IServiceProvider) =
 
 
 let configureApp (app: IApplicationBuilder) =
+
         //let fho = new ForwardedHeadersOptions() //for the reverse proxy magic
         //fho.ForwardedHeaders <- ForwardedHeaders.XForwardedFor ||| ForwardedHeaders.XForwardedProto
         //printfn "THIS IS WHERE THE WEB SOCKET CONN HAPPENS"

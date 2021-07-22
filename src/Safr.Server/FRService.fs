@@ -1,37 +1,30 @@
-namespace EyemetricFR
-
+namespace Safr
 open System
-open EyemetricFR.Server.Types //clean up these hideous types
 open Microsoft.AspNetCore.SignalR
-open EyemetricFR.Types
+open EyemetricFR
 open EyemetricFR.TPass.Types
 open EyemetricFR.Paravision.Types.Streaming
 open EyemetricFR.Paravision.Types.Identification
 open EyemetricFR.Utils
 open EyemetricFR.Identifier
-//open EyemetricFR.Funcs //Why?
 open EyemetricFR.Logging
 
 type FRService(config_agent:       Config,
-               tpass_service:        TPassService option,
+               tpass_service:      TPassService option,
                face_detector:      FaceDetection,
                identifier:         FaceIdentification,
-               enrollments:       Enrollments,
-               cam_agent:          Cameras,
-               identified_logger:  IdentifiedLogger,
-               enroll_log_agent:   EnrollmentLogger,
                hub:                Hub
                ) =
 
-    let mutable config_agent = config_agent
-    let mutable identified_logger = identified_logger
-    let mutable enroll_log_agent = enroll_log_agent
-    let mutable tpass_service  = tpass_service
-    let mutable enrollments = enrollments
-    let mutable identifier  = identifier
-    let mutable face_detector    = face_detector
-    let mutable cam_agent    = cam_agent
-    let mutable hub_context  = hub
+    let mutable config_agent      = config_agent
+    let mutable identified_logger = IdentifiedLogger()
+    let mutable enrollment_logger  = EnrollmentLogger()
+    let mutable tpass_service     = tpass_service
+    let mutable enrollments       = Enrollments(System.IO.Path.Combine(AppContext.BaseDirectory, "data/enrollment.sqlite"))
+    let mutable identifier        = identifier
+    let mutable face_detector     = face_detector
+    let mutable cam_agent         = Cameras ()
+    let mutable hub_context       = hub
     let mutable handling_face_detection = false
     let mutable id_cache = CacheMap(1000)
 
@@ -57,13 +50,11 @@ type FRService(config_agent:       Config,
     let mutable cams: CameraStream list =  []
 
     let is_cached id =
-      //false
       match (id_cache.get id) with
       | Some _ -> true
       | None ->
         id_cache.set id id
         false
-
 
     let log_matched_identity (face: IdentifiedFace) (pm: PossibleMatch ) (detected_img: string ) =
       {
@@ -80,13 +71,14 @@ type FRService(config_agent:       Config,
 
     let get_frlog_daterange' (startdate: Option<string>) (enddate: Option<string>) = async {
         printfn $"FR SERVICE: get_frlog daterange %A{startdate} : %A{enddate}"
-        return! (startdate, enddate) ||> identified_logger.get_by_daterange
+        return! identified_logger.get_by_daterange startdate enddate
     }
 
     let get_enrollment' (id: string) = async {
         return enrollments.get_enrolled_details_by_id id  //should this be async as well?
     }
-    let log_enroll_attempt' (item: EnrollLog) = async { return! item |> enroll_log_agent.log }
+
+    let log_enroll_attempt' (item: EnrollLog) = async { return! enrollment_logger.log item}
 
 
     let delete_enrollment' (fr_id: string) = async {
@@ -95,7 +87,6 @@ type FRService(config_agent:       Config,
     }
 
     let delete_all_enrollments' () = async {
-
         let! ids = identifier.get_identities()
         //pv
         let deleted_identities =
@@ -108,29 +99,28 @@ type FRService(config_agent:       Config,
     }
 
     let get_client_by_ccode' (ccode: CCode) = async {
-        let tpa = tpass_service.Value
-        return! ccode |> tpa.get_client_by_ccode
+        let svc = tpass_service.Value
+        return! svc.get_client_by_ccode ccode
     }
 
     let search_tpass' (search_req: SearchReq list) = async {
-        let tpa = tpass_service.Value
-        return! search_req |> tpa.search_client
+        let svc = tpass_service.Value
+        return! svc.search_client search_req
     }
 
     let to_client_with_image' (clients: TPassClient []) = async {
-        let tpa = tpass_service.Value
-        return! (tpa, clients) ||> TPassEnrollment.combine_with_image
+        let svc = tpass_service.Value
+        return! Enrollment.combine_with_image svc clients
     }
 
     let enroll_clients' (clients: TPassClientWithImage seq) = async {
 
         //TODO: What if tpass_reg fails? Should log that for later retry
-
-        let tpa = tpass_service.Value
-        let! new_idents =  (identifier, clients) ||> TPassEnrollment.create_enrollments
+        let svc = tpass_service.Value
+        let! new_idents = Enrollment.create_enrollments identifier clients
         printfn $"ENROLL: PV identities created: %i{new_idents.Length}"
 
-        let! enrolled = new_idents |> enrollments.batch_enroll //TODO: we can do better than this name
+        let! enrolled = enrollments.batch_enroll new_idents
         let enroll_count = enrolled |> Array.sumBy(fun x -> match x with | Ok c -> c | _ -> 0)
 
         //TODO: we may want to keep track of local enroll count, vs what tpass accepted.
@@ -144,8 +134,8 @@ type FRService(config_agent:       Config,
             |> Seq.filter(fun x -> x.IsSome)
             |> Seq.map(fun x -> x.Value)
             |> Seq.map(fun info ->
-                 let (ccode, pv) = info
-                 (string ccode, pv) ||> tpa.update_pv
+                 let ccode, pv = info
+                 svc.update_pv (string ccode) pv
                  )
             |> Async.Parallel
             |> Async.RunSynchronously
@@ -154,12 +144,13 @@ type FRService(config_agent:       Config,
         return enroll_count
     }
 
-    let recognize' (face: FaceImage) = async { return! face |> identifier.detect_identity }
+    let recognize' (face: FaceImage) = async { return! identifier.detect_identity face }
 
-    let add_face' (req: AddFaceReq) = async { return! req |> identifier.add_face }
-    let delete_face' (req: DeleteFaceReq) = async { return! req |> identifier.delete_face }
+    let add_face' (req: AddFaceReq) = async { return! identifier.add_face req }
 
-    let get_identity' (req: GetIdentityReq) = async { return! req |> identifier.get_identity }
+    let delete_face' (req: DeleteFaceReq) = async { return! identifier.delete_face req }
+
+    let get_identity' (req: GetIdentityReq) = async { return! identifier.get_identity req }
 
     //TODO: Checkin calls may change when updated specifically for other TPASS Client types (Visitor . Employee
     let create_checkin_rec (compId: int) (ccode: int) =
@@ -168,14 +159,14 @@ type FRService(config_agent:       Config,
     let create_checkout_rec (compId: int) (ccode: int) =
           CheckOutRecord.create(pkid=0, compId= compId, ccode=bigint ccode, flag= "O", date=DateTime.Now, timeOut=DateTime.Now)
 
-    //TODO: Checkin / OUT for types other than studentsd
+    //TODO: Checkin / OUT for types other than students!
     let check_in (tpc: TPassClient) =
 
-        let tpa = tpass_service.Value
+        let svc = tpass_service.Value
 
         let check_fn () =
             match tpc with
-            | Student s -> (s.compId, s.ccode) ||> create_checkin_rec |> tpa.checkin_student
+            | Student s -> (s.compId, s.ccode) ||> create_checkin_rec |> svc.checkin_student
             //TODO: add non student check ins
             //| EmployeeOrUser emp -> (emp.compId, emp.ccode) ||> create_checkin_rec |> fr_agent.checkin
             | _ ->  async { return Success "" } //Placeholder for other possible types
@@ -187,16 +178,16 @@ type FRService(config_agent:       Config,
         | false ->
             let res = check_fn () |> Async.RunSynchronously
             match res with
-            | Success s -> "Checked In" |> Some
+            | Success _ -> "Checked In" |> Some
             | _ -> None //TODO: provide some other status? Unknown or something
 
     let check_out (tpc: TPassClient) =
 
-        let tpa = tpass_service.Value
+        let svc = tpass_service.Value
 
         let check_fn () =
             match tpc with
-            | Student s -> (s.compId ,s.ccode) ||> create_checkout_rec |> tpa.checkout_student
+            | Student s -> (s.compId ,s.ccode) ||> create_checkout_rec |> svc.checkout_student
             //| EmployeeOrUser emp -> (emp.compId, emp.ccode) ||> create_checkout_rec |> fr_agent.checkout
             | _ ->  async { return Success "" } //Placeholder for other possible types
 
@@ -213,20 +204,21 @@ type FRService(config_agent:       Config,
 
     let check_in_or_out (tcl: TPassClient) (cam_name: string) =
 
+        //TODO: what if multiple cameras have same name?
         let dir = cams |> List.filter(fun c -> c.name = cam_name) |>  List.map (fun x -> x.direction) |> List.head
 
         match (tcl, dir) with
-        | (Student s , 1) -> (s.name,  check_in tcl)
-        | (Student s, 0) -> (s.name, check_out tcl)
-        | (EmployeeOrUser e, 1) -> (e.name, check_in tcl)
-        | (EmployeeOrUser e, 0)  -> (e.name, check_out tcl)
+        | Student s , 1        -> (s.name, check_in tcl)
+        | Student s, 0         -> (s.name, check_out tcl)
+        | EmployeeOrUser e, 1  -> (e.name, check_in tcl)
+        | EmployeeOrUser e, 0  -> (e.name, check_out tcl)
         | _ -> ("Unknown", None)
 
     let validate_user'(user: string)(pass:string) =
 
-            let tpa = tpass_service.Value
+            let svc = tpass_service.Value
             let cred = UserPass (user, pass)
-            let is_valid = tpa.validate_user cred |> Async.RunSynchronously
+            let is_valid = svc.validate_user cred |> Async.RunSynchronously
 
             match is_valid with
             | Success _ -> true
@@ -248,7 +240,6 @@ type FRService(config_agent:       Config,
         | None -> 0.96
 
     let is_confident ident =
-
         let min_conf = get_min_conf()
         match ident with
         | Some pf -> pf.identities.Head.confidence  >= min_conf
@@ -639,17 +630,15 @@ type FRService(config_agent:       Config,
 
         let conf_agent        = Config ()
         let conf              = conf_agent.get_latest_config()
-        let cam_agent         = Cameras ()
-        let fr_logger         = IdentifiedLogger ()//FRLogAgent ()
-        let enrollment_logger = EnrollmentLogger()
         let c = conf.Value
 
         let tpass_service = FRService.init_tpass(c) |> Async.RunSynchronously //check opt
-        let ident_agent = FaceIdentification(c.pv_api_addr)
-        let enroll_agent = Enrollments(System.IO.Path.Combine(AppContext.BaseDirectory, "data/enrollment.sqlite"))
-        let det_agent = FaceDetection(c.vid_streaming_addr.Trim(), c.detection_socket_addr)
+        let ident_agent   = FaceIdentification(c.pv_api_addr)
+        let enroll_agent  = Enrollments(System.IO.Path.Combine(AppContext.BaseDirectory, "data/enrollment.sqlite"))
+        let det_agent     = FaceDetection(c.vid_streaming_addr.Trim(), c.detection_socket_addr)
 
-        FRService(conf_agent, tpass_service, det_agent, ident_agent, enroll_agent, cam_agent, fr_logger, enrollment_logger,  fr_hub)
+        //FRService(conf_agent, tpass_service, det_agent, ident_agent, enroll_agent, cam_agent, fr_logger, enrollment_logger,  fr_hub)
+        FRService(conf_agent, tpass_service, det_agent, ident_agent,    fr_hub)
 
 
 
