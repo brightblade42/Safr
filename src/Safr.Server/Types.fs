@@ -20,6 +20,8 @@ type CameraInfo = {
     streams: Result<StreamState, string>
 }
 
+
+//HTTP API types.
 type DeleteEnrollmentRequest =
     {
         fr_ids: string list
@@ -94,7 +96,6 @@ type RemoveCameraRequest =
         cam_id: int
     }
 
-
     static member Decoder: Decoder<RemoveCameraRequest> =
         Decode.object (fun get -> {
             cam_id = get.Required.At ["cam_id"] Decode.int
@@ -108,6 +109,7 @@ type AddFaceRequest =
     {
         fr_id: string
     }
+
     static member Decoder: Decoder<AddFaceRequest> =
         Decode.object (fun get -> {
             fr_id = get.Required.At ["fr_id"] Decode.string

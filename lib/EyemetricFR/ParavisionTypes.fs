@@ -49,6 +49,7 @@ module Streaming =
     }
 
     //MessageTypes representing json structures returned from Paravision api.
+    ///Return from PV with info about out our request to Start a Camera stream
     type StartDecodeReply =
         { message: string; name: string; source: string; success: bool }
 
@@ -60,6 +61,7 @@ module Streaming =
             success = get.Optional.At ["success"] Decode.bool   |> Option.defaultValue false
           })
 
+    ///Return from PV with info about out our request to Start a Camera stream
     type StopDecodeReply =
       { message: string; success: bool }
 
@@ -88,7 +90,6 @@ module Streaming =
           expanded_image_scale: float;
           tracking_duration: int
           rotation: int
-          //detect_mask
           enable_tracking: bool
           skip_identical_frames: bool;
           latest_activity: DateTime   //TODO: are we sure this belongs here?
@@ -97,16 +98,16 @@ module Streaming =
 
         static member Decoder : Decoder<StreamInfo> =
             Decode.object (fun get -> {
-                detect_frame_rate = get.Required.At [ "detect_frame_rate" ] Decode.int
-                enable_tracking = get.Required.At [ "enable_tracking"  ] Decode.bool
-                expanded_image_scale = get.Required.At [ "expanded_image_scale" ] Decode.float
-                latest_activity = get.Required.At ["latest_activity"] Decode.datetime
-                metadata = get.Required.At ["metadata"] StreamInfoMeta.Decoder
-                name = get.Required.At [ "name" ] Decode.string
-                rotation = get.Required.At [ "rotation" ] Decode.int ;
-                skip_identical_frames = get.Required.At [ "skip_identical_frames" ] Decode.bool;
-                source = get.Required.At ["source"] Decode.string
-                tracking_duration = get.Required.At ["tracking_duration"] Decode.int
+                detect_frame_rate      = get.Required.At [ "detect_frame_rate" ]     Decode.int
+                enable_tracking        = get.Required.At [ "enable_tracking"  ]      Decode.bool
+                expanded_image_scale   = get.Required.At [ "expanded_image_scale" ]  Decode.float
+                latest_activity        = get.Required.At ["latest_activity"]         Decode.datetime
+                metadata               = get.Required.At ["metadata"]                StreamInfoMeta.Decoder
+                name                   = get.Required.At [ "name" ]                  Decode.string
+                rotation               = get.Required.At [ "rotation" ]              Decode.int ;
+                skip_identical_frames  = get.Required.At [ "skip_identical_frames" ] Decode.bool;
+                source                 = get.Required.At ["source"]                  Decode.string
+                tracking_duration      = get.Required.At ["tracking_duration"]       Decode.int
             })
 
     type StreamState =
@@ -134,7 +135,7 @@ module Streaming =
 
       static member Decoder: Decoder<BoundingBox> =
         Decode.object (fun get -> {
-          top_left = get.Required.At ["top_left"]  Coord.Decoder
+          top_left     = get.Required.At ["top_left"]     Coord.Decoder
           bottom_right = get.Required.At ["bottom_right"] Coord.Decoder
         })
 
@@ -144,10 +145,10 @@ module Streaming =
 
       static member Decoder: Decoder<Landmarks> =
         Decode.object (fun get -> {
-          left_eye = get.Required.At ["left_eye"] Coord.Decoder
-          right_eye = get.Required.At ["right_eye"] Coord.Decoder
-          nose = get.Required.At ["nose"] Coord.Decoder
-          left_mouth = get.Required.At ["left_mouth"] Coord.Decoder
+          left_eye    = get.Required.At ["left_eye"]    Coord.Decoder
+          right_eye   = get.Required.At ["right_eye"]   Coord.Decoder
+          nose        = get.Required.At ["nose"]        Coord.Decoder
+          left_mouth  = get.Required.At ["left_mouth"]  Coord.Decoder
           right_mouth = get.Required.At ["right_mouth"] Coord.Decoder
         })
 
@@ -336,9 +337,9 @@ module Identification =
 
         })
 
-    //type representing what is returned from Paravision.
-    //We call this a possible identity because we receive results based on confidence level
-    //which indicates the likelyhood that the matched person IS that person. Nothing is ever 100%
+    ///type representing what is returned from Paravision.
+    ///We call this a possible match because we receive results based on confidence level
+    ///which indicates the likelyhood that the matched person IS that person. Nothing is ever 100%
     type PossibleMatch =
       {
       face_count: int
@@ -352,7 +353,5 @@ module Identification =
 
 
       static member to_str (pm: PossibleMatch) = Encode.Auto.toString(2, pm)
-      static member from (json: string) =
-          Decode.fromString PossibleMatch.Decoder json
-    let to_possible_identity (json: string) =
-      Decode.fromString PossibleMatch.Decoder json
+      static member from json = Decode.fromString PossibleMatch.Decoder json
+

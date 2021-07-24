@@ -120,7 +120,7 @@ module Utils =
     //if the search result doesn't contain an image url then there is no image,
     //filter em out. NOTE: this doesn't validate the url, just that the url field contains something..
    module Enrollment =
-
+        //TPassClient contains a url string. get the image data.
         let combine_with_image (tpass: TPassService) (clients: TPassClient []) = async {
 
                 let merge_image (client: TPassClient) (url: string) = async {
@@ -153,13 +153,13 @@ module Utils =
 
               match client.image with
                 | Some im ->
-                  let! id_result = (Binary im) |> id_agent.create_identity
+                      let! id_result = id_agent.create_identity (Binary im)
 
-                  match id_result with
-                  | Ok id -> return { tpass_client= client.client |> Some; face = (Binary im); identity = id; general_info = None } |> Ok
-                  | Error ex ->
-                      printfn $"Couldn't create identity for %A{client.client}"
-                      return Error ex //None
+                      match id_result with
+                      | Ok id -> return Ok { tpass_client= (Some client.client); face = (Binary im); identity = id; general_info = None }
+                      | Error ex ->
+                          printfn $"Couldn't create identity for %A{client.client}"
+                          return Error ex //None
 
                 | None -> return Error $"could not create identity. No image exists for:   %A{client}"
 

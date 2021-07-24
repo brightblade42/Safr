@@ -633,7 +633,9 @@ let configCors (builder: CorsPolicyBuilder) =
 
 let add_deps (p: IServiceProvider) =
     let n_hub = p.GetRequiredService<FRHub>()
-    FRService (n_hub)
+    let fr_svc = FRService n_hub
+    fr_svc.sub_faces_detected()
+    fr_svc
 
 
 let configureApp (app: IApplicationBuilder) =

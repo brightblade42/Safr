@@ -22,7 +22,7 @@ module Database =
             conn.Open()
             Some conn
         with
-        | :? System.Exception as ex ->
+        | :? Exception as ex ->
             printfn $"no bueno moreno connection: %s{ex.Message}"
             None
 
@@ -32,10 +32,7 @@ module Database =
     ///TODO: only handle specific errors, bubble up the truly exceptional
     let execute (conn:IDbConnection) (sql:string) (parameters:_)=
         try
-            //use tran = conn.BeginTransaction()
             let result = conn.Execute(sql, parameters)
-           // tran.Commit()
-
             Ok result
         with
         | ex ->
@@ -69,7 +66,6 @@ module Database =
 
          with
          | ex ->
-             printfn "****************** !!!!!!"
              printfn "%s" ex.Message
              Error ex
 
@@ -95,20 +91,18 @@ module Queries =
         //at the id level not the face identification level.
         let get_all_ccodes conn = query conn "select ccode from enrollment"
         let exists conn (ccode:string) =
-            query_single conn (sprintf "select ccode from enrollment where ccode='%s'" ccode) None
+            query_single conn $"select ccode from enrollment where ccode='%s{ccode}'" None
         let get_enrollment conn (id: string)  =
             let sql = "select identity as id, pv_img from enrollment where identity=@ID"
             let p = ["ID", box id;] |> dict |> Some
-            printfn "===== ID FOR DB LOOK UP IS: %s" id
             query_single_x<EnrolledIdentity> conn sql p
 
         let delete_enrollment conn (id: string) =
             let sql = "delete from enrollment where identity=@ID"
             let param = [("ID", box id)] |> dict
-            printfn "===== Deleting %s" id
+            printfn $"===== Deleting %s{id}"
             execute conn sql param
 
-        //let enroll conn (face: FaceImage) (ident: Identity) =
         let enroll conn (enroll_info: EnrollmentInfo) =
             let sql = """ insert into enrollment (identity, ccode, pv_json, tpass_json, pv_img, general_info)
                               VALUES (@identity, @ccode,  @pv_json, @tpass_json,  @pv_img, @general_info)
@@ -126,7 +120,7 @@ module Queries =
                | EmployeeOrUser emp -> (string emp.ccode, TPassClient.to_str tpc)
 
 
-            let (ccode, tpc_str, general_info) =
+            let ccode, tpc_str, general_info =
                 match enroll_info with
                 | { tpass_client = None; general_info = None } -> ("", "", "")
                 | { tpass_client = None; general_info = Some(gi) } -> ("", "", gi)
@@ -153,8 +147,8 @@ module Queries =
             execute conn sql None
 
     module Logging =
-        open System
         let log_fr conn (item: FRLog ) =
+
             let sql = """insert into FRLog (
                               identity,
                               matched_on,
@@ -174,8 +168,9 @@ module Queries =
                                  @name,
                                  @confidence,
                                  @status) """
-            let det_face = item.detected_img //defaultArg item.detected_face ""
-            let matched_face = item.matched_face //defaultArg item.matched_face ""
+
+            let det_face = item.detected_img
+            let matched_face = item.matched_face
 
             let data = [("@identity", box item.identity)
                         ("@matched_on", box item.matched_on)
@@ -197,21 +192,8 @@ module Queries =
         let get_frlog_by_date conn (startdate: string) (enddate: string) =
             let sql =  $"select * from FRLog where matched_on between '%s{startdate}' and '%s{enddate}' order by matched_on desc"
             query<FRLog> conn sql None
-        module Enrollment =
 
-
-            let log (conn: IDbConnection) (item: EnrollLog) =
-
-                     (*
-                     ccode= (string ccode)
-                     name=name
-                     typ=typ
-                     pv_id = pv_id
-                     result=result
-                     conf=conf
-                     client=client_str
-                     msg=fail_msg
-               *)
+        let log_enrollment (conn: IDbConnection) (item: EnrollLog) =
 
                 let sql = """
                            insert into log (ccode,name, typ, pv_id, result,  conf, msg,client, time_stamp)
@@ -231,11 +213,7 @@ module Queries =
 
                 execute conn sql data
 
-
-
-
     module Config =
-        open System
 
         let get_latest_config conn =
             let sql = """
@@ -252,8 +230,6 @@ module Queries =
                       FROM FRService ORDER By id DESC LIMIT 1;
                       """
             query_single<Configuration> conn sql None
-
-
 
 
         let update_config conn (conf: Configuration) =
@@ -273,21 +249,15 @@ module Queries =
 
             execute conn sql conf
 
-
-        let get_pwd conn (user: string) =
-            let sql = $"Select pass from Accounts where user = '%s{user}'"
-            query_single_x<string> conn sql None
-
-
-    module Accounts =
         let get_pwd conn (user: string) =
             let sql = $"Select pass from Accounts where user = '%s{user}'"
             query_single_x<string> conn sql None
 
     module Camera =
+
         let get_cameras conn (enabled: bool option) =
 
-            let (sql, param) =
+            let sql, param =
                 match enabled with
                 | Some(e) ->
                     let parameters = Some(dict["@Enabled", box e;])
@@ -313,6 +283,7 @@ module Queries =
             let sql = "select id, Name, IpAddress, Connection, Enabled, CreatedOn, User, Password, Direction,detect_frame_rate, secure  from Camera where Name = @Name"
             let p = Some(dict["Name", box name;])
             query_single conn sql p
+
         let save_camera conn (camera: CameraStream) =
             //TODO: ensure that execute knows how to handle the option type.
             let sql = """insert into Camera (Name, IpAddress,Connection, Enabled, CreatedOn, User, Password, Direction, detect_frame_rate, secure )
@@ -320,17 +291,19 @@ module Queries =
                         """
             let res = execute conn sql camera
             res
+
         let update_camera conn (camera: CameraStream) =
 
             let sql = """update Camera set name=@name,ipaddress=@ipaddress,
                          connection=@connection, enabled=@enabled, direction=@direction,
                          detect_frame_rate=@detect_frame_rate, secure=@secure where ID=@ID
                         """
-            printfn "%A" camera
+            printfn $"%A{camera}"
             execute conn sql camera
+
         let delete_camera conn (id: CameraID) =
             let sql = "delete from Camera where ID=@ID"
             //this is funky
             let (CameraID cid) = id
-            let data = [("@ID",box cid)] |> dict |> fun d -> new Dapper.DynamicParameters(d)
+            let data = [("@ID",box cid)] |> dict |> DynamicParameters
             execute conn sql data

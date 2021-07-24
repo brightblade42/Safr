@@ -1,5 +1,6 @@
 ﻿namespace EyemetricFR
 open System
+open System.IO
 open EyemetricFR.Paravision.Types.Streaming
 open EyemetricFR.TPass.Types
 
@@ -9,13 +10,11 @@ module Queries = Queries.Config
 
 type Config(?db_path: string) =
 
-    let def_config_db = System.IO.Path.Combine(AppContext.BaseDirectory, "data/config.sqlite")
-    let db_path'      = defaultArg db_path def_config_db
+    let db_path'      = defaultArg db_path (Path.Combine(AppContext.BaseDirectory, "data/config.sqlite"))
     let conn          = (open_conn db_path').Value
 
     member self.get_latest_config () =
-
-        let conf = conn |> Queries.get_latest_config
+        let conf = Queries.get_latest_config conn
         match conf with
         | Ok c -> c
         | Error e -> printfn $"could not retrieve a good config. %s{e.Message}"; None
@@ -26,8 +25,7 @@ module Queries = Queries.Camera
 
 type Cameras(?dbPath: string) =
 
-    let def_db_path = System.IO.Path.Combine(AppContext.BaseDirectory, "data/config.sqlite")
-    let db_path     = defaultArg dbPath def_db_path
+    let db_path = defaultArg dbPath (Path.Combine(AppContext.BaseDirectory, "data/config.sqlite"))
     let conn = (open_conn db_path).Value //not sure about this here
 
     member self.get_cameras (enabled: bool option) = async {
@@ -50,22 +48,21 @@ type Cameras(?dbPath: string) =
         return Queries.update_camera conn cam
     }
 
+module Queries = Queries.Enrollment
 
 type Enrollments(?dbPath: string) =
 
-    let def_db_path = System.IO.Path.Combine(AppContext.BaseDirectory, "data/enrollment.sqlite")
-    let pth         = defaultArg dbPath def_db_path
-    let conn        = (open_conn  pth).Value
+    let path  = defaultArg dbPath (Path.Combine(AppContext.BaseDirectory, "data/enrollment.sqlite"))
+    let conn  = (open_conn  path).Value
 
     member self.batch_enroll(enroll_infos: Result<EnrollmentInfo, string> []) = async {
 
-       printfn "ENROLL: preparing local data store....."
-       let enroll_client (enroll_info: EnrollmentInfo) = enroll_info |> self.enroll
+       printfn "ENROLL: BATCH ENROLL STARTED...."
 
        let res = enroll_infos
                  |> Array.map(fun x ->
                      match x with
-                     | Ok en -> en |> enroll_client |> Some
+                     | Ok en -> self.enroll en |> Some
                      | _     -> None
                      )
                  |> Array.filter(fun x -> x.IsSome)
@@ -74,15 +71,16 @@ type Enrollments(?dbPath: string) =
 
     }
 
-    member self.enroll enroll_info = Queries.Enrollment.enroll conn enroll_info
+    member self.enroll enroll_info = Queries.enroll conn enroll_info
 
-    member self.get_enrolled_details_by_id (id: string ) = Queries.Enrollment.get_enrollment conn id
+    member self.get_enrolled_details_by_id (id: string ) = Queries.get_enrollment conn id
 
-    member self.delete_enrollment (id: string) = Queries.Enrollment.delete_enrollment conn id
+    member self.delete_enrollment (id: string) = Queries.delete_enrollment conn id
 
     member self.exists (ccode: string) : Async<Result<string option,exn>> = async {
-          return Queries.Enrollment.exists conn ccode
+          return Queries.exists conn ccode
     }
+
     member self.delete_all_enrollments () = async {
-        return Queries.Enrollment.delete_all conn
+        return Queries.delete_all conn
     }

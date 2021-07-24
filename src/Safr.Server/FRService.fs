@@ -9,24 +9,21 @@ open EyemetricFR.Utils
 open EyemetricFR.Identifier
 open EyemetricFR.Logging
 
-type FRService(config_agent:       Config,
-               tpass_service:      TPassService option,
-               face_detector:      FaceDetection,
-               identifier:         FaceIdentification,
-               hub:                Hub
-               ) =
+type FRService(config_agent:Config, tpass_service:TPassService option,
+               face_detector:FaceDetection, identifier:FaceIdentification, hub:Hub ) =
 
-    let mutable config_agent      = config_agent
-    let mutable identified_logger = IdentifiedLogger()
-    let mutable enrollment_logger  = EnrollmentLogger()
-    let mutable tpass_service     = tpass_service
-    let mutable enrollments       = Enrollments(System.IO.Path.Combine(AppContext.BaseDirectory, "data/enrollment.sqlite"))
-    let mutable identifier        = identifier
-    let mutable face_detector     = face_detector
-    let mutable cam_agent         = Cameras ()
-    let mutable hub_context       = hub
-    let mutable handling_face_detection = false
-    let mutable id_cache = CacheMap(1000)
+    let mutable config_agent               = config_agent
+    let mutable identified_logger          = IdentifiedLogger()
+    let mutable enrollment_logger          = EnrollmentLogger()
+    let mutable tpass_service              = tpass_service
+    let mutable enrollments                = Enrollments(System.IO.Path.Combine(AppContext.BaseDirectory, "data/enrollment.sqlite"))
+    let mutable identifier                 = identifier
+    let mutable face_detector              = face_detector
+    let mutable cam_agent                  = Cameras ()
+    let mutable id_cache                   = CacheMap(1000)
+    let mutable hub_context                = hub
+    let mutable cams: CameraStream list    =  []
+    let mutable is_handling_face_detection = false
 
     let token_timer = SimpleTimer (84_600_000, fun () ->   //23.5hrs
         async {
@@ -43,11 +40,6 @@ type FRService(config_agent:       Config,
 
             | None -> () //TODO: a retry attept for when TPassAgent doesn't exist?
         })
-
-
-
-    //let mutable (disposables: IDisposable list) = List.Empty
-    let mutable cams: CameraStream list =  []
 
     let is_cached id =
       match (id_cache.get id) with
@@ -68,89 +60,6 @@ type FRService(config_agent:       Config,
         location = face.Cam
       } |> identified_logger.log
 
-
-    let get_frlog_daterange' (startdate: Option<string>) (enddate: Option<string>) = async {
-        printfn $"FR SERVICE: get_frlog daterange %A{startdate} : %A{enddate}"
-        return! identified_logger.get_by_daterange startdate enddate
-    }
-
-    let get_enrollment' (id: string) = async {
-        return enrollments.get_enrolled_details_by_id id  //should this be async as well?
-    }
-
-    let log_enroll_attempt' (item: EnrollLog) = async { return! enrollment_logger.log item}
-
-
-    let delete_enrollment' (fr_id: string) = async {
-        let! del_id = identifier.delete_identity fr_id
-        return enrollments.delete_enrollment fr_id
-    }
-
-    let delete_all_enrollments' () = async {
-        let! ids = identifier.get_identities()
-        //pv
-        let deleted_identities =
-            match ids with
-            | Ok ids -> ids |> Seq.map (fun x -> identifier.delete_identity x.id) |> Async.Parallel |> Async.RunSynchronously
-            | Error e -> failwith $"could not get current identity list from paravision: %s{e}"
-        //eyemetric
-        let deleted_locals = enrollments.delete_all_enrollments ()
-        return! deleted_locals
-    }
-
-    let get_client_by_ccode' (ccode: CCode) = async {
-        let svc = tpass_service.Value
-        return! svc.get_client_by_ccode ccode
-    }
-
-    let search_tpass' (search_req: SearchReq list) = async {
-        let svc = tpass_service.Value
-        return! svc.search_client search_req
-    }
-
-    let to_client_with_image' (clients: TPassClient []) = async {
-        let svc = tpass_service.Value
-        return! Enrollment.combine_with_image svc clients
-    }
-
-    let enroll_clients' (clients: TPassClientWithImage seq) = async {
-
-        //TODO: What if tpass_reg fails? Should log that for later retry
-        let svc = tpass_service.Value
-        let! new_idents = Enrollment.create_enrollments identifier clients
-        printfn $"ENROLL: PV identities created: %i{new_idents.Length}"
-
-        let! enrolled = enrollments.batch_enroll new_idents
-        let enroll_count = enrolled |> Array.sumBy(fun x -> match x with | Ok c -> c | _ -> 0)
-
-        //TODO: we may want to keep track of local enroll count, vs what tpass accepted.
-        new_idents
-            |> Seq.map(fun info ->
-
-                match info with
-                | Ok en   -> Some(TPassClient.ccode en.tpass_client.Value, en.identity.id)
-                | Error e -> None
-                )
-            |> Seq.filter(fun x -> x.IsSome)
-            |> Seq.map(fun x -> x.Value)
-            |> Seq.map(fun info ->
-                 let ccode, pv = info
-                 svc.update_pv (string ccode) pv
-                 )
-            |> Async.Parallel
-            |> Async.RunSynchronously
-            |> ignore
-
-        return enroll_count
-    }
-
-    let recognize' (face: FaceImage) = async { return! identifier.detect_identity face }
-
-    let add_face' (req: AddFaceReq) = async { return! identifier.add_face req }
-
-    let delete_face' (req: DeleteFaceReq) = async { return! identifier.delete_face req }
-
-    let get_identity' (req: GetIdentityReq) = async { return! identifier.get_identity req }
 
     //TODO: Checkin calls may change when updated specifically for other TPASS Client types (Visitor . Employee
     let create_checkin_rec (compId: int) (ccode: int) =
@@ -214,15 +123,6 @@ type FRService(config_agent:       Config,
         | EmployeeOrUser e, 0  -> (e.name, check_out tcl)
         | _ -> ("Unknown", None)
 
-    let validate_user'(user: string)(pass:string) =
-
-            let svc = tpass_service.Value
-            let cred = UserPass (user, pass)
-            let is_valid = svc.validate_user cred |> Async.RunSynchronously
-
-            match is_valid with
-            | Success _ -> true
-            | _ -> false //we're currently ignoring any errors (Auth Fail is an error)
 
     let get_identity_cache_expiry () =
 
@@ -255,12 +155,14 @@ type FRService(config_agent:       Config,
 
         | _ -> return None //skip, found in cache.
      }
+
     let get_enrolled_details_async (pmatch: Async<PossibleMatch option>) = async {
 
         let! pm = pmatch
         let! res = pm |> get_enrolled_details
         return (res, pm)  //this is a damn weird way to get the pm out.
     }
+
     let get_possible_match (cropped_face: string option) = async {
 
         match cropped_face with
@@ -283,18 +185,17 @@ type FRService(config_agent:       Config,
           return
               match enrolled_details with
               | Some (Success ed) ->
-                    printfn "ENROLL DEETS SUCCESS"
                     let pi = pm.Value
                     let conf = pi.identities.Head.confidence //TODO: consider more than the Head.
                     //TODO: using time from this machine, pv time is off #22.
                     let time =  String.Format("{0:hh:mm:ss tt}", time_stamp.ToLocalTime())
                     let tpc = ed
                     //TODO: if status is FR then don't do check in, call FRAlert
-                    let check_res =  ((tpc, cam_name) ||> check_in_or_out)
+                    let check_res =  check_in_or_out tpc cam_name
 
                     match check_res with
-                    | (_, None) -> ()
-                    | (name, Some status) ->
+                    | _, None -> ()
+                    | name, Some status ->
                         let frame =  Convert.FromBase64String expanded_image
 
                         let id_face = {
@@ -309,10 +210,9 @@ type FRService(config_agent:       Config,
                                          Mask = mask_prob
                                      }
 
-                        printfn "HELLO MCFLY!!!"
+                        printfn "FACE IDENTIFIED!"
                         hub_context.Clients.All.SendAsync("FaceIdentified", id_face) |> Async.AwaitTask |> Async.Start
-                        //hub_context.Clients.All.Send (FRHub.Response.Face id_face) |> ignore
-                        (id_face, pi, expanded_image) |||> log_matched_identity
+                        (log_matched_identity id_face, pi, expanded_image) |> ignore
                         ()
 
               | Some (TPassError er) ->
@@ -326,7 +226,7 @@ type FRService(config_agent:       Config,
 
     let verify_tpass_async (cam_name: string) (time_stamp: DateTime) (exp_img: string) (mask_prob: float) (en_dets: Async<TPassResult<TPassClient> option * PossibleMatch option>) = async {
 
-       let! (enrolled_details, possible_match)  = en_dets
+       let! enrolled_details, possible_match  = en_dets
        return! verify_tpass cam_name time_stamp exp_img mask_prob enrolled_details possible_match
     }
 
@@ -352,27 +252,75 @@ type FRService(config_agent:       Config,
         |> ignore
         ()
 
-    let get_cams' () = async {
+    let set_camera_defaults(cam: CameraStream): CameraStream  =
 
-       let! tcams = None |> cam_agent.get_cameras //|> Async.RunSynchronously
-       cams <-
-           match tcams with
-           | Ok cs -> cs |> List.ofSeq
-           | _ -> List.empty
-       return cams
+       let user = "root"
+       let password = "3y3Metr1c"
+       { cam with
+             user = user
+             password = password
+             connection = $"rtsp://%s{user}:%s{password}@%s{cam.ipaddress}/axis-media/media.amp"
+             detect_frame_rate = 1
+       }
+
+
+    do
+        printfn "start token timer and subscribing to face detection stream events"
+        token_timer.start()
+
+    new (fr_hub: Hub)=
+
+        printfn "NEW UP THE FRSERVICE"
+
+        let conf_agent        = Config ()
+        let conf              = conf_agent.get_latest_config()
+        let c = conf.Value
+
+        let tpass_service = FRService.init_tpass(c) |> Async.RunSynchronously //check opt
+        let ident_agent   = FaceIdentification(c.pv_api_addr)
+        let det_agent     = FaceDetection(c.vid_streaming_addr.Trim(), c.detection_socket_addr)
+
+        FRService(conf_agent, tpass_service, det_agent, ident_agent, fr_hub)
+
+
+    static member init_tpass(conf: Configuration) = async {
+
+        let tpass_agent = TPassService(conf.tpass_api_addr.Trim(),UserPass (conf.tpass_user, conf.tpass_pwd),  false)
+
+        let! is_init = tpass_agent.initialize()
+        return
+            match is_init with
+            | Success _ -> Some tpass_agent
+            | _ -> None     //should we log, retru or none?
     }
 
-    let get_cam_info' () = async {
+    member self.sub_faces_detected () =
 
-        let! cams    = get_cams'()
-        let! streams = face_detector.async_get_streams()
+         if not is_handling_face_detection then
 
-        return { available_cams = cams; streams = streams }
-    }
+             face_detector.face_detected.Add(fun face_info ->
+                 match face_info with
+                 | Ok f -> f |> handle_detection
+                 | Error e -> printfn $"face detection FAIL: %s{e} ")
 
-    let notify_clients_camera_updating (cam: CameraStream) = async {
+             let disconn_sub = face_detector.stream_disconnected.Subscribe(fun dc ->
+                 match dc with
+                 | Error ex ->
+                      printfn "STREAM HARD DISCONNECTED"
+                      Async.Sleep 8000 |> Async.RunSynchronously  //timing is everything. This is shit. ;)
+                      let n_streams = self.start_streams() |> Async.RunSynchronously
+                      printfn "STREAMS STARTED: "
+                      printfn $"%A{n_streams}"
+                      ()
+                 | Ok s -> printfn $"%s{s}"
+             )
 
-       let! cam_info = get_cam_info'()
+             is_handling_face_detection <- true
+
+
+    member self.notify_clients_camera_updating (cam: CameraStream) = async {
+
+       let! cam_info = self.get_camera_info()
        let av = cam_info.available_cams |>
                 List.map (fun (c:CameraStream) ->
                 if c.id = cam.id then {c with updating = true}
@@ -381,12 +329,11 @@ type FRService(config_agent:       Config,
        let cam_info = {cam_info with available_cams = av }
 
        hub_context.Clients.All.SendAsync("AvailableCameras", cam_info) |> Async.AwaitTask |> Async.Start
-       //hub_context.Clients.All.Send (FRHub.Response.AvailableCameras cam_info) |> ignore
     }
 
-    let notify_clients_camera_adding (cam: CameraStream) = async {
+    member self.notify_clients_camera_adding (cam: CameraStream) = async {
 
-       let! cam_info = get_cam_info'()
+       let! cam_info = self.get_camera_info()
        let max_id (list: CameraStream list) =
            List.fold (fun acc (elem: CameraStream) -> if acc > elem.id then acc else elem.id ) 0 list
 
@@ -401,10 +348,9 @@ type FRService(config_agent:       Config,
        hub_context.Clients.All.SendAsync("AvailableCameras", cam_info) |> Async.AwaitTask |> Async.Start
     }
 
+    member private self.notify_clients_camera_deleting (id: int) = async {
 
-    let notify_clients_camera_deleting (id: int) = async {
-
-       let! cam_info = get_cam_info'()
+       let! cam_info = self.get_camera_info()
 
        let av = cam_info.available_cams |>
                 List.map (fun (c:CameraStream) ->
@@ -415,47 +361,66 @@ type FRService(config_agent:       Config,
        hub_context.Clients.All.SendAsync("AvailableCameras", cam_info) |> Async.AwaitTask |> Async.Start
     }
 
-    let notify_clients_camera_updated () = async {
-        let! cam_info = get_cam_info'()
+    member private self.notify_clients_camera_updated () = async {
+        let! cam_info = self.get_camera_info()
         hub_context.Clients.All.SendAsync("AvailableCameras", cam_info) |> Async.AwaitTask |> Async.Start
     }
 
-    let notify_streams_starting() = async {
+    member private self.notify_streams_starting() = async {
         printfn "Streams Starting on Server"
         hub_context.Clients.All.SendAsync("StreamsStarting") |> Async.AwaitTask |> Async.Start
 
     }
-    let notify_streams_stopping() = async {
+    member private self.notify_streams_stopping() = async {
         printfn "Streams Stopping on Server"
         hub_context.Clients.All.SendAsync("StreamsStopping") |> Async.AwaitTask |> Async.Start
     }
 
-    let stop_streams'() = async {
+    member self.get_conf () : Configuration option = config_agent.get_latest_config()
 
-       let! cams = get_cams'()
-       do! notify_streams_stopping()
-       let! sx = cams |> face_detector.stop_decode
-       printfn $"%A{sx}"
-       do! notify_clients_camera_updated ()
-       return sx
+    member self.get_cameras(): Async<CameraStream list> = async {
+
+       let! tcams = None |> cam_agent.get_cameras
+       cams <-
+           match tcams with
+           | Ok cs -> cs |> List.ofSeq
+           | _ -> List.empty
+       return cams
     }
 
-    let start_streams' () = async {
+    member self.get_camera_info () : Async<CameraInfo> = async {
 
-       let! cams = get_cams'()
-       do! notify_streams_starting()
+        let! cams    = self.get_cameras()
+        let! streams = face_detector.async_get_streams()
+        return { available_cams = cams; streams = streams }
+    }
+
+    member self.start_streams () = async {
+
+       let! cams = self.get_cameras()
+       do! self.notify_streams_starting()
        let only_enabled = cams |> Seq.filter (fun x -> x.enabled) |>   List.ofSeq
        //reset the cache, value may have changed
        id_cache <- CacheMap(get_identity_cache_expiry()) //TODO: Use this?
        let! x = only_enabled |> face_detector.start_decode
-       do! notify_clients_camera_updated ()
+       do! self.notify_clients_camera_updated ()
 
        return x
     }
 
-    let start_stream' (cam: CameraStream) = async {
+    member self.stop_streams () = async {
 
-        let! cams = get_cams'()
+       let! cams = self.get_cameras()
+       do! self.notify_streams_stopping()
+       let! sx = cams |> face_detector.stop_decode
+       printfn $"%A{sx}"
+       do! self.notify_clients_camera_updated ()
+       return sx
+    }
+
+    member self.start_stream (cam: CameraStream) = async {
+
+        let! cams = self.get_cameras()
         let cam_lst = cams |> Seq.filter(fun x -> x.name = cam.name) |> List.ofSeq
 
         match cam_lst.Length with
@@ -463,9 +428,9 @@ type FRService(config_agent:       Config,
             return Error $"no available cameras named %s{cam.name}"
         | _ ->
 
-            do! notify_clients_camera_updating cam
+            do! self.notify_clients_camera_updating cam
             let! res = cam_lst |> face_detector.start_decode
-            do! notify_clients_camera_updated ()
+            do! self.notify_clients_camera_updated ()
 
             return
                 match res with
@@ -475,17 +440,17 @@ type FRService(config_agent:       Config,
                 | _ -> Error $"Could not start camera stream: %s{cam.name}"
     }
 
-    let stop_stream' (cam: CameraStream) = async {
-      //start a single stream
-        let! cams = get_cams'()
+    member self.stop_stream (cam: CameraStream) = async {
+
+        let! cams = self.get_cameras()
         let cam_lst = cams |> Seq.filter(fun x -> x.name = cam.name) |> List.ofSeq
         match cam_lst.Length with
         | 0 ->
             return Error $"no available cameras named %s{cam.name}"
         | _ ->
-            do! notify_clients_camera_updating cam
+            do! self.notify_clients_camera_updating cam
             let! res = cam_lst |> face_detector.stop_decode
-            do! notify_clients_camera_updated ()
+            do! self.notify_clients_camera_updated ()
             return
                 match res with
                 | StopStreamingResultList.Success s -> s.Head //we know there's only one.
@@ -494,44 +459,10 @@ type FRService(config_agent:       Config,
                 | _ -> Error $"Could not start camera stream: %s{cam.name}"
     }
 
-    let sub_faces_detected () =
+    member self.add_camera (cam: CameraStream) = async {
 
-         if not handling_face_detection then
-
-             face_detector.face_detected.Add(fun face_info ->
-                 match face_info with
-                 | Ok f -> f |> handle_detection
-                 | Error e -> printfn $"face detection FAIL: %s{e} ")
-
-             let disconn_sub = face_detector.stream_disconnected.Subscribe(fun dc ->
-                 match dc with
-                 | Error ex ->
-                      printfn "STREAM HARD DISCONNECTED"
-                      Async.Sleep 8000 |> Async.RunSynchronously  //timing is everything. This is shit. ;)
-                      let n_streams = start_streams'() |> Async.RunSynchronously
-                      printfn $"%A{n_streams}"
-                      ()
-                 | Ok s -> printfn $"%s{s}"
-             )
-
-             handling_face_detection <- true
-
-
-    let set_camera_defaults(cam: CameraStream): CameraStream  =
-
-       let user = "root"
-       let password = "3y3Metr1c"
-       { cam with
-             user = user
-             password = password
-             connection = $"rtsp://%s{user}:%s{password}@%s{cam.ipaddress}/axis-media/media.amp"
-             detect_frame_rate = 1
-       }
-    let add_camera' (cam: CameraStream) = async {
-
-        //set default user/pass
         //TODO: use default user/pass from config.
-        let cam = cam |> set_camera_defaults
+        let cam = set_camera_defaults cam
         let! res = cam_agent.save_camera cam
         printfn $"%A{res}"
 
@@ -540,10 +471,10 @@ type FRService(config_agent:       Config,
                 match res with
                 | Ok _ ->
 
-                    do! notify_clients_camera_adding(cam)
-                    let! started = [cam] |> face_detector.start_decode
+                    do! self.notify_clients_camera_adding(cam)
+                    let! started = face_detector.start_decode [cam]
                     printfn $"FRSERVICE: New Cam stream started: %A{started}"
-                    do! notify_clients_camera_updated ()
+                    do! self.notify_clients_camera_updated ()
                     return "new camera saved"
 
                 | Error e ->  //TODO: match on exception to provide correct message
@@ -554,15 +485,15 @@ type FRService(config_agent:       Config,
             }
     }
 
-    let remove_camera' (id: int) = async {
+    member self.remove_camera (id: int) = async {
 
-        let! to_delete' = get_cams'()
+        let! to_delete' = self.get_cameras()
         let to_delete = to_delete' |> Seq.filter(fun c -> c.id = id) |> List.ofSeq
 
         match to_delete.Length with
         | 1 ->
 
-            do! notify_clients_camera_deleting id
+            do! self.notify_clients_camera_deleting id
             let! res = cam_agent.delete_camera (CameraID id)
             return!
                 async {
@@ -572,7 +503,7 @@ type FRService(config_agent:       Config,
                             let msg =  "a camera was deleted"
                             let! stopped = to_delete |> face_detector.stop_decode
                             printfn $"FRSERVICE: stopped removed cam streams. %A{stopped} "
-                            do! notify_clients_camera_updated ()
+                            do! self.notify_clients_camera_updated ()
                             printfn "%s" msg
                             return Ok id
                     | Error e -> return Error e
@@ -581,25 +512,24 @@ type FRService(config_agent:       Config,
         | _ -> return Error (Exception "duplicate cameras found. This should not happen.")
     }
 
+    member self.update_camera (cam: CameraStream) = async {
 
-    let update_camera'(updated_cam: CameraStream) = async {
-
-       do! notify_clients_camera_updating(updated_cam)
-       let updated_cam = updated_cam |> set_camera_defaults
+       do! self.notify_clients_camera_updating(cam)
+       let updated_cam = set_camera_defaults cam
        //make sure the connection matched the address.
        //user: root  pass: 3y3Metr1c
        //TODO: this isn't quite the correct thing to do but it gets us up and runngin
        //IMPORTANT: we have to stop the running camera stream before updating its information.
        //otherwise the streaming service will become out of sync and unstable and that's just a bad time.
        //TODO: reject if camera id doesn't match existing camera. That's not cool bro
-       let! current_cams = get_cams'()
+       let! current_cams = self.get_cameras() //get_cams'()
        //find the current (old) camera to be updated
        let old_cam = current_cams |> Seq.filter(fun x -> x.id = updated_cam.id) |> Seq.head
 
        let! strm_res = [old_cam] |> face_detector.stop_decode
        printfn $"FRSERVICE: old cam cam stream stopped : %i{old_cam.id} %s{old_cam.name}"
        let! res = cam_agent.update_camera updated_cam
-       let! cams = get_cams'()
+       let! cams = self.get_cameras()
 
        return!
             async {
@@ -610,7 +540,7 @@ type FRService(config_agent:       Config,
                     //StartStreamingResultList (lol what is this?)
                     let! strm_res = ncam |> face_detector.start_decode
                     printfn $"FRSERVICE: updated cam stream started : %i{ncam.Head.id} %s{ncam.Head.name}"
-                    do! notify_clients_camera_updated ()
+                    do! self.notify_clients_camera_updated ()
                     let msg = "a camera was updated"
                     printfn "%s" msg
                     return Ok ncam.Head.id
@@ -618,66 +548,95 @@ type FRService(config_agent:       Config,
             }
     }
 
+    member self.log_enroll_attempt (item: EnrollLog) = async { return enrollment_logger.log item        }
 
-    do
-        printfn "start token timer and subscribing to face detection stream events"
-        token_timer.start()
-        sub_faces_detected()
+    member self.delete_enrollment (fr_id: string) = async {
 
-    new (fr_hub: Hub)=
-
-        printfn "NEW UP THE FRSERVICE"
-
-        let conf_agent        = Config ()
-        let conf              = conf_agent.get_latest_config()
-        let c = conf.Value
-
-        let tpass_service = FRService.init_tpass(c) |> Async.RunSynchronously //check opt
-        let ident_agent   = FaceIdentification(c.pv_api_addr)
-        let enroll_agent  = Enrollments(System.IO.Path.Combine(AppContext.BaseDirectory, "data/enrollment.sqlite"))
-        let det_agent     = FaceDetection(c.vid_streaming_addr.Trim(), c.detection_socket_addr)
-
-        //FRService(conf_agent, tpass_service, det_agent, ident_agent, enroll_agent, cam_agent, fr_logger, enrollment_logger,  fr_hub)
-        FRService(conf_agent, tpass_service, det_agent, ident_agent,    fr_hub)
-
-
-
-    static member init_tpass(conf: Configuration) = async {
-
-        let tpass_agent = TPassService(conf.tpass_api_addr.Trim(),UserPass (conf.tpass_user, conf.tpass_pwd),  false)
-
-        let! is_init = tpass_agent.initialize()
-        return
-            match is_init with
-            | Success _ -> Some tpass_agent
-            | _ -> None     //should we log, retru or none?
+        let! del_id = identifier.delete_identity fr_id
+        return enrollments.delete_enrollment fr_id
     }
 
-    member self.get_conf () : Configuration option = config_agent.get_latest_config()
+    member self.delete_all_enrollments () = async {
 
-    member self.get_cameras () : Async<CameraStream list> = get_cams'()
-    member self.get_camera_info () : Async<CameraInfo> = get_cam_info'()
-    member self.start_streams () = start_streams'()
-    member self.stop_streams () = stop_streams'()
-    member self.start_stream (cam: CameraStream) = start_stream' cam
-    member self.stop_stream (cam: CameraStream) = stop_stream' cam
-    member self.add_camera (cam: CameraStream) = add_camera' cam
-    member self.remove_camera (id: int) = remove_camera' id //should have a better return value
-    member self.update_camera (cam: CameraStream) = update_camera' cam
-    member self.log_enroll_attempt (item: EnrollLog) = log_enroll_attempt' item
+        let! ids = identifier.get_identities()
+        //pv
+        let deleted_identities =
+            match ids with
+            | Ok ids -> ids |> Seq.map (fun x -> identifier.delete_identity x.id) |> Async.Parallel |> Async.RunSynchronously
+            | Error e -> failwith $"could not get current identity list from paravision: %s{e}"
+        //eyemetric
+        let deleted_locals = enrollments.delete_all_enrollments ()
+        return! deleted_locals
+    }
 
-    member self.delete_enrollment (fr_id: string) = delete_enrollment' fr_id
-    member self.delete_all_enrollments () = delete_all_enrollments' ()
+    member self.get_client_by_ccode (ccode: CCode) = async {
 
-    member self.get_client_by_ccode (ccode: CCode) = get_client_by_ccode' ccode
-    member self.search_tpass (search_req: SearchReq list) = search_tpass' search_req
-    member self.to_client_with_image (clients: TPassClient []) = to_client_with_image' clients
-    member self.enroll_clients (clients: TPassClientWithImage seq) = enroll_clients' clients
-    member self.get_identity (req: GetIdentityReq) = get_identity' req
+        let svc = tpass_service.Value
+        return! svc.get_client_by_ccode ccode
+    }
 
-    member self.get_enrollment (id:string) = get_enrollment' id
-    member self.recognize (face: FaceImage) = recognize' face
-    member self.add_face (req: AddFaceReq) = add_face' req
-    member self.delete_face (req: DeleteFaceReq) = delete_face' req
-    member self.validate_user (user:string) (pass:string) = validate_user' user pass
-    member self.get_frlog_daterange (startdate: Option<string>) (enddate: Option<string>)= get_frlog_daterange' startdate enddate
+    member self.search_tpass (search_req: SearchReq list) = async {
+        let svc = tpass_service.Value
+        return! svc.search_client search_req
+    }
+
+    member self.to_client_with_image (clients: TPassClient []) = async {
+
+        let svc = tpass_service.Value
+        return! Enrollment.combine_with_image svc clients
+    }
+
+    member self.enroll_clients(clients: TPassClientWithImage seq) = async {
+
+
+        //TODO: What if tpass_reg fails? Should log that for later retry
+        let svc = tpass_service.Value
+        let! new_idents = Enrollment.create_enrollments identifier clients
+        printfn $"ENROLL: PV identities created: %i{new_idents.Length}"
+
+        let! enrolled = enrollments.batch_enroll new_idents
+        let enroll_count = enrolled |> Array.sumBy(fun x -> match x with | Ok c -> c | _ -> 0)
+
+        //TODO: we may want to keep track of local enroll count, vs what tpass accepted.
+        new_idents
+            |> Seq.map(fun info ->
+
+                match info with
+                | Ok en   -> Some(TPassClient.ccode en.tpass_client.Value, en.identity.id)
+                | Error e -> None
+                )
+            |> Seq.filter(fun x -> x.IsSome)
+            |> Seq.map(fun x -> x.Value)
+            |> Seq.map(fun info ->
+                 let ccode, pv = info
+                 svc.update_pv (string ccode) pv
+                 )
+            |> Async.Parallel
+            |> Async.RunSynchronously
+            |> ignore
+
+        return enroll_count
+    }
+
+    member self.get_identity (req: GetIdentityReq) = async { return! identifier.get_identity req }
+    member self.get_enrollment (id:string)  = async { return enrollments.get_enrolled_details_by_id id  }
+    member self.recognize (face: FaceImage) = async { return! identifier.detect_identity face }
+    member self.add_face (req: AddFaceReq)  = async { return! identifier.add_face req }
+    member self.delete_face (req: DeleteFaceReq) = async { return! identifier.delete_face req }
+
+    member self.validate_user (user:string) (pass:string) =
+            let svc = tpass_service.Value
+            let cred = UserPass (user, pass)
+            let is_valid = svc.validate_user cred |> Async.RunSynchronously
+
+            match is_valid with
+            | Success _ -> true
+            | _ -> false //we're currently ignoring any errors (Auth Fail is an error)
+
+
+    member self.get_frlog_daterange (startdate: Option<string>) (enddate: Option<string>)= async {
+
+        printfn $"FR SERVICE: get_frlog daterange %A{startdate} : %A{enddate}"
+        return! identified_logger.get_by_daterange startdate enddate
+    }
+

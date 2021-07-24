@@ -23,6 +23,7 @@ module HTTPApi =
         | FaceImageInvalid of string //seems out of place
 
     module Auth =
+
         type TokenPair = AuthToken * Result<JWToken, string> option
 
         let to_auth_header (token_str: string) =  AuthenticationHeaderValue("Bearer", token_str)
@@ -41,7 +42,6 @@ module HTTPApi =
 
         let private from_b64 = from_url64 >> Convert.FromBase64String >> Encoding.UTF8.GetString
 
-
         let private to_jwtoken tstr =
             let x = from_b64 tstr
             printfn $"TOKEN: %s{x}"
@@ -59,14 +59,10 @@ module HTTPApi =
         let handler = new HttpClientHandler()
         handler.ClientCertificateOptions <- ClientCertificateOption.Manual
         handler.ServerCertificateCustomValidationCallback <-  (fun _ _ _ _ -> true)
-        //TODO: the commented code below is only available in .net standard 2.1.
-                                                                //HttpClientHandle
-                                                                // .DangerousAcceptAnyServerCertificateValidator
         handler
 
 
-    let create_client (handler: HttpClientHandler option) =
-        match handler with | Some h -> new HttpClient(h) | None -> new HttpClient()
+    let create_client handler = match handler with | Some h -> new HttpClient(h) | None -> new HttpClient()
 
     let create_url base_url endpoint = Uri $"%s{base_url}/%s{endpoint}"
 
@@ -100,8 +96,6 @@ module HTTPApi =
             let form_content = new MultipartFormDataContent()
             form_content.Add(new StringContent(b64), "encoded_face_image")
             form_content
-        //TODO:may need to be configurable 30 secs may not be the goldilocks zone
-        //let ctok = new CancellationTokenSource(60000) //nothing lives more than 10 seconds
 
 
         let get (client: HttpClient) (url :Uri)  = async {
@@ -129,14 +123,14 @@ module HTTPApi =
             | None    -> ()
 
             let! resp = client.SendAsync(req) |> Async.AwaitTask
-            let! res = resp.Content.ReadAsStringAsync() |> Async.AwaitTask
+            let! res  = resp.Content.ReadAsStringAsync() |> Async.AwaitTask
             return
                 match resp.IsSuccessStatusCode with
                 | true  ->  Ok res
                 | false ->  Error resp.ReasonPhrase
         }
 
-        ///send an HTTP DELETE request
+
         let delete (client: HttpClient) (uri: Uri) = async {
             let req = request HttpMethod.Delete uri
             try
@@ -264,6 +258,7 @@ module HTTPApi =
         }
 
 
+    [<RequireQualifiedAccess>]
     module Paravision =
 
         open Requests
@@ -345,7 +340,7 @@ module HTTPApi =
             return! get client (make_url $"api/identities/%s{id}/faces/")
         }
 
-
+    [<RequireQualifiedAccess>]
     module TPass =
 
         open Requests
@@ -401,6 +396,7 @@ module HTTPApi =
         let get_client_by_ccode (client: HttpClient) (token_pair: Auth.TokenPair) (make_url: UriBuilder) ccode = async {
             return!  get_with_tok client (make_url $"clients/load?id=%s{ccode}") (Some token_pair)
         }
+
         let download_image (client: HttpClient) (url: string) = async {
             let uri   =  swap_img_uri (Uri url)
             let req   =  request HttpMethod.Get uri
@@ -417,6 +413,7 @@ module HTTPApi =
             let json = CheckInRecord.to_str checkin_rec
             return! post_json_with_tok client (make_url "studentlog/checkin") json (Some token_pair)
         }
+
         let check_out_student (client:  HttpClient) (token_pair: Auth.TokenPair) (make_url: UriBuilder) (checkout_rec: CheckOutRecord) = async {
             return! put_json client (make_url "studentlog/checkout") (CheckOutRecord.to_str checkout_rec)  (Some token_pair)
         }

@@ -1,5 +1,4 @@
 namespace EyemetricFR
-
 open System
 open System.Net.Http
 open System.Net.WebSockets
@@ -7,18 +6,17 @@ open System.Threading
 
 open H.Socket.IO
 open H.Socket.IO.EventsArgs
-open EyemetricFR.Paravision.Types.Streaming
-open EyemetricFR.HTTPApi
-open EyemetricFR.HTTPApi.Paravision
+open Paravision.Types.Streaming
+open HTTPApi
+module REST = Paravision //as little  more explicit that we're using a REST api.
 
 [<AutoOpen>]
 module PVStreams =
     //Todo: A bit hackey but standard attempts have yet to work
-    let unescape_json (json_str: string) =
-        json_str.Replace("\\","""""").Replace("\"{", "{").Replace("}\"", "}")
+    let unescape_json (json_str: string) = json_str.Replace("\\","""""").Replace("\"{", "{").Replace("}\"", "}")
 
-   type StreamingResult<'a> =
-       | Success  of 'a
+    type StreamingResult<'T> =
+       | Success  of 'T
        | StreamUnhealthyError of string
        | ConnectionError of string
        | StreamingError of string
@@ -31,22 +29,24 @@ module PVStreams =
     type stream_api_call = HttpClient -> (string -> Uri) -> CameraStream -> Async<HttpResult<string>>
     type reply_builder<'T> = string -> Result<'T, string>
 
-    type FaceDetection(stream_addr: string, socket_addr: string, ?eventContext: SynchronizationContext) =
+    type FaceDetection(stream_addr: string, socket_addr: string) =
 
-        let client = create_client None
+        let mutable active_streams: Result<StreamState, string> option = None
+        let mutable cam_streams: CameraStream list option              = None
+        let mutable socket_subs:IDisposable list                       = List.Empty
 
-        let stream_url      = $"http://%s{stream_addr}"
-        let socket_url      = $"ws://%s{socket_addr}"
-        let make_stream_url = create_url stream_url
+        let mutable web_socket    = new SocketIoClient()
+        let mutable socket_killed = false  //if the remote socket was abruptly and very rudely closed.
 
-        let mutable _active_streams: Result<StreamState, string> option = None
-        let mutable cam_streams: CameraStream list option = None
-        //let mutable stream_health:  Result<StreamHealth, string> option = None
-        ///wraps an event to run in a synchronization context, if provided in constructor
+        let client               = create_client None
+        let stream_url           = $"http://%s{stream_addr}"
+        let socket_url           = $"ws://%s{socket_addr}"
+        let make_stream_url      = create_url stream_url
+        let face_detected_event  = Event<Result<string * DetectedFacesReply, string>>()  //return the PV type
+        let socket_error         = Event<Result<string, exn>>() //coming soon
+        let cam_stream_connected = Event<string>() //string might not be enough.
+        let socket_timeout_ms    = 10000
 
-        let face_detected_event = new Event<Result<string * DetectedFacesReply, string>>()  //return the PV type
-        let socket_error = new Event<Result<string, exn>>() //coming soon
-        let cam_stream_connected = new Event<string>() //string might not bet enough.
         //internal web socket event handler. called when face detection images are received from PV
         let faces_detected (se: SocketIoEventEventArgs) =
 
@@ -68,12 +68,11 @@ module PVStreams =
         //if health = unhealthy, try to restart the streams until healthy or after N tries.
         //after streams have started decoding we can handle detection events over a socket.
 
-        /// stops face decoding of camera streams on remote pv streaming service
         //a function that returns a new function that will make a stream call for every camera in provided list.
-        let build_stream_call  (stream_call: stream_api_call) (to_reply: reply_builder<'T>) =
+        let build_stream_fun  (stream_call: stream_api_call) (to_reply: reply_builder<'T>) =
             fun (cams: CameraStream list) -> async {
                 let mutable stream_msg = []
-                let mutable kill_loop = false
+                let mutable kill_loop  = false
                 let mutable conn_error = ConnectionError "poop"
 
                 for cam in cams do
@@ -106,16 +105,10 @@ module PVStreams =
                     return StreamingResult.Success stream_msg
             }
 
-        let stop_streams  = build_stream_call stop_decode to_stop_decode_reply
-        let start_streams = build_stream_call start_decode to_start_decode_reply
+        /// starts / stops face decoding of camera streams on remote pv streaming service
+        let stop_streams  = build_stream_fun REST.stop_decode to_stop_decode_reply
+        let start_streams = build_stream_fun REST.start_decode to_start_decode_reply
 
-        let socket_timeout_ms = 10000
-        let mutable web_socket = new SocketIoClient()
-
-        let mutable socket_killed = false  //if the remote socket was abruptly and very rudely closed.
-        let mutable socket_subs:IDisposable list = List.Empty
-
-        let dispose_web_socket() = web_socket.Dispose()
 
         let sub_socket_events () =
 
@@ -139,10 +132,8 @@ module PVStreams =
 
             let socket_exn_sub = web_socket.ExceptionOccurred.Subscribe(fun x ->
                  socket_killed <- true
-                 dispose_web_socket()
-                 socket_error.Trigger(Error x.Value)
-
-                )
+                 web_socket.Dispose()
+                 socket_error.Trigger(Error x.Value))
 
             //The ALL important face detection event.
             let msg_received_sub = web_socket.EventReceived.Subscribe(faces_detected)
@@ -224,55 +215,50 @@ module PVStreams =
         }
 
         let update_active_streams() = async {
-            let! streams = get_streams client make_stream_url
+            let! streams = REST.get_streams client make_stream_url
 
             let a_streams =
                 match (handle_api_result streams) with
                 | Ok stream -> (Some (StreamState.from stream))
-                | Error _   -> _active_streams //TODO: Handle the error
+                | Error _   -> active_streams //TODO: Handle the error
 
-            _active_streams <- a_streams
+            active_streams <- a_streams
             return ()
         }
-        let update_camera_streams cams = cam_streams <- Some(cams)
 
-        let start_decoding cams: Async<StartStreamingResultList> = async {
+        member self.start_decode cams = async {
             let! res = start_streams cams
 
             match res with
             | Success _ ->
                 do! update_active_streams ()
-                do! build_socket_connection(_active_streams)
+                do! build_socket_connection(active_streams)
             | ConnectionError ce ->
                 printfn $"Get Streams Error: %s{ce}"
 
-            update_camera_streams cams
+            cam_streams <- Some(cams)
             return res
         }
 
-        let stop_decoding cams: Async<StopStreamingResultList> = async {
+        member self.stop_decode  cams = async {
             let! res = stop_streams cams
             match res with
             | Success _ ->
                 do! update_active_streams ()
-                do! build_socket_connection(_active_streams)
+                do! build_socket_connection(active_streams)
             | ConnectionError ce ->
                 printfn $"Get Streams Error: %s{ce}"
 
-            update_camera_streams cams
+            cam_streams <- Some(cams)
             return res
         }
 
-        member self.start_decode cams = start_decoding cams
-
-        member self.stop_decode  cams = stop_decoding cams
-
         member self.async_get_streams(?timeout) = async {
             do! update_active_streams ()
-            return _active_streams.Value //TODO: direct Value access is never a good sign. maybe return the option
+            return active_streams.Value //TODO: direct Value access is never a good sign. maybe return the option
         }
-        member self.face_detected = face_detected_event.Publish
-        member self.stream_disconnected = socket_error.Publish
+        member self.face_detected           = face_detected_event.Publish
+        member self.stream_disconnected     = socket_error.Publish
         member self.camera_stream_connected = cam_stream_connected.Publish
 
 

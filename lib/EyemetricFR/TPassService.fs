@@ -1,16 +1,16 @@
 namespace EyemetricFR
 
 open System
-//open EyemetricFR.TPassApi //Http
-open EyemetricFR.HTTPApi
-open EyemetricFR.HTTPApi.Auth
-open EyemetricFR.HTTPApi.TPass
+open HTTPApi
+open Auth
 open EyemetricFR.TPass.Types   //NOTE: types override any types with same name from earlier defined modules
+
+module REST = TPass
 
 module SearchHelper =
 
      //=================================================================================================== ===========
-     //We get out results as a series of Succes or Error cases where each Success contains a string repr.
+     //We get our results as a series of Success or Error cases where each Success contains a string repr.
      //of json array of objects.  The series of Success or Failure cases is the aggregation of a
      //a Fork-join parallel function of all the search requests we've passed to it.
 
@@ -26,7 +26,7 @@ module SearchHelper =
      // TPassClient object.
      // We then Group the TPass client objects into their respective Types and return a grouped result for further processing
 
-      ///match against contents of line input and return the corresponding Tag.
+    ///match against contents of line input and return the corresponding Tag.
     let (|IsVisitor|IsStudent|IsEmployee|IsVolunteer|IsParent|IsUnknown|) (input:string) =
         let line = input.ToLower()
         match line with
@@ -37,7 +37,7 @@ module SearchHelper =
         | line when  line.Contains("parent") -> IsParent
         | _ -> IsUnknown
 
-      ///match against line to find out what type of TPassClient it is and return it's string name
+    ///match against line to find out what type of TPassClient it is and return it's string name
     let grp_client_types (line:string): string =
         match line with
         | IsVisitor  -> "Visitor"
@@ -47,21 +47,21 @@ module SearchHelper =
         | IsParent -> "Parent"
         | IsUnknown -> "Unknown"
 
-      ///Empty result is no results. Get em outa here! Also skips over any Errored Searches. This may not be great.
+    ///Empty result is no results. Get em outa here! Also skips over any Errored Searches. This may not be great.
     let filter_empty_results (tpr: TPassResult<string>) =
         match tpr with | Success s -> s.Length <> 0 | _ -> false
 
-      ///search results return array of json objects that represent different types
-      ///and automatic parsing doesn't quite work. We need to help things along.
-      ///The first step is splitting each object at it's close bracket.
+    ///search results return array of json objects that represent different types
+    ///and automatic parsing doesn't quite work. We need to help things along.
+    ///The first step is splitting each object at it's close bracket.
     let split_json_obj (tpr: TPassResult<string>)  =
         match tpr with | Success s -> s.Split([|'}'|], StringSplitOptions.None)  | _ -> [||]
 
-      ///convert to an array of TPassClients
-      ///if any conversion is empty or malformed, we
-      ///return item as None from match,.
-      ///we filter out any items that are None and
-      ///return the values out of the option type.
+    ///convert to an array of TPassClients
+    ///if any conversion is empty or malformed, we
+    ///return item as None from match,.
+    ///we filter out any items that are None and
+    ///return the values out of the option type.
     let to_clients (s_res: (string * string []) []) =
           s_res |> Array.map (fun x ->
              match (fst x) with
@@ -94,8 +94,8 @@ module SearchHelper =
            |> Array.filter (fun x -> x.IsSome)
            |> Array.map (fun x -> x.Value)
 
-      //takes and array of TPassResult<string> which represents
-      //a sequence of search results.
+    //takes and array of TPassResult<string> which represents
+    //a sequence of search results.
     let parse_search_results (sr: TPassResult<string> []) =
          sr
          |> Array.filter filter_empty_results
@@ -110,8 +110,10 @@ module SearchHelper =
 
 type TPassService (url: string, cred: Credential, cert_check: bool) =
 
-    let error_evt = Event<string>()
     let mutable token_pair: TokenPair option = None
+
+    let error_evt = Event<string>()
+
     let to_tpass_result_async (sr: Async<Result<string, string>>) = async {
        let! s = sr
        return
@@ -132,8 +134,8 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
             match token_pair with
             | Some tok ->
                 try
-                    let (id, typ, comp_id) = req
-                    search_client client tok make_url id typ comp_id
+                    let id, typ, comp_id = req
+                    REST.search_client client tok make_url id typ comp_id
                 with
                 | e -> async { return Error e.Message }
             | None -> async { return Error "Need a valid token to make TPass calls" }
@@ -151,25 +153,21 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
     }
 
     let try_checkin_client (ch_in: CheckInRecord) = async {
-
-       return!
+        return!
             match token_pair with
             | Some tok ->
                 try
-                    check_in_student client tok make_url ch_in
+                    REST.check_in_student client tok make_url ch_in
                 with
                 | e -> async { return Error e.Message }
             | None -> async { return Error "Need a valid token to make TPass calls" }
     }
     let try_get_recent_checkin  (ccode: bigint) (compid: int) (date: DateTime) = async {
-        let cc = string ccode
-        let comp = string compid
-
         return!
             match token_pair with
             | Some tok ->
                 try
-                    get_last_checkin_record client tok make_url cc comp date
+                    REST.get_last_checkin_record client tok make_url (string ccode) (string compid) date
                 with
                 | e -> async {return Error e.Message}
             | None -> async { return Error "Need a valid token to make TPass calls" }
@@ -181,7 +179,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
             match token_pair with
             | Some tok ->
                try
-                    check_out_student client tok make_url ch_out
+                    REST.check_out_student client tok make_url ch_out
                with
                | e -> async { return Error e.Message }
             | None -> async { return Error "Need a valid token to make TPass calls" }
@@ -189,7 +187,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
 
     let get_image (url: string) = async {
         try
-            let! x = download_image client url
+            let! x = REST.download_image client url
             return Ok x
         with
         | e -> return Error e.Message
@@ -224,7 +222,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
             match token_pair with
             | Some tok ->
                 try
-                    get_client_by_pv_id client tok make_url id
+                    REST.get_client_by_pv_id client tok make_url id
                 with
                 | e -> async { return Error e.Message }
             | None ->  async { return Error "Need a valid token to make TPass calls." }
@@ -236,7 +234,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
             | Some tok ->
                 try
                     let (CCode code) = ccode //get the string thang
-                    get_client_by_ccode client tok make_url code
+                    REST.get_client_by_ccode client tok make_url code
                 with
                 | e -> async {return Error e.Message}
             | None -> async { return Error "Need a valid token to make TPass calls." }
@@ -248,7 +246,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
             match token_pair with
             | Some tok ->
                 try
-                    register_pv_id client tok make_url ccode pv_id
+                    REST.register_pv_id client tok make_url ccode pv_id
                 with
                 | e -> async { return Error e.Message }
             | None -> async { return Error "Need a valid token to make TPass calls." }
@@ -260,7 +258,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
             match token_pair with
             | Some tok ->
                 try
-                    update_pv_id client tok make_url ccode pv_id
+                    REST.update_pv_id client tok make_url ccode pv_id
                 with
                 | e -> async { return Error e.Message }
             | None -> async { return Error "Need a valid token to make TPass calls" }
@@ -276,7 +274,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
 
         try
             printfn "==== Retrieving auth token ==== "
-            let! tok =  get_token client cred make_url
+            let! tok =  REST.get_token client cred make_url
             token_pair <- Some tok
             return Success true
 
@@ -290,7 +288,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
     member self.validate_user (cred: Credential) = async {
         try
             printfn "==== Retrieving token for USER ==== "
-            let! tok =  get_token client cred make_url
+            let! tok =  REST.get_token client cred make_url
             return Success true
         with
         | e ->
@@ -325,7 +323,6 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
 
     member self.search_client (search_req:  SearchReq list) = async {
            let! search_results =  (try_search_client search_req) |> Async.Catch
-
            return
                match search_results with
                | Choice1Of2 search -> Success search
