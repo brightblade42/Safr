@@ -74,7 +74,6 @@ module Helpers =
     let enroll (ctx: HttpContext) (enroll_request: EnrollRequest) =
           task {
                 let fr = ctx.GetService<FRService>()
-
                 //narrow = 1  wide = many
                 let (narrow_search, wide_search) =
                     enroll_request.candidates |> List.partition(fun x -> x.ccode.Length > 1)
@@ -246,20 +245,9 @@ module Helpers =
 
          }
 
-    let recognize (ctx: HttpContext) (face: FaceImage) =
-        task {
-
-                let  fr  = ctx.GetService<FRService>()
-                let! res = face |> fr.recognize
-
-                return
-                    match res with
-                    //TODO: Use confidence from config
-                    | Ok pm -> Ok {pm with identities = pm.identities |> List.filter(fun f -> f.confidence > 0.9) }
-                    | Error e -> Error e
-        }
 
 //HTTP Handlers
+
 
 let recognize_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
@@ -320,14 +308,17 @@ let add_face_handler  =
                      return! json {| error=msg |} next ctx
         }
 
+let read_request_body (ctx: HttpContext) =
+        let req = ctx.Request.Body
+        use sr  = new StreamReader(req)
+        sr.ReadToEndAsync()
+
 let login_handler =
     fun (next: HttpFunc) (ctx: HttpContext) -> task {
 
         try
             let fr = ctx.GetService<FRService>()
-            let req = ctx.Request.Body
-            use sr = new StreamReader(req)
-            let! body_str = sr.ReadToEndAsync()
+            let! body_str = read_request_body ctx
             let login = LoginCred.from body_str
             let login_res =
                 match login with
@@ -348,10 +339,9 @@ let frlog_handler =
     fun (next: HttpFunc) (ctx: HttpContext) -> task {
         try
             let fr = ctx.GetService<FRService>()
-            let req = ctx.Request.Body
-            use sr = new StreamReader(req)
-            let! body_str = sr.ReadToEndAsync()
+            let! body_str = read_request_body ctx
             let dr = DateRange.from body_str
+
             let r =
                 match dr with
                 | Ok range ->
@@ -385,9 +375,7 @@ let delete_face_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
             try
-                let req = ctx.Request.Body
-                use sr  = new StreamReader(req)
-                let! body_str     = sr.ReadToEndAsync()
+                let! body_str = read_request_body ctx
                 let face_req_body = DeleteFaceRequest.from body_str
 
                 match face_req_body with
@@ -417,10 +405,7 @@ let get_identity_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
             try
-                let req = ctx.Request.Body
-                use sr = new StreamReader(req)
-                let! body_str = sr.ReadToEndAsync()
-
+                let! body_str = read_request_body ctx
                 match (GetIdentityRequest.from body_str) with
                 | Ok id_req ->
                     let fr = ctx.GetService<FRService>()
@@ -442,8 +427,8 @@ let get_identity_handler =
 let enroll_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-            use sr = new StreamReader(ctx.Request.Body)
-            let! body_str = sr.ReadToEndAsync()
+
+            let! body_str = read_request_body ctx
 
             match (EnrollRequest.from body_str) with
             | Ok ereq ->
@@ -480,9 +465,7 @@ let enroll_handler =
 let delete_enrollment_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-            let req = ctx.Request.Body
-            use sr = new StreamReader(req)
-            let! body_str = sr.ReadToEndAsync()
+            let! body_str = read_request_body ctx
             let enroll_req = DeleteEnrollmentRequest.from body_str
 
             match enroll_req with
@@ -545,9 +528,8 @@ let stop_camera_streams_handler =
 let add_camera_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-            let req = ctx.Request.Body
-            use sr = new StreamReader(req)
-            let! body_str = sr.ReadToEndAsync()
+
+            let! body_str = read_request_body ctx
             let cam_stream = CameraStream.from body_str
 
             match cam_stream with
@@ -558,12 +540,12 @@ let add_camera_handler =
              | Error e -> return!  json {| msg=e |} next ctx
         }
 
+
+
 let remove_camera_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-            let req = ctx.Request.Body
-            use sr  = new StreamReader(req)
-            let! body_str = sr.ReadToEndAsync()
+            let! body_str = read_request_body ctx
             let rem_cam_req = RemoveCameraRequest.from body_str
 
             match rem_cam_req with
@@ -579,9 +561,7 @@ let remove_camera_handler =
 let update_camera_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-            let req = ctx.Request.Body
-            use sr = new StreamReader(req)
-            let! body_str = sr.ReadToEndAsync()
+            let! body_str = read_request_body ctx
             let update_cam_req = UpdateCameraRequest.from body_str
 
             match update_cam_req with

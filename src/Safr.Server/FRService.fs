@@ -123,7 +123,6 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
         | EmployeeOrUser e, 0  -> (e.name, check_out tcl)
         | _ -> ("Unknown", None)
 
-
     let get_identity_cache_expiry () =
 
         let conf_opt = config_agent.get_latest_config()
