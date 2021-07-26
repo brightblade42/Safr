@@ -3,6 +3,7 @@ System.Data.SQLite
 FSharp.Core
 FSharp.Data
 Base64UrlEncoder
+System.IdentityModel.Tokens.Jwt
 Thoth.Json
 Thoth.Json.Net
 H.Socket.IO

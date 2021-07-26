@@ -364,9 +364,11 @@ module HTTPApi =
 
         }
 
+
         let get_companies (client: HttpClient) (token_pair: Auth.TokenPair) (make_url: UriBuilder) = async {
            return!  get_with_tok client (make_url "companies/restricted?groups=Admin") (Some token_pair)
         }
+
 
         let search_client (client: HttpClient) (token_pair: Auth.TokenPair) (make_url: UriBuilder) id typ compid = async {
            let uri =

@@ -4,6 +4,7 @@ open System
 open Thoth.Json
 open Thoth.Json.Net
 open EyemetricFR.Paravision.Types.Identification
+//open System.IdentityModel.Tokens.Jwt
 
 type CompID =  string
 type IDOrName = string  //a code or a name fragment for TPAss to use as a look up.
