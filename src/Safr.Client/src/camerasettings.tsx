@@ -125,11 +125,11 @@ let BuildCamEnabledFormatter = (onclick, is_busy) => {
 }
 
 
-export const CameraSettings = (props) => {
+export function CameraSettings(props) {
 
-    //const gmodel = props.gmodel;
     const app_state: AppState = props.state
     const funcs = props.funcs;
+
 
     const [editingRowIds, setEditingRowIds] = React.useState([]);
     const [addedRows, setAddedRows]         = React.useState([]);
@@ -162,6 +162,8 @@ export const CameraSettings = (props) => {
 
 
     }
+
+
     const handle_cancel = () => {
         setIsDeleteDialogOpen(false)
     }
@@ -278,15 +280,19 @@ export const CameraSettings = (props) => {
                    <CamDirectionTypeProvider
                        for={camDirectionColumn}
                    />
-                    <EditingState
-                        editingRowIds={editingRowIds}
-                        onEditingRowIdsChange={setEditingRowIds}
-                        rowChanges={rowChanges}
-                        onRowChangesChange={setRowChanges}
-                        addedRows={addedRows}
-                        onAddedRowsChange={changeAddedRows}
-                        onCommitChanges={commitChanges}
-                    />
+                   {funcs.has_permission() ?
+                       <EditingState
+                           editingRowIds={editingRowIds}
+                           onEditingRowIdsChange={setEditingRowIds}
+                           rowChanges={rowChanges}
+                           onRowChangesChange={setRowChanges}
+                           addedRows={addedRows}
+                           onAddedRowsChange={changeAddedRows}
+                           onCommitChanges={commitChanges}
+                       /> : <></>
+
+                   }
+
                    <SearchState defaultValue=""/>
                    <IntegratedFiltering />
                    <PagingState
@@ -295,12 +301,16 @@ export const CameraSettings = (props) => {
                    <IntegratedPaging />
                    <Table/>
                    <TableHeaderRow/>
-                   <TableEditRow/>
-                   <TableEditColumn
-                       showAddCommand={!addedRows.length}
-                       showEditCommand
-                       showDeleteCommand
-                   />
+                   {funcs.has_permission() ? <TableEditRow/> : <></>}
+                   {funcs.has_permission() ?
+                       <TableEditColumn
+                               showAddCommand={!addedRows.length}
+                               showEditCommand
+                               showDeleteCommand
+                           />
+                       : <></>
+                   }
+
                    <Toolbar/>
                    {/*   <SearchPanel/> */}
                    <PagingPanel  pageSizes={pageSizes}/>

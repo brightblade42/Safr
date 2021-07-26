@@ -625,13 +625,12 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
 
     member self.validate_user (user:string) (pass:string) =
             let svc = tpass_service.Value
-            let cred = UserPass (user, pass)
-            let is_valid = svc.validate_user cred |> Async.RunSynchronously
+            let res = svc.validate_user (UserPass (user, pass))  |> Async.RunSynchronously
 
-            match is_valid with
-            | Success _ -> true
-            | _ -> false //we're currently ignoring any errors (Auth Fail is an error)
-
+            match res with
+            | Success tok -> Ok tok
+            | TPassError e -> Error e.Message
+            | _ -> Error "There was an error with login attempt"
 
     member self.get_frlog_daterange (startdate: Option<string>) (enddate: Option<string>)= async {
 

@@ -289,7 +289,16 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
         try
             printfn "==== Retrieving token for USER ==== "
             let! tok =  REST.get_token client cred make_url
-            return Success true
+            let _,jwt = tok
+            return
+                match jwt with
+                | Some (Ok jtok) -> Success jtok
+                | Some (Error e) ->
+                    error_evt.Trigger e
+                    TPassError (Exception e) //this is funky should we be making Exceptions?
+                | _ ->
+                    error_evt.Trigger "could not get token"
+                    TPassError (Exception "could not get token")
         with
         | e ->
             printfn $"==== unable to get user  token ==== %s{e.Message}"

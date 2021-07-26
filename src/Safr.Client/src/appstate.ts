@@ -41,7 +41,8 @@ export type FRLog = {
 }
 
 export type LoginState =
-    | { type: "NotLoggedIn"  | "InFlight" | "LoggedIn" }
+    | { type: "NotLoggedIn"  | "InFlight" } //| "LoggedIn" }
+    | { type: "LoggedIn"; role: string}
     | { type: "Failed"; msg: string }
 
 export interface AppState {

@@ -82,6 +82,14 @@ function App (props) {
 
     let endpoint = `${window.location.href}frhub`;
     endpoint = `http://localhost:8085/frhub`;
+
+    function has_permission () {
+        if (props.state.login_status.type === "LoggedIn") {
+            return props.state.login_status.role === "Admin"
+        } else {
+            return false
+        }
+    }
     const hub = new signalR.HubConnectionBuilder()
         .withUrl(endpoint)
         .withAutomaticReconnect()
@@ -208,7 +216,9 @@ function App (props) {
                     .then(a => console.log("sending delete camera req"))
                     .catch(err => console.log(`Couldn't delete camera: ${err}`))
             })()
-        }
+        },
+        has_permission: has_permission
+
     }
 
     let fr_history_funcs = {
@@ -272,8 +282,8 @@ function Root () {
             .then(a => {
                     console.log("Login result");
                     console.log(a);
-                    let login_state: LoginState = a.valid ? {type: "LoggedIn"} : {type: "Failed", msg: "Incorrect user name or password"};
-
+                    let login_state: LoginState = a.valid ? {type: "LoggedIn", role: a.role} : {type: "Failed", msg: "Incorrect user name or password"};
+                    console.log(login_state)
                     dispatch({action: "LoginStateChanged", payload: login_state});
 
             })

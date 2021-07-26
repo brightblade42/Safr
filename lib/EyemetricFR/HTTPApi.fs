@@ -9,6 +9,7 @@ open System.Threading.Tasks
 open EyemetricFR.TPass.Types
 open EyemetricFR.Paravision.Types.Streaming
 open EyemetricFR.Paravision.Types.Identification
+open System.IdentityModel.Tokens.Jwt
 open Base64UrlEncoder
 
 module HTTPApi =
@@ -24,7 +25,8 @@ module HTTPApi =
 
     module Auth =
 
-        type TokenPair = AuthToken * Result<JWToken, string> option
+        //type TokenPair = AuthToken * Result<JWToken, string> option
+        type TokenPair = AuthToken * Result<JwtSecurityToken, string> option
 
         let to_auth_header (token_str: string) =  AuthenticationHeaderValue("Bearer", token_str)
 
@@ -42,17 +44,17 @@ module HTTPApi =
 
         let private from_b64 = from_url64 >> Convert.FromBase64String >> Encoding.UTF8.GetString
 
-        let private to_jwtoken tstr =
-            let x = from_b64 tstr
-            printfn $"TOKEN: %s{x}"
-            JWToken.from x
+        let private to_jwtoken tok_str =
+            try
+                Ok (JwtSecurityToken(tok_str))
+            with
+            | :? Exception as ex -> Error "could not parse JWT token"
 
         let to_token_pair token_resp: TokenPair  =
-           (token_resp.token, None) //parsing jwt token is a nightmare
-           //let jwt = token_resp.token.Split '.'
-           //match jwt.Length with
-           //| x when x > 2  ->  (token_resp.token, jwt.[1] |> to_jwtoken |> Some)
-           //| _ -> failwith "Bad jwt token"
+           let jwt_arr = token_resp.token.Split '.'
+           match jwt_arr.Length with
+           | x when x > 2  ->  (token_resp.token, Some (to_jwtoken token_resp.token))
+           | _ -> failwith "Could not parse JWT token! Boo"
 
 
     let disable_cert_validation =

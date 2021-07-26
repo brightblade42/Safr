@@ -2,6 +2,7 @@ module Safr.Program
 
 open System
 open System.IO
+open System.IdentityModel.Tokens.Jwt
 open EyemetricFR
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Cors.Infrastructure
@@ -313,8 +314,26 @@ let read_request_body (ctx: HttpContext) =
         use sr  = new StreamReader(req)
         sr.ReadToEndAsync()
 
+let logout_handler =
+    fun (next: HttpFunc) (ctx: HttpContext) -> task {
+        ctx.Session.Clear() //blitz the sesh.
+        return! json {| msg="coming soon" |} next ctx
+    }
+
 let login_handler =
     fun (next: HttpFunc) (ctx: HttpContext) -> task {
+
+        let confirm_user (res: Result<JwtSecurityToken, string>) =
+           match res with
+           | Ok tok ->
+               let role = (string (tok.Payload.Item("Role")))
+               ctx.Session.SetString("UserToken", tok.RawData) //not using session just yet.
+               ctx.Session.SetString("UserRole", role)
+               ctx.Session.SetString("UserExpires", tok.ValidTo.ToString())
+
+               json {| valid=true; role=role |}
+           | Error e ->
+               json {| valid=false; error=e |}
 
         try
             let fr = ctx.GetService<FRService>()
@@ -324,7 +343,7 @@ let login_handler =
                 match login with
                 | Ok lg ->
                     let res = (fr.validate_user lg.user lg.password)
-                    json {| valid=res |}
+                    confirm_user res
                 | Error e -> json {| error=e |}
 
             return! login_res next ctx
@@ -625,8 +644,10 @@ let configureApp (app: IApplicationBuilder) =
         //printfn "THIS IS WHERE THE WEB SOCKET CONN HAPPENS"
         app
           //  .UseForwardedHeaders(fho)
+          //  .UseSession()
             .UseDefaultFiles()
             .UseStaticFiles()
+            .UseSession()
             .UseRouting()
 
             .UseCors(fun opts ->
@@ -641,6 +662,8 @@ let configureApp (app: IApplicationBuilder) =
 
 let configureServices (services: IServiceCollection) =
 
+        services.AddSession() |> ignore
+        services.AddDistributedMemoryCache() |> ignore
         services.AddSingleton<FRHub>() |> ignore
         services.AddSingleton<FRService>(add_deps) |> ignore
         services.AddSignalR() |> ignore
