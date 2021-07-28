@@ -1,4 +1,4 @@
-
+import {CallEndOutlined} from "@material-ui/icons";
 
 
 export function RemoteApiBuilder() {
@@ -32,11 +32,9 @@ export function RemoteApiBuilder() {
 
     }
 
-
     async function get_frlogs (start, end)  {
 
         const endpoint = `${api_root}logs`
-
         const json_post =
             create_json_post( {
                 start_date: start,
@@ -47,7 +45,6 @@ export function RemoteApiBuilder() {
         return resp.json();
 
     }
-
 
     return Object.freeze({
         root: api_root,

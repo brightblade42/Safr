@@ -211,7 +211,7 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
 
                         printfn "FACE IDENTIFIED!"
                         hub_context.Clients.All.SendAsync("FaceIdentified", id_face) |> Async.AwaitTask |> Async.Start
-                        (log_matched_identity id_face, pi, expanded_image) |> ignore
+                        log_matched_identity id_face pi expanded_image
                         ()
 
               | Some (TPassError er) ->

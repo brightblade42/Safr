@@ -49,10 +49,12 @@ export interface AppState {
 
     login_status: LoginState;
     available_cameras: CameraStream[] ;
+
     matched_faces: IdentifiedFace[];
     fr_watchlist: IdentifiedFace[];
     fr_logs: FRLog[];
     fr_history_loading: boolean;
+    should_autostart: boolean;
     streams_loading: boolean;
     starting_all_streams: boolean;
     stopping_all_streams: boolean;
@@ -154,10 +156,10 @@ export function update (state: AppState, msg:Msg) {
             return {...state, matched_faces: [msg.payload, ...state.matched_faces]}
         }
         case "StartingAllStreams": {
-            return {...state, starting_all_streams: msg.payload }
+            return {...state, starting_all_streams: msg.payload, should_autostart: true, }
         }
         case "StoppingAllStreams": {
-            return {...state, stopping_all_streams: msg.payload }
+            return {...state, stopping_all_streams: msg.payload, should_autostart: false, }
         }
     }
     return assertUnreachable(msg);
@@ -233,6 +235,7 @@ export const init_state  = () :AppState => {
         matched_faces: [],
         fr_watchlist: [],
         fr_logs: [],
+        should_autostart: true,
         fr_history_loading: false,
         streams_loading: false,
         starting_all_streams: false,

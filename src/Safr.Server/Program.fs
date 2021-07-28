@@ -357,6 +357,7 @@ let login_handler =
 let frlog_handler =
     fun (next: HttpFunc) (ctx: HttpContext) -> task {
         try
+            printfn "HELLO FR LOGS HERE!!!"
             let fr = ctx.GetService<FRService>()
             let! body_str = read_request_body ctx
             let dr = DateRange.from body_str
@@ -373,8 +374,9 @@ let frlog_handler =
                              let en = fr.get_enrollment lg.identity |> Async.RunSynchronously
                              match en with
                              | Ok (Some enr) ->
-                                 let img = Convert.ToBase64String enr.pv_img
-                                 {lg with matched_face = img; detected_img= ""}
+                                 printfn "DID WE GET STUFF?"
+                                 //let img = Convert.ToBase64String enr.pv_img
+                                 {lg with matched_face = ""; detected_img= ""}
                              | _ -> {lg with detected_img = ""}
 
                              )
@@ -634,6 +636,7 @@ let add_deps (p: IServiceProvider) =
     let n_hub = p.GetRequiredService<FRHub>()
     let fr_svc = FRService n_hub
     fr_svc.sub_faces_detected()
+    //fr_svc.start_streams() |> Async.RunSynchronously |> ignore
     fr_svc
 
 

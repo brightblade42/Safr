@@ -183,7 +183,8 @@ module Queries =
                         ("@status", box item.status )
                         ] |> dict
 
-            execute conn sql data
+            let res = execute conn sql data
+            res
 
         let get_fr_top conn (count: int) =
             let sql =  $"select * from FRLog order by matched_on desc limit %d{count}"
@@ -191,7 +192,8 @@ module Queries =
 
         let get_frlog_by_date conn (startdate: string) (enddate: string) =
             let sql =  $"select * from FRLog where matched_on between '%s{startdate}' and '%s{enddate}' order by matched_on desc"
-            query<FRLog> conn sql None
+            let res = query<FRLog> conn sql None
+            res
 
         let log_enrollment (conn: IDbConnection) (item: EnrollLog) =
 
