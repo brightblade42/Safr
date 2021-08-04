@@ -32,6 +32,8 @@ export const AppBar = (props) => {
                       className="mt-0 btn-indigo ml-2 uppercase text-sm tracking-wide text-blue-50"
                 >History</Link>
 
+                <Link to="/videoedit" className="mt-0 btn-indigo ml-2 uppercase text-sm tracking-wide text-blue-50"
+                >Edit Video</Link>
             </div>
 
             <div className="flex">

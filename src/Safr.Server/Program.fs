@@ -254,6 +254,7 @@ let recognize_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
             try
+
                 let img = ctx.Request.Form.Files.GetFile("image")
                 use mem = new MemoryStream()
                 img.OpenReadStream().CopyTo mem
@@ -270,6 +271,7 @@ let recognize_handler =
 
             with
             | :? Exception as ex ->
+                    printfn $"%A{ex}"
                     return! json {face_count =0; identities = List.empty } next ctx
         }
 

@@ -9,6 +9,7 @@ import {fas} from '@fortawesome/pro-solid-svg-icons';
 import {far} from '@fortawesome/pro-regular-svg-icons';
 import {fad} from '@fortawesome/pro-duotone-svg-icons';
 import {LoginComponent} from "./login";
+import {VideoEditor} from "./video_editor";
 import {AppBar} from "./appbar";
 import {BrowserRouter as Router, Route, Switch} from "react-router-dom";
 import {GoodFaces, BadFaces} from "./facecards";
@@ -271,6 +272,9 @@ function App (props) {
                     </Route>
                     <Route path="/frhistory">
                         <FRHistoryGrid state={props.state} funcs={fr_history_funcs} />
+                    </Route>
+                    <Route path="/videoedit">
+                       <VideoEditor />
                     </Route>
                 </Switch>
             </div>

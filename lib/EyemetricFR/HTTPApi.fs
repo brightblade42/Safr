@@ -307,7 +307,8 @@ module HTTPApi =
             //TODO: consider other available query string parameters. Max_Faces..
             match face with
             | B64Encoding bar -> return! post_b64image client (make_url "api/lookup ") bar
-            | Binary bin      -> return! post_image client (make_url "api/lookup?num_faces=1") bin
+            //| Binary bin      -> return! post_image client (make_url "api/lookup?num_faces=1") bin
+            | Binary bin      -> return! post_image client (make_url "api/lookup?num_faces=5") bin
             | _               -> return  failwith "unsupported FaceImage"
         }
         let delete_identity (client: HttpClient) (make_url: UriBuilder) (id: string) = async {

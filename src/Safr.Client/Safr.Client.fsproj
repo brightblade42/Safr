@@ -17,6 +17,7 @@
         <Content Include="src\login.tsx" />
         <Content Include="src\progressbars.tsx" />
         <Content Include="src\types\images.d.ts" />
+        <Content Include="src\video_editor.tsx" />
         <Folder Include="src\images" />
         <Content Include="src\index.css" />
         <Content Include="src\index.tsx" />
