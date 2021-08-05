@@ -620,6 +620,7 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
     member self.get_identity (req: GetIdentityReq) = async { return! identifier.get_identity req }
     member self.get_enrollment (id:string)  = async { return enrollments.get_enrolled_details_by_id id  }
     member self.recognize (face: FaceImage) = async { return! identifier.detect_identity face }
+    member self.detect (face: FaceImage) = async { return! identifier.detect_faces face }
     member self.add_face (req: AddFaceReq)  = async { return! identifier.add_face req }
     member self.delete_face (req: DeleteFaceReq) = async { return! identifier.delete_face req }
 

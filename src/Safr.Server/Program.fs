@@ -249,6 +249,59 @@ module Helpers =
 
 //HTTP Handlers
 
+let unescape_json (json_str: string) = json_str.Replace("\\","""""").Replace("\"{", "{").Replace("}\"", "}")
+
+let detect_frame_handler =
+    fun (next: HttpFunc) (ctx: HttpContext) ->
+        task {
+            try
+
+                let img = ctx.Request.Form.Files.GetFile("image")
+                use mem = new MemoryStream()
+                img.OpenReadStream().CopyTo mem
+                let face = FaceImage.Binary (mem.ToArray())
+                let  fr  = ctx.GetService<FRService>()
+                let! res = fr.detect face
+
+                match res with
+                //TODO: Use confidence from config
+                | Ok pm ->
+                    let scaped = unescape_json pm
+                    printfn $"%s{scaped}"
+                    return! text scaped next ctx
+                    //return! json {pm with identities = pm.identities |> List.filter(fun f -> f.confidence > 0.9) } next ctx
+                | Error e ->
+                    return! json {| err=e |} next ctx
+
+            with
+            | :? Exception as ex ->
+                    printfn $"%A{ex}"
+                    return! json {face_count =0; identities = List.empty } next ctx
+        }
+let recognize_frame_handler =
+    fun (next: HttpFunc) (ctx: HttpContext) ->
+        task {
+            try
+
+                let img = ctx.Request.Form.Files.GetFile("image")
+                use mem = new MemoryStream()
+                img.OpenReadStream().CopyTo mem
+                let face = FaceImage.Binary (mem.ToArray())
+                let  fr  = ctx.GetService<FRService>()
+                let! res = fr.recognize face
+
+                match res with
+                //TODO: Use confidence from config
+                | Ok pm ->
+                    return! json {pm with identities = pm.identities |> List.filter(fun f -> f.confidence > 0.9) } next ctx
+                | Error e ->
+                    return! json {face_count =0; identities = List.empty } next ctx
+
+            with
+            | :? Exception as ex ->
+                    printfn $"%A{ex}"
+                    return! json {face_count =0; identities = List.empty } next ctx
+        }
 
 let recognize_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
@@ -612,6 +665,8 @@ let webApp : HttpHandler =
                 route "/fr/validate_user" >=> login_handler
                 route "/fr/logs" >=> frlog_handler
                 route "/fr/recognize" >=> recognize_handler
+                route "/fr/detect-frame" >=> detect_frame_handler
+                route "/fr/recognize-frame" >=> recognize_frame_handler
                 route "/fr/enrollment/create" >=> enroll_handler
                 route "/fr/enrollment/delete" >=> delete_enrollment_handler
                 route "/fr/get-identity" >=> get_identity_handler

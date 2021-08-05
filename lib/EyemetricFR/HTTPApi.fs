@@ -302,6 +302,13 @@ module HTTPApi =
            return! post_image client (make_url "api/identities") img_bytes
         }
 
+        //Perhaps FACEIMAGE as a type name is not quite right..
+        let detect_faces (client: HttpClient) (make_url: UriBuilder) (face: FaceImage) = async {
+            //TODO: consider other available query string parameters. Max_Faces..
+            match face with
+            | Binary bin      -> return! post_image client (make_url "api/detect") bin
+            | _               -> return  failwith "Detect faces only supports binary data"
+        }
 
         let detect_identity (client: HttpClient) (make_url: UriBuilder) (face: FaceImage) = async {
             //TODO: consider other available query string parameters. Max_Faces..

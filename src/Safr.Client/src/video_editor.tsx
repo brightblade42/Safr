@@ -48,43 +48,62 @@ export function VideoEditor(props) {
     function start () {
         vidplayer.current.play();
     }
+
+    function build_post (endpoint) {
+
+       return async function (b: Blob) {
+           let api_url = `http://localhost:8085/fr/`;
+           let form_data = new FormData();
+           form_data.append("image", b, "file.jpg");
+           //fetch(`${api_url}recognize-frame`,
+           try {
+               let res = await fetch(`${api_url}${endpoint}`,
+                   {
+                       method: 'POST',
+                       body: form_data
+                   });
+
+               let json = await res.json()
+               return json
+           } catch (e) {
+               console.log(e)
+           }
+       }
+
+    }
+
+    function draw_boundaries (ctx, faces) {
+
+
+        faces.forEach(function (item, index, array) {
+                let box = item.bounding_box;
+                let rectangle = new Path2D();
+                rectangle.rect(box.x, box.y, box.width, box.height);
+                ctx.stroke(rectangle);
+        }
+        );
+
+    }
+    const detect    = build_post("detect-frame");
+    const recognize = build_post("recognize-frame");
+
     function snap (e) {
-        console.log(e.code);
-        if(e.code !== "Enter") {
+        if(e.code !== "Enter" && e.code !== "KeyC") {
             return;
         }
         if (canvasRef.current !== undefined) {
-            // @ts-ignore
             let cv = canvasRef.current;
             cv.width = 1400; //video_width;
             cv.height = 600;
-            cv.getContext("2d").drawImage(vidplayer.current, 0, 0);
-            //img_src_ref.current = cv.toDataURL("image/webp");
-            let data = cv.toDataURL("image/jpeg");
-            cv.toBlob((b)=> {
-                 console.log(b);
-                let api_url = `http://localhost:8085/fr/`;
-                let form_data = new FormData();
-                form_data.append("image", b, "file.jpg");
-
-                fetch(`${api_url}recognize`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            //'Accept': 'application/json',
-                           // 'Content-Type': 'multipart/form-data',
-
-                        },
-                        body: form_data
-                    }).then(response => response.json())
-                    .then(j => console.log(JSON.stringify(j)))
-
-                    .catch(error => console.log("Bam a lam! Fart boom crash"))
-
+            let ctx = cv.getContext('2d');
+            ctx.drawImage(vidplayer.current, 0, 0);
+            cv.toBlob(async (b)=> {
+                 let faces = await detect(b);
+                 draw_boundaries(ctx,faces.faces);
+                 let rec_json = await recognize(b);
+                 console.log(JSON.stringify(rec_json))
 
             }, "image/jpeg");
-            //console.log(data);
-            set_img_src(data);
         }
 
     }
@@ -103,6 +122,7 @@ export function VideoEditor(props) {
                         ref={vidplayer}
                         width={video_width}
                         height={video_height}
+
                         src={createObjectURL(video)}
                         onPlay={play}
                         onPause={pause}
@@ -116,9 +136,7 @@ export function VideoEditor(props) {
             </div>
 
             <div className="mt-8">
-                <canvas id="vid_capture" ref={canvasRef} className="hidden"/>
-                <img className="w-[800px] h-[450px]" src={img_src}
-                />
+                <canvas id="vid_capture" ref={canvasRef} className="w-[900px]"/>
             </div>
         </div>
         </>
