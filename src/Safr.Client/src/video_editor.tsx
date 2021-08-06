@@ -18,7 +18,7 @@ function DetectedFace (props) {
         let ctx = cv.getContext('2d');
 
         ctx.clearRect(0,0, cv.width, cv.height);
-        ctx.putImageData(data, 0,0);
+        ctx.putImageData(data, 0,0,10,10, cv.width, cv.height) ;
     }
 
     React.useEffect(() => {
@@ -128,6 +128,7 @@ export function VideoEditor(props) {
     const vidplayer = React.useRef();
     let [ctx, set_context] = React.useState(undefined); //hmmm
     let [detected_faces, set_detected_faces] = React.useState(undefined);
+    let [matched_faces, set_matches_faces] = React.useState(undefined);
 
 
     function create_video(v) {
@@ -220,6 +221,20 @@ export function VideoEditor(props) {
                  // @ts-ignore
                  draw_boundaries(ctx,d_res.faces);
                  let rec_json = await recognize(b);
+                 //extract data
+
+                let r = rec_json.map(function (x) {
+                    if (x.case === "Ok") {
+                        console.log("We got one!");
+                        return {
+                            confidence: x.fields[0].confidence,
+                            //client: x.fields[0].tpass_client,
+                            name: x.fields[0].tpass_client.fields[0].name,
+                            status: x.fields[0].tpass_client.fields[0].status
+                        }
+                    }
+                });
+                console.log(r);
                 //console.log(JSON.stringify(rec_json))
 
             }, "image/jpeg");
@@ -249,19 +264,15 @@ export function VideoEditor(props) {
 
             }
 
-            {/*
-                <div className="flex mt-2">
-                    <button className="btn-indigo" onClick={snap}>Snap</button>
-                    <button className="btn-indigo" onClick={start}>Start</button>
+            <div className="flex mt-8 flex-shrink-0">
+                <div className="border border-gray-400 bg-bgray-100">
+                    <canvas id="vid_capture" ref={canvasRef} className="w-[900px]"/>
+                </div>
+                <div className="-ml-20">
+                    <DetectedFaces ctx={ctx} faces={detected_faces}/>
+                    <div className=" mt-4 h-48  bg-bgray-300 text-green-700/80">Matched</div>
                 </div>
 
-            */}
-
-            <div className="mt-8">
-                <canvas id="vid_capture" ref={canvasRef} className="w-[900px]"/>
-            </div>
-            <div className="mt-2">
-                <DetectedFaces ctx={ctx} faces={detected_faces}/>
             </div>
         </div>
         </>

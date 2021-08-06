@@ -155,6 +155,14 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
         | _ -> return None //skip, found in cache.
      }
 
+
+     //in this case each identity is a different person, so we don't want just the head.
+    let get_enrolled_details_by_id(id: IdentityItem) = async {
+         let tpa = tpass_service.Value
+         let! client = id.id |> tpa.get_pv_client
+         return client
+     }
+
     let get_enrolled_details_async (pmatch: Async<PossibleMatch option>) = async {
 
         let! pm = pmatch
@@ -619,6 +627,7 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
 
     member self.get_identity (req: GetIdentityReq) = async { return! identifier.get_identity req }
     member self.get_enrollment (id:string)  = async { return enrollments.get_enrolled_details_by_id id  }
+    member self.get_enrollment_by_id (id: IdentityItem) = async { return! get_enrolled_details_by_id id }
     member self.recognize (face: FaceImage) = async { return! identifier.detect_identity face }
     member self.detect (face: FaceImage) = async { return! identifier.detect_faces face }
     member self.add_face (req: AddFaceReq)  = async { return! identifier.add_face req }

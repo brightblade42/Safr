@@ -290,6 +290,35 @@ let recognize_frame_handler =
                 let  fr  = ctx.GetService<FRService>()
                 let! res = fr.recognize face
 
+                let get_client id = async {
+                    let! res = id |> fr.get_enrollment_by_id
+                    match res with
+                    | Success c ->
+                        return Ok {
+                            id= id.id;
+                            confidence = id.confidence;
+                            tpass_client = c;
+                            }
+                    | TPassError e -> return Error e
+                    //return res
+                }
+
+              //  let mutable items = new List<
+                //get enrolled info as well.
+                match res with
+                | Ok pm ->
+                    let x =
+                        pm.identities
+                        |> List.filter (fun i -> i.confidence >= 0.95)
+                        |> List.map(fun i -> i |> get_client)
+                        |> Async.Parallel
+                        |> Async.RunSynchronously
+                    return! json x next ctx
+                | Error e ->
+                    return! json {| error="weird voodoo man" |} next ctx
+
+
+                (*
                 match res with
                 //TODO: Use confidence from config
                 | Ok pm ->
@@ -297,6 +326,7 @@ let recognize_frame_handler =
                 | Error e ->
                     return! json {face_count =0; identities = List.empty } next ctx
 
+                *)
             with
             | :? Exception as ex ->
                     printfn $"%A{ex}"

@@ -344,11 +344,14 @@ module Identification =
       {
       face_count: int
       identities: IdentityItem list
+      //bounding_box: Streaming.BoundingBox option
       }
       static member Decoder: Decoder<PossibleMatch> =
         Decode.object(fun get -> {
           face_count = get.Required.At ["face_count"] Decode.int
           identities = get.Required.At ["identities"] (Decode.list IdentityItem.Decoder)
+         // bounding_box = get.Optional.At ["bounding_box"]  Streaming.BoundingBox.Decoder
+
         })
 
 

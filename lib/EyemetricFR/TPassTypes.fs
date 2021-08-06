@@ -368,5 +368,8 @@ type TPassResult<'a> =
   }
 
 
-
-
+  type RecognizedItem = {
+      id: string
+      confidence: float
+      tpass_client: TPassClient
+  }
