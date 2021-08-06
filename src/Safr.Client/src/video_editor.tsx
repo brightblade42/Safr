@@ -12,13 +12,11 @@ function DetectedFace (props) {
 
     function draw_face() {
         let cv = c_ref.current;
-        if (cv === undefined) { return}
-        if(cv === null) {return}
-        console.log("in use effect Det faces");
-        console.log(cv);
-        console.log("hello cv")
+        if (cv === undefined) { return; }
+        if(cv === null) {return; }
+        console.log("in use draw_face");
         let ctx = cv.getContext('2d');
-        console.log(ctx);
+
         ctx.clearRect(0,0, cv.width, cv.height);
         ctx.putImageData(data, 0,0);
     }
@@ -29,9 +27,9 @@ function DetectedFace (props) {
     return (
         <>
         {data ?
-            <div >
+            <div className="border border-green-900 w-40 mr-4">
                 <canvas ref={c_ref}/>
-                <div className="text-blue-900">STUFF</div>
+                <div className="text-yellow-700 uppercase font-semibold">unknown</div>
             </div>
 
                 : <div>none</div>
@@ -39,6 +37,7 @@ function DetectedFace (props) {
         </>
     )
 }
+
 
 function DetectedFaces (props) {
 
@@ -55,11 +54,12 @@ function DetectedFaces (props) {
             console.log("---------- BOX -----------");
             console.log(face);
             console.log("Oh hey mmman");
-            return ctx.getImageData(box.x, box.y, box.width, box.height);
+            //return ctx.getImageData(box.x, box.y, box.width + 50, box.height + 50);
+            return ctx.getImageData(box.x, box.y, 150, 150);
 
         });
 
-        set_datas(dd);
+        set_datas(dd); //the image data for each detected face.
 
     }
 
@@ -68,7 +68,7 @@ function DetectedFaces (props) {
     }, [faces])
 
     return (
-        <div className="flex text-wgray-200 bg-wgray-100 space-x-2">
+        <div className="flex text-wgray-200 bg-wgray-100 ">
             {datas.map((d => {
                 return <DetectedFace data={d} />
             }))}
@@ -114,43 +114,20 @@ function MyVideo (props) {
 
 const MemVid = React.memo(MyVideo);
 
-const Canvas = props => {
-    const canvas_ref = React.useRef(null);
-
-    const draw = ctx => {
-        ctx.fillStyle = '#000000';
-        ctx.beginPath()
-        ctx.arc(50,100,20,0, 2*Math.PI);
-        ctx.fill();
-    };
-
-    React.useEffect(() => {
-
-        const canvas = canvas_ref.current;
-        const context = canvas.getContext('2d');
-        draw(context);
-        //out first draw
-    }, [draw]);
-
-    return <canvas ref={canvas_ref} {...props} />
-}
 
 export function VideoEditor(props) {
 
     const [video, set_video] = React.useState();
 
-    //const [video_width, set_video_width] = React.useState(800);
-    //const [video_height, set_video_height] = React.useState(500);
+    //const [video_width, set_video_width] = React.useState(500);
+    //const [video_height, set_video_height] = React.useState(200);
     const video_height = 800;
     const video_width = 500;
     const [img_src, set_img_src] = React.useState("");
     const canvasRef = React.useRef();
     const vidplayer = React.useRef();
-    const imageRef  = React.useRef();
-    const img_src_ref = React.useRef("");
     let [ctx, set_context] = React.useState(undefined); //hmmm
     let [detected_faces, set_detected_faces] = React.useState(undefined);
-    const [copied_faces, set_copied_faces] = React.useState([]);
 
 
     function create_video(v) {
@@ -200,11 +177,12 @@ export function VideoEditor(props) {
 
     function draw_boundaries (ctx, faces) {
 
-
         faces.forEach(function (item, index, array) {
                 let box = item.bounding_box;
                 let rectangle = new Path2D();
                 rectangle.rect(box.x, box.y, box.width, box.height);
+                ctx.strokeStyle = "green";
+                ctx.strokeWidth = 2;
                 ctx.stroke(rectangle);
         } );
 
@@ -219,7 +197,7 @@ export function VideoEditor(props) {
             return data;
         });
 
-        set_copied_faces(thumbs);
+        //set_copied_faces(thumbs);
     }
 
     const detect    = build_post("detect-frame");
@@ -231,8 +209,8 @@ export function VideoEditor(props) {
         }
         if (canvasRef.current !== undefined) {
             let cv = canvasRef.current;
-            cv.width = 1400; //video_width;
-            cv.height = 600;
+            cv.width = 2150 //video_width;
+            cv.height = 900;
             let lctx = cv.getContext('2d');
             set_context(lctx);
             ctx.drawImage(vidplayer.current, 0, 0);
@@ -241,9 +219,8 @@ export function VideoEditor(props) {
                  set_detected_faces(d_res);
                  // @ts-ignore
                  draw_boundaries(ctx,d_res.faces);
-                 load_thumbs(ctx, detected_faces.faces);
                  let rec_json = await recognize(b);
-                 console.log(JSON.stringify(rec_json))
+                //console.log(JSON.stringify(rec_json))
 
             }, "image/jpeg");
         }
@@ -261,36 +238,24 @@ export function VideoEditor(props) {
             onKeyDown={snap}
         >
             {video &&
-                /*
-                 <video controls
-                        id="vid_player"
-                        ref={vidplayer}
-                        width={video_width}
-                        height={video_height}
 
-                        src={createObjectURL(video)}
-                        onPlay={play}
-                        onPause={pause}
-                        onTimeUpdate={ntime}
-
-                 />
-
-
-                <MemVid  play={play} pause={pause} ntime={ntime} video={video}   />
-
-                 */
                 <MemVid
-                          //play={play}
+                       //play={play}
                           //pause={pause}
                           //ntime={ntime}
                           video={video}
                           vidref={vidplayer}  />
+
+
             }
 
-            <div className="flex mt-2">
-                <button className="btn-indigo" onClick={snap}>Snap</button>
-                <button className="btn-indigo" onClick={start}>Start</button>
-            </div>
+            {/*
+                <div className="flex mt-2">
+                    <button className="btn-indigo" onClick={snap}>Snap</button>
+                    <button className="btn-indigo" onClick={start}>Start</button>
+                </div>
+
+            */}
 
             <div className="mt-8">
                 <canvas id="vid_capture" ref={canvasRef} className="w-[900px]"/>
