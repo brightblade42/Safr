@@ -289,6 +289,7 @@ interface AppProps {
 function Root () {
 
     let [state, dispatch] = React.useReducer(update, init_state());
+    console.log(state);
     let api = RemoteApiBuilder();
 
     function login (user, pwd) {

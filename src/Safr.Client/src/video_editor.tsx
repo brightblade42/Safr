@@ -17,9 +17,9 @@ type Frame = {
 }
 
 type Analysis = {
+    frames: Frame [];
 
 }
-
 
 function DetectedFace (props) {
     let c_ref  = React.useRef();
@@ -235,13 +235,17 @@ export function VideoEditor(props) {
     //const [video_height, set_video_height] = React.useState(200);
     const video_height = 800;
     const video_width = 500;
-    const [img_src, set_img_src] = React.useState(undefined);
+    const [img1_data, set_img1_data] = React.useState(undefined);
+    const [img2_data, set_img2_data] = React.useState(undefined);
+    //paths
+    const [img1_file, set_img1_file] = React.useState(undefined);
+    const [img2_file, set_img2_file] = React.useState(undefined);
     const canvasRef = React.useRef();
     const vidplayer = React.useRef();
     let [ctx, set_context] = React.useState(undefined); //hmmm
     let [detected_faces, set_detected_faces] = React.useState(undefined);
     let [identified_faces, set_identified_faces] = React.useState(undefined);
-
+    let [image_comparison, set_image_comparison] = React.useState(undefined);
 
     function create_video(v) {
         console.log(v);
@@ -251,9 +255,24 @@ export function VideoEditor(props) {
     function create_image (im) {
         console.log("loading image");
         console.log(im);
+        set_img1_file(im);
         const reader = new FileReader();
         reader.addEventListener("load", function () {
-            set_img_src(reader.result);
+            set_img1_data(reader.result);
+        }, false);
+
+        if (im) {
+            reader.readAsDataURL(im);
+        }
+    }
+
+    function create_image2 (im) {
+        console.log("loading image2 ");
+        console.log(im);
+        set_img2_file(im);
+        const reader = new FileReader();
+        reader.addEventListener("load", function () {
+            set_img2_data(reader.result);
         }, false);
 
         if (im) {
@@ -301,6 +320,7 @@ export function VideoEditor(props) {
 
     }
 
+
     async function verify_faces(face1: Blob, face2: Blob) {
 
         let api_url = `http://localhost:8085/fr/`;
@@ -316,11 +336,94 @@ export function VideoEditor(props) {
                 });
 
             let json = await res.json();
+            await set_image_comparison(json.confidence);
+
             console.log(json);
+            console.log("verification...")
+            console.log(image_comparison.image1_face);
             return json;
         } catch (e) {
             console.log(e);
         }
+    }
+
+
+
+    function build_faces() {
+        console.log("Gonna compare the frame man");
+        console.log(detected_faces);
+        if (detected_faces === undefined) {
+            return;
+        }
+
+        let reader1 = new FileReader();
+        let ref_image;
+
+        reader1.addEventListener("load", function () {
+            let bin = reader1.result
+            ref_image = new Blob([bin])
+            //let blob2 = new Blob([bin])
+        }, true);//removes itself?
+
+        if (img1_file) {
+            reader1.readAsArrayBuffer(img1_file);
+        }
+
+
+        let dd = detected_faces.faces.map((face) => {
+            const box  = face.bounding_box;
+            console.log("---------- BOX -----------");
+            console.log(face);
+            console.log("A face for the reference compare is ready");
+            //return ctx.getImageData(box.x, box.y, box.width + 50, box.height + 50);
+            let idata =  ctx.getImageData(box.x, box.y, 150, 150);
+
+            //let res = verify_faces(ref_image, blob);
+            //console.log(res);
+            //console.log(blob);
+
+        });
+
+        //set_datas(dd); //the image data for each detected face.
+
+    }
+
+
+    useEffect(() => {
+        console.log("faces changed");
+        //build_faces()
+    }, [detected_faces])
+
+
+    function compare_images() {
+        //how do i get the binary data?
+        console.log(img1_file);
+
+        const reader1 = new FileReader();
+        const reader2 = new FileReader();
+        let blob1;
+        let blob2
+        reader1.addEventListener("load", function () {
+            let bin = reader1.result
+            blob1 = new Blob([bin])
+            //let blob2 = new Blob([bin])
+        }, false);
+
+        if (img1_file) {
+            reader1.readAsArrayBuffer(img1_file);
+        }
+        reader2.addEventListener("load", function () {
+            let bin = reader2.result
+            blob2 = new Blob([bin])
+            let res = verify_faces(blob1, blob2);
+        }, false);
+
+        if (img2_file) {
+            reader2.readAsArrayBuffer(img2_file);
+        }
+        //load the binary data
+
+
     }
 
     function draw_boundaries (ctx, faces) {
@@ -336,17 +439,6 @@ export function VideoEditor(props) {
 
     }
 
-    function load_thumbs(ctx, faces) {
-
-        console.log(" where the data man");
-        let thumbs = faces.map((f) => {
-            let box = f.bounding_box;
-            let data = ctx.getImageData(box.x, box.y, box.width, box.height);
-            return data;
-        });
-
-        //set_copied_faces(thumbs);
-    }
 
     const detect    = build_post("detect-frame");
     const recognize = build_post("recognize-frame");
@@ -399,9 +491,7 @@ export function VideoEditor(props) {
 // @ts-ignore
 return (
         <>
-
             <div className="flex">
-
                 <div className="flex flex-col">
                     <input type="file" accept="video/*"
                            onChange={(e) => create_video(e.target.files?.item(0))} />
@@ -417,17 +507,39 @@ return (
                     </div>
                 </div>
 
-
-                <div className="ml-8">
+                <div className="ml-8 border border-gray-300 ">
                     <input type="file" accept="image/*"
                            onChange={(e) => create_image(e.target.files?.item(0))} />
 
                     <div>
-                        {img_src &&
-                            <img src={img_src} />
+                        {img1_data &&
+                            <img src={img1_data} />
                         }
                     </div>
 
+                    <div>
+                        <button className="mt-4 btn-light-indigo">Compare Video</button>
+                    </div>
+                </div>
+
+                <div className="border border-gray-300 ">
+                    <input type="file" accept="image/*"
+                           onChange={(e) => create_image2(e.target.files?.item(0))} />
+
+                    <div>
+                        {img2_data &&
+                        <img src={img2_data} />
+                        }
+                    </div>
+                    <div>
+                        <button
+                            className="mt-4 btn-light-indigo"
+                            onClick={(e) => compare_images()}
+                        >Compare Images</button>
+                    </div>
+                    {image_comparison &&
+                    <div className="mt-8">Likeness : {image_comparison}</div>
+                    }
                 </div>
             </div>
 
@@ -438,7 +550,7 @@ return (
 
                 <div className="-ml-20">
                     <div >
-                        <DetectedFaces ctx={ctx} faces={detected_faces}/>
+                        <DetectedFaces ctx={ctx} faces={detected_faces} />
                     </div>
                     <div className="mt-4">
                         <IdentifiedFaces  ctx={ctx} faces={identified_faces} />

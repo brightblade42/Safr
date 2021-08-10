@@ -2,8 +2,8 @@ import React from 'react';
 
 export const GoodFaces  = (props) => {
 
-  let faces = props.face
-  
+  let faces = props.faces
+
 
   function build_faces (): any {
         if (faces.length === 0) {

@@ -33,7 +33,7 @@ export const AppBar = (props) => {
                 >History</Link>
 
                 <Link to="/videoedit" className="mt-0 btn-indigo ml-2 uppercase text-sm tracking-wide text-blue-50"
-                >Edit Video</Link>
+                >Analyze Video</Link>
             </div>
 
             <div className="flex">

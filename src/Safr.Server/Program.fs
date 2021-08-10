@@ -295,7 +295,10 @@ let verify_faces_handler =
                 let fr = ctx.GetService<FRService>()
                 let! res = fr.verify face1 face2
                 match res with
-                | Ok json_str -> return! json json_str next ctx
+                | Ok json_str ->
+
+                    let scaped = unescape_json json_str
+                    return! text scaped next ctx
                 | Error e -> return! json {| error=e |} next ctx
             with
             | :? Exception as ex ->
