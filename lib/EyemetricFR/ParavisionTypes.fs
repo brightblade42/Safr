@@ -317,8 +317,9 @@ module Identification =
         })
     type IdentityItem =
       { id: string
-       // bounding_box: BBox
-        created_at: DateTime; updated_at: DateTime
+        bounding_box: BBox
+        created_at: DateTime
+        updated_at: DateTime
         confidence: float;
         //quality: float; acceptable: bool; acceptability: float
       }
@@ -330,7 +331,7 @@ module Identification =
           confidence = get.Required.At ["confidence"] Decode.float
         //TODO: find out why there's a discrependcy in the PV docs that list the following
         //attributes as being returned from an Ident match.
-        //  bounding_box = get.Required.At ["bounding_box"] BBox.Decoder
+          bounding_box = get.Optional.At ["bounding_box"] BBox.Decoder |> Option.defaultValue {height=0;width=0;x=0;y=0}
          // quality = get.Required.At ["quality"] Decode.float
          // acceptable = get.Required.At ["acceptable"] Decode.bool
          // acceptability = get.Required.At ["acceptability"] Decode.float
@@ -350,7 +351,7 @@ module Identification =
         Decode.object(fun get -> {
           face_count = get.Required.At ["face_count"] Decode.int
           identities = get.Required.At ["identities"] (Decode.list IdentityItem.Decoder)
-         // bounding_box = get.Optional.At ["bounding_box"]  Streaming.BoundingBox.Decoder
+          //bounding_box = get.Optional.At ["bounding_box"]  Streaming.BoundingBox.Decoder
 
         })
 

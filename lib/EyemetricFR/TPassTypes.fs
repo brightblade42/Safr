@@ -371,5 +371,6 @@ type TPassResult<'a> =
   type RecognizedItem = {
       id: string
       confidence: float
+      bounding_box: BBox
       tpass_client: TPassClient
   }

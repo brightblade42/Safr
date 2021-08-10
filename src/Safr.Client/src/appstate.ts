@@ -166,10 +166,6 @@ export function update (state: AppState, msg:Msg) {
 }
 
 
-
-
-
-
 //TODO: Maybe reimplement these state vars
 /*
     MaxFaceList = 20

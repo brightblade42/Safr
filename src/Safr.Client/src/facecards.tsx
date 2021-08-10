@@ -2,9 +2,10 @@ import React from 'react';
 
 export const GoodFaces  = (props) => {
 
-    let faces = props.faces;
+  let faces = props.face
+  
 
-    function build_faces () {
+  function build_faces (): any {
         if (faces.length === 0) {
             return <div className="transition md:text-4xl lg:text-7xl m-auto text-green-800 opacity-10 ">Matched Faces</div>
         } else {

@@ -92,6 +92,12 @@ module HTTPApi =
             form_content.Add(new ByteArrayContent(bytes), "image", "file.jpg")
             form_content
 
+        let images_content (image1: byte array, image2: byte array) =
+            let form_content = new MultipartFormDataContent()
+            form_content.Add(new ByteArrayContent(image1), "image1", "image1.jpg")
+            form_content.Add(new ByteArrayContent(image2), "image2", "image2.jpg")
+            form_content
+
         let json_content (json: string) = new StringContent(json, Encoding.UTF8, "application/json")
 
         let encoded_face_image_content (b64: string)  =
@@ -184,6 +190,28 @@ module HTTPApi =
             | :? AggregateException as ex -> return UnhandledError ex
             | :? Exception as ex -> return UnhandledError ex
         }
+
+        let post_images (client: HttpClient) (uri: Uri) (bytes1: byte array) (bytes2: byte array) = async {
+            let req = request HttpMethod.Post uri
+            try
+                let ctok = new CancellationTokenSource(240000) //nothing lives more than 10 seconds
+                req.Content <- images_content (bytes1, bytes2)
+                let! resp = client.SendAsync(req, ctok.Token) |> Async.AwaitTask
+                let! res  = resp.Content.ReadAsStringAsync()  |> Async.AwaitTask
+
+                return
+                    match resp.IsSuccessStatusCode with
+                    | true  -> Success res
+                    | false -> HTTPResponseError resp.ReasonPhrase
+            with
+            | :? TaskCanceledException as ex -> return TimedOutError "post_images call Timed out after 60 seconds"
+            | :? AggregateException as ex -> return UnhandledError ex
+            | :? Exception as ex -> return UnhandledError ex
+
+        }
+
+
+
         let post_b64image (client: HttpClient) (uri: Uri) (b64: string) = async {
             let req = request HttpMethod.Post uri
             try
@@ -310,6 +338,25 @@ module HTTPApi =
             | _               -> return  failwith "Detect faces only supports binary data"
         }
 
+        //compare two images and see how probably that they are the same person.
+        let verify_faces (client: HttpClient) (make_url: UriBuilder) (face1: FaceImage) (face2: FaceImage) = async {
+            let f1 =
+                match face1 with
+                | Binary bin -> bin
+                | _ -> Array.zeroCreate 0
+
+            let f2 =
+                match face2 with
+                | Binary bin -> bin
+                | _ -> Array.zeroCreate 0
+
+            if f1.Length = 0 || f2.Length = 0 then
+                return FaceImageInvalid "One of the provided face images was empty."
+            else
+                let! res = post_images client (make_url "api/verify") f1 f2
+                return res
+
+        }
         let detect_identity (client: HttpClient) (make_url: UriBuilder) (face: FaceImage) = async {
             //TODO: consider other available query string parameters. Max_Faces..
             match face with

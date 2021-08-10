@@ -278,6 +278,31 @@ let detect_frame_handler =
                     printfn $"%A{ex}"
                     return! json {face_count =0; identities = List.empty } next ctx
         }
+
+let verify_faces_handler =
+    fun (next: HttpFunc) (ctx: HttpContext) ->
+        task {
+            try
+                printfn "Lets verify these faces man"
+                let img1 = ctx.Request.Form.Files.GetFile("image1")
+                let img2 = ctx.Request.Form.Files.GetFile("image2")
+                use mem1 = new MemoryStream ()
+                use mem2 = new MemoryStream ()
+                img1.OpenReadStream().CopyTo mem1
+                img2.OpenReadStream().CopyTo mem2
+                let face1 = FaceImage.Binary (mem1.ToArray())
+                let face2 = FaceImage.Binary (mem2.ToArray())
+                let fr = ctx.GetService<FRService>()
+                let! res = fr.verify face1 face2
+                match res with
+                | Ok json_str -> return! json json_str next ctx
+                | Error e -> return! json {| error=e |} next ctx
+            with
+            | :? Exception as ex ->
+                    printfn $"%A{ex}"
+                    return! json {| error=ex.Message |} next ctx
+
+        }
 let recognize_frame_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
@@ -297,6 +322,7 @@ let recognize_frame_handler =
                         return Ok {
                             id= id.id;
                             confidence = id.confidence;
+                            bounding_box = id.bounding_box;
                             tpass_client = c;
                             }
                     | TPassError e -> return Error e
@@ -695,6 +721,7 @@ let webApp : HttpHandler =
                 route "/fr/validate_user" >=> login_handler
                 route "/fr/logs" >=> frlog_handler
                 route "/fr/recognize" >=> recognize_handler
+                route "/fr/verify_faces" >=> verify_faces_handler
                 route "/fr/detect-frame" >=> detect_frame_handler
                 route "/fr/recognize-frame" >=> recognize_frame_handler
                 route "/fr/enrollment/create" >=> enroll_handler

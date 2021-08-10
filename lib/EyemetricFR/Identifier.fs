@@ -81,6 +81,11 @@ module Identifier =
             return face_res
         }
 
+        member self.verify_faces (face1: FaceImage) (face2: FaceImage) = async {
+            let! res = REST.verify_faces client make_url face1 face2
+            return to_result res
+
+        }
         member self.detect_faces (face: FaceImage) = async {
             printfn "IDENTIFIER: DETECTING FACES"
             let! res       = REST.detect_faces client make_url face
