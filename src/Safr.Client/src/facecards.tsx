@@ -55,12 +55,12 @@ export const GoodFace = (props) => {
 
     function format_confidence (conf: number)  {
         let truncated = parseFloat(conf.toString().slice(0, (conf.toString().indexOf(".")) + 5)) * 100;
-        return (conf >= 1) ? "100%" : `${truncated}%`;
+        return (conf >= 1) ? "100%" : `${truncated.toFixed(2)}%`;
     }
 
     let conf_str = format_confidence(props.face.confidence);
 
-    if (props.face.status.includes("in")) {
+    if (props.face.status.toLowerCase().includes("in")) {
         inout = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
         </svg>
@@ -120,20 +120,9 @@ export const BadFace = (props) => {
 
     function format_confidence (conf: number)  {
         let truncated = parseFloat(conf.toString().slice(0, (conf.toString().indexOf(".")) + 5)) * 100;
-        return (conf >= 1) ? "100%" : `${truncated}%`;
+        return (conf >= 1) ? "100%" : `${truncated.toFixed(2)}%`;
     }
 
-    /*
-    if (props.face.mask.includes("%")) {
-        mask_res = <div className="uppercase mt-1  text-center text-md font-semibold tracking-wide text-red-800">
-            <span className="mr-2 opacity-90">mask</span>
-            <span className="opacity-90 text-md">{props.face.mask}</span>
-        </div>
-    } else {
-        mask_res = <div className="uppercase opacity-90 mt-1 text-center text-md font-semibold tracking-wide text-yellow-700">no mask</div>
-    }
-
-     */
 
     let name = props.face.name;
     let confidence = format_confidence(props.face.confidence);

@@ -49,7 +49,7 @@ export interface AppState {
 
     login_status: LoginState;
     available_cameras: CameraStream[] ;
-
+    max_faces: number | undefined;
     matched_faces: IdentifiedFace[];
     fr_watchlist: IdentifiedFace[];
     fr_logs: FRLog[];
@@ -125,6 +125,20 @@ function assertUnreachable (x: never): never {
     throw new Error("UNREACHABLE MSG: Didn't expect to get here");
 }
 
+function truncate_list (max: number, faces: IdentifiedFace[] ) {
+    if (max === undefined) {
+        return faces;
+    }
+
+    console.log("in truncate list");
+    console.log(faces.length);
+    //reduce by some factor. for now lets reduce by half
+    if (faces.length >= max) {
+        return faces.slice(0, faces.length / 2)
+    } else {
+        return faces;
+    }
+}
 
 export function update (state: AppState, msg:Msg) {
 
@@ -150,10 +164,13 @@ export function update (state: AppState, msg:Msg) {
         }
         //TODO: truncate after max length reached.
         case "FRWatchlistChanged": {
-            return {...state, fr_watchlist: [msg.payload, ...state.fr_watchlist]}
+            let fr_watchlist = truncate_list(state.max_faces, state.fr_watchlist);
+            return {...state, fr_watchlist: [msg.payload, ...fr_watchlist]}
         }
         case "MatchedFacesChanged": {
-            return {...state, matched_faces: [msg.payload, ...state.matched_faces]}
+            let matched_faces = truncate_list(state.max_faces, state.matched_faces);
+            return {...state, matched_faces: [msg.payload, ...matched_faces]}
+
         }
         case "StartingAllStreams": {
             return {...state, starting_all_streams: msg.payload, should_autostart: true, }
@@ -230,6 +247,7 @@ export const init_state  = () :AppState => {
         available_cameras: [], //mockstate.available_cameras,
         matched_faces: [],
         fr_watchlist: [],
+        max_faces: 100, //undefined, //how many faces allowed in lists. undefined = no limit
         fr_logs: [],
         should_autostart: true,
         fr_history_loading: false,

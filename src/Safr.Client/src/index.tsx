@@ -80,7 +80,7 @@ function update_face (face: IdentifiedFace, dispatch) {
 
 function App (props) {
 
-    let logout = props.logout;
+    let logout     = props.logout;
     const dispatch = props.dispatch;
     let [show_camsettings,set_show_camsettings] = React.useState(false);
 
@@ -166,7 +166,7 @@ function App (props) {
             console.log(hub);
             try_connect( () => {
                 hub.send("StartAllStreams").then(a => {
-                    console.log("Sweeet JEEE SUS");
+                    console.log("dispatching start all streams request");
                     dispatch({action: "StartingAllStreams", payload: true });
 
                 }).catch((err)=> {
@@ -181,7 +181,7 @@ function App (props) {
         stop_all_streams: () => {
             try_connect(() => {
                 hub.send("StopAllStreams").then(a => {
-                    console.log("Sweeet JEEE SUS. Stop the presses");
+                    console.log("dispatching StoppingAllStreams request");
                     dispatch({action: "StoppingAllStreams", payload: true });
 
                 }).catch((err)=> {
@@ -253,7 +253,7 @@ function App (props) {
         },
         format_conf: (conf: number) => {
             let truncated = parseFloat(conf.toString().slice(0, (conf.toString().indexOf(".")) + 5)) * 100;
-            return (conf >= 1) ? "100%" : `${truncated}%`;
+            return (conf >= 1) ? "100%" : `${truncated.toFixed(2)}%`;
         }
 
     }

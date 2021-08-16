@@ -3,23 +3,6 @@ import ReactDOM from 'react-dom';
 import './index.css';
 
 //case file prototype
-interface State {
-
-}
-
-type Frame = {
-    time: Date;
-    frame: number | 0;
-    faces_detected: {}; //the faces detected in a video frame
-    faces_identified: {};
-    src_image: string; //base64 or DataUrl
-
-}
-
-type Analysis = {
-    frames: Frame [];
-
-}
 
 function DetectedFace (props) {
     let c_ref  = React.useRef();
@@ -30,10 +13,13 @@ function DetectedFace (props) {
         if (cv === undefined) { return; }
         if(cv === null) {return; }
         console.log("in use draw_face");
+        // @ts-ignore
         let ctx = cv.getContext('2d');
 
+        // @ts-ignore
         ctx.clearRect(0,0, cv.width, cv.height);
 
+        // @ts-ignore
         ctx.putImageData(data, 0,0,10,10, cv.width, cv.height) ;
     }
 
@@ -102,9 +88,12 @@ function IdentifiedFace (props) {
         if (cv === undefined) { return; }
         if(cv === null) {return; }
         console.log("in ident draw_face");
+        // @ts-ignore
         let ctx = cv.getContext('2d');
 
+        // @ts-ignore
         ctx.clearRect(0,0, cv.width, cv.height);
+        // @ts-ignore
         ctx.putImageData(data.img, 0,0,10,10, cv.width, cv.height) ;
         console.log(data.face)
     }
@@ -450,13 +439,17 @@ export function VideoEditor(props) {
         if (canvasRef.current !== undefined) {
             let cv = canvasRef.current ;
 
+            // @ts-ignore
             cv.width = 2150 //video_width;
+            // @ts-ignore
             cv.height = 900;
+            // @ts-ignore
             let lctx = cv.getContext('2d');
             set_context(lctx);
             try {
                 ctx.drawImage(vidplayer.current, 0,0);
 
+                // @ts-ignore
                 cv.toBlob(async (b) => {
                     let d_res = await detect(b);
                     set_detected_faces(d_res);
@@ -522,6 +515,9 @@ return (
                     </div>
                 </div>
 
+                {/*
+
+
                 <div className="border border-gray-300 ">
                     <input type="file" accept="image/*"
                            onChange={(e) => create_image2(e.target.files?.item(0))} />
@@ -541,6 +537,7 @@ return (
                     <div className="mt-8">Likeness : {image_comparison}</div>
                     }
                 </div>
+                */}
             </div>
 
             <div className="flex mt-8 flex-shrink-0">

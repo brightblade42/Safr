@@ -90,6 +90,7 @@ export function UpdatingVideo({cam, msg})  {
 export function AxVideo({cam}) {
 
     // @ts-ignore
+    // secure
     return (
 
         <div className="w-full max-w-lg flex-shrink-0 flex flex-col mr-1">
