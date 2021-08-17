@@ -1,7 +1,6 @@
 import React from 'react';
 import { FontAwesomeIcon as FAIcon } from "@fortawesome/react-fontawesome";
 import {CheckIn, CheckOut} from "./heroicons";
-
 const InOut = ({direction}) => ( direction ? <CheckIn/> : <CheckOut/> )
 
 export function DisabledVideo({cam})  {

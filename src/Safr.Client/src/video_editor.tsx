@@ -1,8 +1,37 @@
 import React, {useEffect} from 'react';
 import ReactDOM from 'react-dom';
+import useTimeout from './timeout_hook';
+import {AnalysisState, Analysis, AnalyzedFrame, update, init_state, AnalysisMsg} from "./analysis_state";
 import './index.css';
 
 //case file prototype
+/*
+function AnalyzedFrames (props) {
+    return (
+        <div className="flex mt-8 flex-shrink-0">
+            <div className="border border-gray-400 bg-bgray-100">
+                <canvas id="vid_capture" ref={canvasRef} className="w-[900px]"/>
+            </div>
+
+            <div className="-ml-20">
+                <div >
+                    <DetectedFaces ctx={ctx} faces={detected_faces} />
+                </div>
+                <div className="mt-4">
+                    <IdentifiedFaces  ctx={ctx} faces={identified_faces} />
+                </div>
+            </div>
+
+        </div>
+    )
+}
+
+function AnalyzedFrame (props) {
+    return (
+        <div></div>
+    )
+}
+*/
 
 function DetectedFace (props) {
     let c_ref  = React.useRef();
@@ -176,7 +205,11 @@ function MyVideo (props) {
          //props.play();
       }
 
-      function snap() {
+    function pause() {
+        console.log("pausing from MyVideo");
+    }
+
+    function snap() {
           console.log("Snappy Snap snap!!")
       }
 
@@ -207,7 +240,7 @@ function MyVideo (props) {
            height={500}
            src={createObjectURL(props.video)}
            onPlay={play}
-           onPause={props.pause}
+           onPause={pause}
            onTimeUpdate={props.ntime}
 
       />
@@ -227,7 +260,7 @@ export function VideoEditor(props) {
     const [img1_data, set_img1_data] = React.useState(undefined);
     const [img2_data, set_img2_data] = React.useState(undefined);
     //paths
-    const [img1_file, set_img1_file] = React.useState(undefined);
+    const [img1_file, set_img1_file] = React.useState(undefined); //this may go away.
     const [img2_file, set_img2_file] = React.useState(undefined);
     const canvasRef = React.useRef();
     const vidplayer = React.useRef();
@@ -235,6 +268,10 @@ export function VideoEditor(props) {
     let [detected_faces, set_detected_faces] = React.useState(undefined);
     let [identified_faces, set_identified_faces] = React.useState(undefined);
     let [image_comparison, set_image_comparison] = React.useState(undefined);
+
+    let [state, dispatch] = React.useReducer(update, init_state()); //analysisState
+    console.log(state);
+
 
     function create_video(v) {
         console.log(v);
@@ -269,22 +306,6 @@ export function VideoEditor(props) {
         }
     }
 
-    function play() {
-        console.log("playing event triggered");
-        // @ts-ignore
-        console.log(canvasRef.current.id)
-    }
-    function pause() {
-        console.log("pause event triggered");
-    }
-    function ntime() {
-        console.log("time updated")
-    }
-
-    function start () {
-        console.log(vidplayer);
-        //vidplayer.current.play();
-    }
 
     function build_post (endpoint) {
 
@@ -440,7 +461,7 @@ export function VideoEditor(props) {
             let cv = canvasRef.current ;
 
             // @ts-ignore
-            cv.width = 2150 //video_width;
+            cv.width = 2150 //video_width; why is it that size?
             // @ts-ignore
             cv.height = 900;
             // @ts-ignore
@@ -540,6 +561,7 @@ return (
                 */}
             </div>
 
+            {/* AnalyzedFrames  */}
             <div className="flex mt-8 flex-shrink-0">
                 <div className="border border-gray-400 bg-bgray-100">
                     <canvas id="vid_capture" ref={canvasRef} className="w-[900px]"/>

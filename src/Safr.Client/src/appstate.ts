@@ -165,6 +165,7 @@ export function update (state: AppState, msg:Msg) {
         //TODO: truncate after max length reached.
         case "FRWatchlistChanged": {
             let fr_watchlist = truncate_list(state.max_faces, state.fr_watchlist);
+
             return {...state, fr_watchlist: [msg.payload, ...fr_watchlist]}
         }
         case "MatchedFacesChanged": {

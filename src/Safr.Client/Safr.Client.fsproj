@@ -22,6 +22,7 @@
         <Folder Include="src\images" />
         <Content Include="src\index.css" />
         <Content Include="src\index.tsx" />
+        <Content Include="src\timeout_hook.ts" />
     </ItemGroup>
     <ItemGroup>
       <EmbeddedResource Remove="src\vendor\svgs\**" />
