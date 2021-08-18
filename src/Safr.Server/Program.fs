@@ -362,6 +362,65 @@ let recognize_frame_handler =
                     return! json {face_count =0; identities = List.empty } next ctx
         }
 
+
+
+
+let recognize_top5_handler =
+    fun (next: HttpFunc) (ctx: HttpContext) ->
+        task {
+            try
+
+                let img = ctx.Request.Form.Files.GetFile("image")
+                use mem = new MemoryStream()
+                img.OpenReadStream().CopyTo mem
+                let face = FaceImage.Binary (mem.ToArray())
+                let  fr  = ctx.GetService<FRService>()
+                let! res = fr.recognize face
+
+                let get_client id = async {
+                    let! res = id |> fr.get_enrollment_by_id
+                    match res with
+                    | Success c ->
+                        return Ok {
+                            id= id.id;
+                            confidence = id.confidence;
+                            bounding_box = id.bounding_box;
+                            tpass_client = c;
+                            }
+                    | TPassError e -> return Error e
+                    //return res
+                }
+
+              //  let mutable items = new List<
+                //get enrolled info as well.
+                match res with
+                | Ok pm ->
+                    let x =
+                        pm.identities
+                        |> List.filter (fun i -> i.confidence >= 0.30)
+                        |> List.map(fun i -> i |> get_client)
+                        |> Async.Parallel
+                        |> Async.RunSynchronously
+                    return! json x next ctx
+                | Error e ->
+                    return! json {| error="weird voodoo man" |} next ctx
+
+
+                (*
+                match res with
+                //TODO: Use confidence from config
+                | Ok pm ->
+                    return! json {pm with identities = pm.identities |> List.filter(fun f -> f.confidence > 0.9) } next ctx
+                | Error e ->
+                    return! json {face_count =0; identities = List.empty } next ctx
+
+                *)
+            with
+            | :? Exception as ex ->
+                    printfn $"%A{ex}"
+                    return! json {face_count =0; identities = List.empty } next ctx
+        }
+
 let recognize_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
@@ -727,6 +786,7 @@ let webApp : HttpHandler =
                 route "/fr/verify_faces" >=> verify_faces_handler
                 route "/fr/detect-frame" >=> detect_frame_handler
                 route "/fr/recognize-frame" >=> recognize_frame_handler
+                route "/fr/recognize-top5" >=> recognize_top5_handler
                 route "/fr/enrollment/create" >=> enroll_handler
                 route "/fr/enrollment/delete" >=> delete_enrollment_handler
                 route "/fr/get-identity" >=> get_identity_handler

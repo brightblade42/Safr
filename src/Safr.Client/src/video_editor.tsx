@@ -9,15 +9,13 @@ import './index.css';
 function AnalyzedFrames (props) {
     let ctx = props.ctx;
     if (props.state === undefined) {
-        return <div className="transition md:text-4xl lg:text-7xl text-green-800 opacity-10 ">Analyzed Frames</div>
+        return <div className="transition md:text-4xl lg:text-7xl text-green-800 opacity-10 text-center">Analyzed Frames</div>
     }
     let frames = props.state.analysis.frames
-    console.log("THE STATE!..")
-    console.log(props.state);
 
     function build_frames(): any {
         if (frames === undefined || frames.length === 0) {
-            return <div className="transition md:text-4xl lg:text-7xl text-green-800 opacity-10 ">Analyzed Frames</div>
+            return <div className="transition md:text-4xl lg:text-7xl text-green-800 opacity-10 text-center mt-12">Analyzed Frames</div>
         } else {
             return frames.map(frame => {
                 return  <AFrame ctx={ctx} frame={frame} />
@@ -109,7 +107,6 @@ function DetectedFace (props) {
         let cv = c_ref.current;
         if (cv === undefined) { return; }
         if(cv === null) {return; }
-        console.log("in use draw_face");
         // @ts-ignore
         let ctx = cv.getContext('2d');
 
@@ -148,9 +145,7 @@ function DetectedFaces (props) {
         }
         let dd = faces.faces.map((face) => {
             const box  = face.bounding_box;
-            console.log("---------- BOX -----------");
             console.log(face);
-            console.log("Oh hey mmman");
             return ctx.getImageData(box.x, box.y, 150, 150);
 
         });
@@ -182,7 +177,6 @@ function IdentifiedFace (props) {
         let cv = c_ref.current;
         if (cv === undefined) { return; }
         if(cv === null) {return; }
-        console.log("in ident draw_face");
         // @ts-ignore
         let ctx = cv.getContext('2d');
 
@@ -190,7 +184,6 @@ function IdentifiedFace (props) {
         ctx.clearRect(0,0, cv.width, cv.height);
         // @ts-ignore
         ctx.putImageData(data.img, 0,0,10,10, cv.width, cv.height) ;
-        console.log(data.face)
     }
 
     React.useEffect(() => { draw_face() }, [data])
@@ -229,7 +222,6 @@ function IdentifiedFaces (props) {
 
         let dd = faces.map((face) => {
             const box  = face.bbox;
-            console.log("---------- Ident BOX -----------");
             return {
                 img: ctx.getImageData(box.x, box.y, 150, 150),
                 face: face
@@ -256,10 +248,7 @@ function IdentifiedFaces (props) {
 }
 
 function MyVideo (props) {
-      console.log("my special video");
 
-      //let play_cb = props.funcs.onplay;
-      //let pause_cb = props.funcs.onpause;
 
     function createObjectURL ( file ) {
             if ( window.webkitURL ) {
@@ -273,12 +262,10 @@ function MyVideo (props) {
 
       function play() {
           console.log("playing from MyVideo");
-          //play_cb();
       }
 
     function pause() {
         console.log("pausing from MyVideo");
-        //pause_cb()
     }
 
 
@@ -292,18 +279,11 @@ function MyVideo (props) {
           }]
 
       }
-      /*
-      return <VideoJS options={opts} onPlay={play}
-                      width={800}
-                      height={500}
-                      src={createObjectURL(props.video)}
-                      />
-
-       */
 
       return <video controls
            id="vid_player"
                     muted={true}
+                    loop
            //onKeyDown={snap}
            ref={props.vidref}
            width={800}
@@ -349,11 +329,9 @@ export function VideoEditor(props) {
 
     useEffect(() => {
         const timer = setInterval(() => {
-            //console.log(is_playing_raw);
                 capture_frame();
-                console.log("stiuff and thingsd");
 
-        }, 120000);
+        }, 1200);
         return () => clearInterval(timer)
     })
 
@@ -370,8 +348,6 @@ export function VideoEditor(props) {
             let lctx = cv.getContext('2d');
             set_context(lctx);
             let vc = vidplayer.current
-            console.log("what am i");
-            console.log(vc);
             try {
                 ctx.drawImage(vidplayer.current, 0,0);
 
@@ -385,7 +361,6 @@ export function VideoEditor(props) {
 
                     let r = rec_json.map(function (x) {
                         if (x.case === "Ok") {
-                            console.log("We got one!");
                             return {
                                 confidence: x.fields[0].confidence,
                                 name: x.fields[0].tpass_client.fields[0].name,
@@ -417,31 +392,15 @@ export function VideoEditor(props) {
 
 
     function create_video(v) {
-        console.log(v);
         set_video(v);
     }
 
     function create_image (im) {
         console.log("loading image");
-        console.log(im);
         set_img1_file(im);
         const reader = new FileReader();
         reader.addEventListener("load", function () {
             set_img1_data(reader.result);
-        }, false);
-
-        if (im) {
-            reader.readAsDataURL(im);
-        }
-    }
-
-    function create_image2 (im) {
-        console.log("loading image2 ");
-        console.log(im);
-        set_img2_file(im);
-        const reader = new FileReader();
-        reader.addEventListener("load", function () {
-            set_img2_data(reader.result);
         }, false);
 
         if (im) {
@@ -493,7 +452,6 @@ export function VideoEditor(props) {
             await set_image_comparison(json.confidence);
 
             console.log(json);
-            console.log("verification...")
             console.log(image_comparison.image1_face);
             return json;
         } catch (e) {
@@ -503,79 +461,7 @@ export function VideoEditor(props) {
 
 
 
-    /*
-    function build_faces() {
-        //console.log("Gonna compare the frame man");
-        //console.log(detected_faces);
-        if (detected_faces === undefined) {
-            return;
-        }
 
-        let reader1 = new FileReader();
-        let ref_image;
-
-        reader1.addEventListener("load", function () {
-            let bin = reader1.result
-            ref_image = new Blob([bin])
-        }, true);//removes itself?
-
-        if (img1_file) {
-            reader1.readAsArrayBuffer(img1_file);
-        }
-
-
-        let dd = detected_faces.faces.map((face) => {
-            const box  = face.bounding_box;
-            console.log("---------- BOX -----------");
-            console.log(face);
-            console.log("A face for the reference compare is ready");
-            //let idata =  ctx.getImageData(box.x, box.y, 150, 150);
-            //let res = verify_faces(ref_image, blob);
-            //console.log(res);
-            //console.log(blob);
-
-        });
-
-        //set_datas(dd); //the image data for each detected face.
-
-    }
-
-
-    useEffect(() => {
-        console.log("faces changed");
-    }, [detected_faces])
-   */
-
-    //TODO: can we delete this?
-    function compare_images() {
-        //how do i get the binary data?
-        console.log(img1_file);
-
-        const reader1 = new FileReader();
-        const reader2 = new FileReader();
-        let blob1;
-        let blob2
-        reader1.addEventListener("load", function () {
-            let bin = reader1.result
-            blob1 = new Blob([bin])
-            //let blob2 = new Blob([bin])
-        }, false);
-
-        if (img1_file) {
-            reader1.readAsArrayBuffer(img1_file);
-        }
-        reader2.addEventListener("load", function () {
-            let bin = reader2.result
-            blob2 = new Blob([bin])
-            let res = verify_faces(blob1, blob2);
-        }, false);
-
-        if (img2_file) {
-            reader2.readAsArrayBuffer(img2_file);
-        }
-        //load the binary data
-
-    }
 
     //The boxes around the faces on a captured frame
     //TOOD: can we do this after we draw to the cropped context

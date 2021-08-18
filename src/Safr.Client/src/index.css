@@ -15,4 +15,8 @@
         @apply bg-bgray-50
     }
 
+    .img-preview {
+        overflow: hidden;
+    }
+
 }
