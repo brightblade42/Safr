@@ -34,6 +34,9 @@ export const AppBar = (props) => {
 
                 <Link to="/videoedit" className="mt-0 btn-indigo ml-2 uppercase text-sm tracking-wide text-blue-50"
                 >Analyze Video</Link>
+
+                <Link to="/lineup" className="mt-0 btn-indigo ml-2 uppercase text-sm tracking-wide text-blue-50"
+                >Lineup</Link>
             </div>
 
             <div className="flex">

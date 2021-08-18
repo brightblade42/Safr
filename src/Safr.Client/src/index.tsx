@@ -15,6 +15,7 @@ import {BrowserRouter as Router, Route, Switch} from "react-router-dom";
 import {GoodFaces, BadFaces} from "./facecards";
 import {CameraSettings} from "./camerasettings";
 import {FRHistoryGrid} from "./frhistorygrid";
+import {LineupPage} from "./lineup_page";
 
 import {RemoteApiBuilder} from "./remote_api";
 import * as signalR from '@microsoft/signalr';
@@ -275,6 +276,9 @@ function App (props) {
                     </Route>
                     <Route path="/videoedit">
                        <VideoEditor />
+                    </Route>
+                    <Route path="/lineup">
+                        <LineupPage />
                     </Route>
                 </Switch>
             </div>

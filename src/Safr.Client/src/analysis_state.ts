@@ -31,6 +31,7 @@ export interface AnalysisState {
     is_detecting_faces: boolean;
     is_recognizing_faces: boolean;
     is_analyzing_frame: boolean;
+    video_play_state: VideoPlayState;
     analysis: Analysis
 }
 
@@ -38,7 +39,7 @@ function assertUnreachable (x: never): never {
     throw new Error("UNREACHABLE MSG: Didn't expect to get here");
 }
 
-type AnalyzedFrameChanged = {
+type AnalyzedFrameChangedMsg = {
     action: "AnalyzedFrameChanged",
     payload: AnalyzedFrame
 }
@@ -57,17 +58,26 @@ type AnalyzingFrameMsg = {
     payload: boolean
 }
 
+export type VideoPlayState = | { type: "Playing" | "Stopped" | "Paused" }
+
+type VideoPlayStateChangedMsg = {
+    action: "VideoPlayStateChanged";
+    payload: VideoPlayState
+}
+
 export type AnalysisMsg =
-    | AnalyzedFrameChanged
+    | AnalyzedFrameChangedMsg
     | DetectingFacesMsg
     | RecognizingFacesMsg
     | AnalyzingFrameMsg
+    | VideoPlayStateChangedMsg
 
 function add_or_update_frame(state: AnalysisState, frame: AnalyzedFrame) {
     //TODO: finding the max frame_num might be better...
+    //TODO: currently only holding the last frame... for demo constraints
     if (frame.frame_num >= state.analysis.frames.length) {
         //add the new frame to the "back of the queue".
-        return {...state, analysis: { ...state.analysis,  frames: [frame, ...state.analysis.frames]}}
+        return {...state, analysis: { ...state.analysis,  frames: [frame]}} //, ...state.analysis.frames]}}
     } else {
         console.log("We'd update an existing Analyzed frame that matched by frame_num or elapsed_time")
         //TODO: would we put the existing frame at the back of the queue to make it viewable in "filmstrip"?
@@ -80,6 +90,11 @@ export function update(state: AnalysisState, msg: AnalysisMsg) {
         case "AnalyzedFrameChanged": {
             return add_or_update_frame(state, msg.payload)
         }
+        case "VideoPlayStateChanged": {
+            console.log("VideoPlayStateChanged Msg");
+            //return state
+            return {...state, video_play_state: msg.payload }
+        }
     }
 }
 
@@ -90,6 +105,7 @@ export function init_state () :AnalysisState {
         is_analyzing_frame: false,
         is_detecting_faces: false,
         is_recognizing_faces: false,
+        video_play_state: {type: "Stopped"},
         name: "Analysis 1",
         snapshot_time: 2000, //milliseconds
         capture_mode: "auto",
