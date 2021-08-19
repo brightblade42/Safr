@@ -1,22 +1,21 @@
 import React, {useEffect} from 'react';
-import ReactDOM from 'react-dom';
-import useTimeout from './timeout_hook';
 import {AnalysisState, Analysis, AnalyzedFrame, update, init_state, AnalysisMsg, VideoPlayState} from "./analysis_state";
 import './index.css';
 
-//case file prototype
 
 function AnalyzedFrames (props) {
-    let ctx = props.ctx;
+    const ctx = props.ctx;
     if (props.state === undefined) {
         return <div className="transition md:text-4xl lg:text-7xl text-green-800 opacity-10 text-center">Analyzed Frames</div>
     }
-    let frames = props.state.analysis.frames
+    const frames = props.state.analysis.frames
 
     function build_frames(): any {
+
         if (frames === undefined || frames.length === 0) {
             return <div className="transition md:text-4xl lg:text-7xl text-green-800 opacity-10 text-center mt-12">Analyzed Frames</div>
         } else {
+
             return frames.map(frame => {
                 return  <AFrame ctx={ctx} frame={frame} />
             })
@@ -31,8 +30,9 @@ function AnalyzedFrames (props) {
 }
 
 function AFrame (props) {
-    let ctx = props.ctx;
-    let frame = props.frame
+
+    const ctx = props.ctx;
+    const frame = props.frame
 
     //make detection and identification a single list.
     //detected but not identified are "unknowns"
@@ -55,22 +55,21 @@ function AFrame (props) {
 
         else {
 
+            const merged = frame.faces_detected.faces.map(face => {
 
-            let merged = frame.faces_detected.faces.map(face => {
-
-                let r = {
+                let info = {
                     name: "Unknown",
                     confidence: "",
                     status: "",
                     kind: "D",
                     bbox: face.bounding_box
-
                 };
+
                 for (const ident of frame.faces_identified) {
                     //we know they are the same person because only a single entity can occupy the same space
                     //in time..unless it's Brundle fly.
                     if (face.bounding_box.x === ident.bbox.x && face.bounding_box.y === ident.bbox.y) {
-                        r = {
+                        info = {
                             name: ident.name,
                             confidence: ident.confidence,
                             status: ident.status,
@@ -81,13 +80,25 @@ function AFrame (props) {
                     }
 
                 }
-                return r;
+                return info;
+            })
+
+            let sorted_by_x = merged.sort((first, second) => {
+                if (first.bbox.x < second.bbox.x) {
+                    return -1;
+                }
+                if (first.bbox.x > second.bbox.x) {
+                    return 1;
+                }
+
+                return 0;
+
             })
 
            return (
                <div className="m-auto">
                    <div className="p-4" >
-                       <IdentifiedFaces ctx={ctx} faces={merged} />
+                       <IdentifiedFaces ctx={ctx} faces={sorted_by_x} />
                    </div>
                </div>
            )
@@ -100,15 +111,16 @@ function AFrame (props) {
 
 
 function DetectedFace (props) {
-    let c_ref  = React.useRef();
-    let data = props.data
+
+    const c_ref  = React.useRef();
+    const data = props.data
 
     function draw_face() {
-        let cv = c_ref.current;
+        const cv = c_ref.current;
         if (cv === undefined) { return; }
         if(cv === null) {return; }
         // @ts-ignore
-        let ctx = cv.getContext('2d');
+        const ctx = cv.getContext('2d');
 
         // @ts-ignore
         ctx.clearRect(0,0, cv.width, cv.height);
@@ -135,19 +147,39 @@ function DetectedFace (props) {
 
 function DetectedFaces (props) {
 
-    let ctx = props.ctx;
-    let faces = props.faces;
-    let [datas, set_datas] = React.useState([]);
+    const ctx = props.ctx;
+    const faces = props.faces;
+    const [datas, set_datas] = React.useState([]);
 
     function build_faces() {
         if (faces === undefined) {
             return;
         }
+
+
+        let sorted_by_x = faces.faces.sort((first, second) => {
+            console.log(`${first.bounding_box.x} : ${second.bounding_box.x}`)
+            if (first.bounding_box.x < second.bounding_box.x) {
+                return -1;
+            }
+            if (first.bounding_box.x > second.bounding_box.x) {
+                return 1;
+            }
+
+            return 0;
+
+        })
+
+
         let dd = faces.faces.map((face) => {
             const box  = face.bounding_box;
-            console.log(face);
-            return ctx.getImageData(box.x, box.y, 150, 150);
+            const imgW = 150;
+            if ((imgW - box.width) < 5) {
+                return ctx.getImageData(box.x , box.y , imgW, 175);
 
+            }
+            return ctx.getImageData(box.x -35, box.y -15, imgW, 175);
+            //return ctx.getImageData(box.x, box.y, 150, 150);
         });
 
         set_datas(dd); //the image data for each detected face.
@@ -170,15 +202,16 @@ function DetectedFaces (props) {
 
 
 function IdentifiedFace (props) {
-    let c_ref  = React.useRef();
-    let data = props.data
+
+    const c_ref  = React.useRef();
+    const data = props.data
 
     function draw_face() {
-        let cv = c_ref.current;
+        const cv = c_ref.current;
         if (cv === undefined) { return; }
         if(cv === null) {return; }
         // @ts-ignore
-        let ctx = cv.getContext('2d');
+        const ctx = cv.getContext('2d');
 
         // @ts-ignore
         ctx.clearRect(0,0, cv.width, cv.height);
@@ -216,14 +249,19 @@ function IdentifiedFaces (props) {
     let [datas, set_datas] = React.useState([]);
 
     function build_faces() {
-        if (faces === undefined) {
-            return;
-        }
+        if (faces === undefined) { return; }
 
         let dd = faces.map((face) => {
             const box  = face.bbox;
+            const imgW = 150;
+            if ((imgW - box.width) < 5) {
+                return {
+                    img: ctx.getImageData(box.x , box.y , imgW, 175),
+                    face: face
+                }
+            }
             return {
-                img: ctx.getImageData(box.x, box.y, 150, 150),
+                img: ctx.getImageData(box.x -35, box.y -15, imgW, 175),
                 face: face
             }
 
@@ -243,12 +281,10 @@ function IdentifiedFaces (props) {
                 return <IdentifiedFace data={d}  />
             }))}
         </div>
-
     )
 }
 
 function MyVideo (props) {
-
 
     function createObjectURL ( file ) {
             if ( window.webkitURL ) {
@@ -260,78 +296,46 @@ function MyVideo (props) {
             }
       }
 
-      function play() {
-          console.log("playing from MyVideo");
-      }
+    function play() { console.log("playing from MyVideo"); }
+    function pause() { console.log("pausing from MyVideo"); }
 
-    function pause() {
-        console.log("pausing from MyVideo");
-    }
-
-
-      const opts= {
-         controls: true,
-         responsive: true,
-          fit: true,
-          sources: [{
-             src: createObjectURL(props.video),
-              type: 'video/mp4'
-          }]
-
-      }
-
-      return <video controls
-           id="vid_player"
-                    muted={true}
-                    loop
-           //onKeyDown={snap}
-           ref={props.vidref}
-           width={800}
-           height={500}
-           src={createObjectURL(props.video)}
-           onPlay={play}
-           onPause={pause}
-           onTimeUpdate={props.ntime}
-
-      />
+     return(
+         <video controls
+                id="vid_player"
+                muted={true}
+                loop
+                ref={props.vidref}
+                width={800}
+                height={500}
+                src={createObjectURL(props.video)}
+                onPlay={play}
+                onPause={pause}
+                onTimeUpdate={props.ntime} />
+     )
 }
 
 const MemVid = React.memo(MyVideo);
 
-
 export function VideoEditor(props) {
 
     const [video, set_video] = React.useState();
-
     //const [video_width, set_video_width] = React.useState(500);
     //const [video_height, set_video_height] = React.useState(200);
     const video_height = 800;
     const video_width = 500;
-    const [img1_data, set_img1_data] = React.useState(undefined);
-    const [img2_data, set_img2_data] = React.useState(undefined);
     //paths
-    const [img1_file, set_img1_file] = React.useState(undefined); //this may go away.
-    const [img2_file, set_img2_file] = React.useState(undefined);
     const canvasRef = React.useRef();
     const vidplayer = React.useRef();
     let [ctx, set_context] = React.useState(undefined); //hmmm
-    //let [detected_faces, set_detected_faces] = React.useState(undefined);
-    //let [identified_faces, set_identified_faces] = React.useState(undefined);
     let [image_comparison, set_image_comparison] = React.useState(undefined);
     let [frame_num, set_frame_num] = React.useState(0);
-    let [abort_timeout, set_abort_timeout] = React.useState(false);
-    let [has_time_elapsed, set_has_time_elapsed] = React.useState(false);
     let [state, dispatch] = React.useReducer(update, init_state()); //analysisState
-    let [is_playing, set_is_playing] = React.useState(false);
-    let is_playing_raw = false;
-
-    let [seconds, set_seconds] = React.useState(1);
 
     useEffect(() => {
         const timer = setInterval(() => {
                 capture_frame();
 
-        }, 1200);
+        }, 1300);
         return () => clearInterval(timer)
     })
 
@@ -389,25 +393,9 @@ export function VideoEditor(props) {
         }
     }
 
-
-
     function create_video(v) {
         set_video(v);
     }
-
-    function create_image (im) {
-        console.log("loading image");
-        set_img1_file(im);
-        const reader = new FileReader();
-        reader.addEventListener("load", function () {
-            set_img1_data(reader.result);
-        }, false);
-
-        if (im) {
-            reader.readAsDataURL(im);
-        }
-    }
-
 
     function build_post (endpoint) {
 
@@ -460,9 +448,6 @@ export function VideoEditor(props) {
     }
 
 
-
-
-
     //The boxes around the faces on a captured frame
     //TOOD: can we do this after we draw to the cropped context
     //don't need to see bboxes in cropped images
@@ -479,21 +464,17 @@ export function VideoEditor(props) {
 
     }
 
-
     const detect    = build_post("detect-frame");
     const recognize = build_post("recognize-frame");
 
     function snap (e) {
-        if(e.code !== "Enter" && e.code !== "KeyC") {
-            return;
-        }
 
+        if(e.code !== "Enter" && e.code !== "KeyC") { return; }
         capture_frame();
-
     }
 
 // @ts-ignore
-return (
+    return (
         <>
             <div className="flex flex-shrink-0">
                 <div className="flex flex-col">
@@ -510,60 +491,9 @@ return (
                     </div>
                 </div>
 
-                {/*
-                <div className="ml-8 border border-gray-300 ">
-                    <input type="file" accept="image/*"
-                           onChange={(e) => create_image(e.target.files?.item(0))} />
-
-                    <div>
-                        {img1_data &&
-                            <img src={img1_data} />
-                        }
-                    </div>
-
-                    <div>
-                        <button className="mt-4 btn-light-indigo">Compare Video</button>
-                    </div>
-                </div>
-                */}
-                {/*
-
-
-                <div className="border border-gray-300 ">
-                    <input type="file" accept="image/*"
-                           onChange={(e) => create_image2(e.target.files?.item(0))} />
-
-                    <div>
-                        {img2_data &&
-                        <img src={img2_data} />
-                        }
-                    </div>
-                    <div>
-                        <button
-                            className="mt-4 btn-light-indigo"
-                            onClick={(e) => compare_images()}
-                        >Compare Images</button>
-                    </div>
-                    {image_comparison &&
-                    <div className="mt-8">Likeness : {image_comparison}</div>
-                    }
-                </div>
-                */}
             </div>
 
             <AnalyzedFrames ctx={ctx} state={state} />
-                {/*
-                <div className="">
-                    <div >
-                        <DetectedFaces ctx={ctx} faces={detected_faces} />
-                    </div>
-                    <div className="mt-4">
-                        <IdentifiedFaces  ctx={ctx} faces={identified_faces} />
-                    </div>
-                </div>
-
-                */ }
-
         </>
     )
 }

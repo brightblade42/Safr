@@ -3,11 +3,9 @@ import Cropper from "react-cropper";
 import "cropperjs/dist/cropper.css";
 import {AnalyzedFrame} from "./analysis_state";
 
-
 export function Lineup (props) {
 
-    let lineup = props.lineup
-
+    const lineup = props.lineup
 
     function build_lineup() {
         if (lineup.length === 0) {
@@ -45,18 +43,17 @@ export function LineupPage (props) {
     function build_post (endpoint) {
 
         return async function (b: Blob) {
-            let api_url = `http://localhost:8085/fr/`;
-            let form_data = new FormData();
+            const api_url = `http://localhost:8085/fr/`;
+            const form_data = new FormData();
             form_data.append("image", b, "file.jpg");
-            //fetch(`${api_url}recognize-frame`,
             try {
-                let res = await fetch(`${api_url}${endpoint}`,
+                const res = await fetch(`${api_url}${endpoint}`,
                     {
                         method: 'POST',
                         body: form_data
                     });
 
-                let json = await res.json()
+                const json = await res.json()
                 return json
             } catch (e) {
                 console.log(e)
@@ -71,9 +68,9 @@ export function LineupPage (props) {
 
         await cv.toBlob(async (b) => {
 
-            let rec_json = await recognize(b); //this should be a top 5 server thing. need a conf adjustment...
-            //extract data
-            let r = rec_json.map(function (x) {
+            const rec_json = await recognize(b); //this should be a top 5 server thing. need a conf adjustment...
+
+            let info = rec_json.map(function (x) {
                 if (x.case === "Ok") {
                     return {
                         confidence: x.fields[0].confidence,
@@ -85,13 +82,13 @@ export function LineupPage (props) {
                 }
             });
 
-            set_lineup(r);
+            set_lineup(info);
 
         }, "image/jpeg");
     }
 
 
-    const onCrop = async () => {
+    async function on_crop () {
         const imageElement: any = cropperRef?.current;
         const cropper: any = imageElement?.cropper;
         const cv = cropper.getCroppedCanvas()
@@ -101,7 +98,7 @@ export function LineupPage (props) {
         catch(e) {
             console.log("God only knows...")
         }
-    };
+    }
 
     function create_image (im) {
         set_img1_file(im);
@@ -114,6 +111,8 @@ export function LineupPage (props) {
             reader.readAsDataURL(im);
         }
     }
+
+
     return (
 
     <div className="grid  grid-rows-2 grid-cols-2 ">
@@ -137,13 +136,12 @@ export function LineupPage (props) {
                     </div>
                     }
                 </div>
-                <button className="btn-light-indigo" onClick={onCrop}>Analyze</button>
+                <button className="btn-light-indigo" onClick={on_crop}>Analyze</button>
             </div>
         </div>
         <div className="border">
             <div className="text-center justify-center">
-                <div className="img-preview"
-                     style={{ width: "100%",  height: "400px" }} />
+                <div className="img-preview" style={{ width: "100%",  height: "400px" }} />
             </div>
         </div>
         <Lineup lineup={lineup} />
