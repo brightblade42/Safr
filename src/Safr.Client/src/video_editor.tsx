@@ -8,7 +8,6 @@ function format_confidence (conf: number)  {
     return (conf >= 1) ? "100%" : `${truncated.toFixed(2)}%`;
 }
 
-
 function AnalyzedFrames (props) {
     const ctx = props.ctx;
     if (props.state === undefined) {
@@ -52,9 +51,6 @@ function AFrame (props) {
                         <DetectedFaces ctx={ctx} faces={frame.faces_detected} />
                     </div>
 
-                    <div className="pt-4 font-semibold text-2xl text-center text-bgray-700 opacity-60">
-                        No Matches
-                    </div>
                 </div>)
 
         }
@@ -130,7 +126,6 @@ function DetectedFace (props) {
         if(cv === null) {return; }
         // @ts-ignore
         const ctx = cv.getContext('2d');
-
         // @ts-ignore
         ctx.clearRect(0,0, cv.width, cv.height);
         // @ts-ignore
@@ -139,18 +134,7 @@ function DetectedFace (props) {
 
     React.useEffect(() => { draw_face() }, [data])
 
-    return (
-        <>
-        {data ?
-            <div className="border border-green-900 w-40 mr-4">
-                <canvas ref={c_ref}/>
-                <div className="text-yellow-700 uppercase font-semibold mt-6"></div>
-            </div>
-
-                : <div>none</div>
-        }
-        </>
-    )
+    return <UnknownFace c_ref={c_ref } />
 }
 
 
@@ -187,9 +171,7 @@ function DetectedFaces (props) {
                 return ctx.getImageData(box.x , box.y , imgW, 175);
 
             }
-            //img: ctx.getImageData(box.x -45, box.y -25, imgW, 175),
             return ctx.getImageData(box.x -45, box.y -25, imgW, 175);
-            //return ctx.getImageData(box.x, box.y, 150, 150);
         });
 
         set_datas(dd); //the image data for each detected face.
@@ -209,6 +191,116 @@ function DetectedFaces (props) {
 
     )
 }
+
+function FRWatchFace (props) {
+    let face = props.face;
+    let c_ref = props.c_ref
+
+    return (
+
+        <div className={`bg-gray-50 mr-2 shadow-xl flex flex-col flex-shrink-0 border-2 border-red-700 rounded-md w-72`}>
+            <div className="flex justify-between items-baseline py-2 px-1 ">
+                <h1 className={`ml-2 uppercase font-semibold text-lg flex-shrink-0 tracking-wider text-red-900 text-center`}>{face.name}</h1>
+            </div>
+
+            <div className="grid grid-cols-2 grid-rows-2 bg-white">
+
+                <canvas ref={c_ref} className="col-start-1 row-start-1 row-span-2"/>
+
+                <div className="col-start-2 row-start-1 -ml-2 ">
+                    <div className={`mt-8 text-2xl text-center font-extrabold text-red-800 tracking-wide`}>{face.confidence} </div>
+                </div>
+
+            </div>
+
+            <div className="flex justify-between items-end items-center bg-bgray-100 h-12 rounded-b-md">
+
+                <div className="text-lg ml-2  font-semibold text-bgray-600 tracking-wide "></div>
+
+                <div
+                    className={`flex space-x-1 mr-2 border border-red-900  uppercase text-sm font-extrabold bg-red-100 text-red-900 py-1 px-2 rounded-md flex-shrink-0 `}>
+                    <span>{face.status}</span>
+                </div>
+
+
+            </div>
+        </div> )
+
+}
+
+
+function KnownFace (props) {
+    let face = props.face;
+    let c_ref = props.c_ref
+
+    return (
+
+        <div className={`bg-gray-50 mr-2 shadow-xl flex flex-col flex-shrink-0 border-2 border-green-700 rounded-md w-72`}>
+            <div className="flex justify-between items-baseline py-2 px-1 ">
+                <h1 className={`ml-2 uppercase font-semibold text-lg flex-shrink-0 tracking-wider text-green-900 text-center`}>{face.name}</h1>
+            </div>
+
+            <div className="grid grid-cols-2 grid-rows-2 bg-white">
+
+                <canvas ref={c_ref} className="col-start-1 row-start-1 row-span-2"/>
+
+                <div className="col-start-2 row-start-1 -ml-2 ">
+                    <div className={`mt-8 text-2xl text-center font-extrabold text-green-800 tracking-wide`}>{face.confidence} </div>
+                </div>
+
+            </div>
+
+            <div className="flex justify-between items-end items-center bg-bgray-100 h-12 rounded-b-md">
+
+                <div className="text-lg ml-2  font-semibold text-bgray-600 tracking-wide "></div>
+
+                <div
+                    className={`flex space-x-1 mr-2 border border-green-900  uppercase text-sm font-extrabold bg-green-100 text-green-900 py-1 px-2 rounded-md flex-shrink-0 `}>
+                    <span>{face.status}</span>
+                </div>
+
+
+            </div>
+        </div> )
+
+}
+
+
+function UnknownFace (props) {
+    let c_ref = props.c_ref
+
+    return (
+
+        <div className={`bg-gray-50 mr-2 shadow-xl flex flex-col flex-shrink-0 border border-gray-700 rounded-md w-72 `}>
+            <div className="flex justify-between items-baseline py-2 px-1 opacity-80">
+                <h1 className={`ml-2 uppercase font-semibold text-lg flex-shrink-0 tracking-wider text-gray-600 text-center`}>Unknown</h1>
+            </div>
+
+            <div className="grid grid-cols-2 grid-rows-2 bg-white">
+
+                <canvas ref={c_ref} className="col-start-1 row-start-1 row-span-2 "/>
+
+                <div className="col-start-2 row-start-1 -ml-2 opacity-80">
+                    <div className={`mt-8 text-2xl text-center font-extrabold text-gray-600 tracking-wide`}>0%</div>
+                </div>
+
+            </div>
+
+            <div className="flex justify-between items-end items-center bg-bgray-100 h-12 rounded-b-md opacity-80">
+
+                <div className="text-lg ml-2  font-semibold text-bgray-600 tracking-wide "></div>
+
+                <div
+                    className={`flex space-x-1 mr-2 border border-gray-900  uppercase text-sm font-extrabold bg-gray-100 text-gray-600 py-1 px-2 rounded-md flex-shrink-0 `}>
+                    <span>None</span>
+                </div>
+
+
+            </div>
+        </div> )
+
+}
+
 
 
 function IdentifiedFace (props) {
@@ -233,8 +325,11 @@ function IdentifiedFace (props) {
 
     function info_color(face) {
         if (face.name === "Unknown") {
-            return "yellow"
-        } else if (face.status === "FR WATCH") {
+            face.name = "Unknown Face"
+            face.status = "None" //bad bad naughty mutable madnes! man
+            face.confidence = "0%"
+            return "gray"
+        } else if (face.status === "FR Watch") {
            return "red"
         }
         else {
@@ -242,78 +337,19 @@ function IdentifiedFace (props) {
         }
     }
 
-    function draw_card() {
 
-        //let color = info_color(data.face);
+    function draw_card () {
 
-        //console.log("HELLO MCFLY")
-        //console.log(color)
-        let color = "green";
-       return (
-           <div className="bg-gray-50 mr-2 shadow-xl flex flex-col flex-shrink-0 border border-green-700 rounded-md w-72">
+            if (data.face.name === "Unknown") {
+                return <UnknownFace c_ref={c_ref}  />
+            } else if (data.face.status === "FR Watch") {
+                return <FRWatchFace c_ref={c_ref} face={data.face} />
+            } else {
+                return <KnownFace c_ref={c_ref} face={data.face} />
+            }
 
-               <div className="flex justify-between items-baseline py-2 px-1 ">
-               <h1 className="ml-1 uppercase font-semibold text-lg flex-shrink-0 tracking-wider text-green-900 text-center">{data.face.name}</h1>
-           </div>
-
-        <div className="grid grid-cols-2 grid-rows-2 bg-white">
-
-            {/*
-            <img className="mt-0 w-44 h-52 object-cover object-center col-start-1 row-start-1 row-span-2"
-                 src={b64}
-            />
-            */}
-            <canvas ref={c_ref} className="col-start-1 row-start-1 row-span-2"/>
-
-            <div className="col-start-2 row-start-1 ">
-                <div className="mt-8 text-2xl text-center font-extrabold text-green-800 tracking-wide">{data.face.confidence}
-                </div>
-
-                {/*
-                <div className="justify-self-center pt-4 ">
-                    <div className="uppercase font-semibold mr-1.5 text-bgray-600 text-lg text-center "> </div>
-                </div>
-                */}
-            </div>
-
-        </div>
-
-        <div className="flex justify-between items-end items-center bg-bgray-100 h-12 rounded-b-md">
-
-            <div className="text-lg ml-2  font-semibold text-bgray-600 tracking-wide "></div>
-
-            <div
-                className="flex  space-x-1 mr-2 border border-green-900 uppercase text-sm font-extrabold bg-green-100 text-green-900 py-1 px-2 rounded-md flex-shrink-0 ">
-                <span>{data.face.status}</span>
-            </div>
-
-        </div>
-           </div> )
     }
-
-    function draw_card2 () {
-
-            return (
-
-                <div className="bg-gray-50 mr-2 shadow-xl flex flex-col flex-shrink-0 border border-green-700 rounded-md">
-
-                    <div className={`${data.face.name === "Unknown" ? "text-yellow-700" : "text-green-700"}
-                     ml-2 uppercase font-semibold`}>{data.face.name}</div>
-
-                    <canvas ref={c_ref}/>
-                    <div className="ml-2">
-                        <div className="text-green-700 uppercase font-semibold">{data.face.confidence}</div>
-                        <div className="text-green-700 uppercase font-semibold">{data.face.status}</div>
-                    </div>
-                </div>
-
-            )
-    }
-    return (
-        <>
-            {data ? draw_card() : <div>none</div> }
-        </>
-    )
+    return <> {data ? draw_card() : <div>none</div> } </>
 }
 
 
