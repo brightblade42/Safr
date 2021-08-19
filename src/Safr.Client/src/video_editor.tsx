@@ -1,6 +1,12 @@
 import React, {useEffect} from 'react';
 import {AnalysisState, Analysis, AnalyzedFrame, update, init_state, AnalysisMsg, VideoPlayState} from "./analysis_state";
 import './index.css';
+import {info} from "autoprefixer";
+
+function format_confidence (conf: number)  {
+    let truncated = parseFloat(conf.toString().slice(0, (conf.toString().indexOf(".")) + 5)) * 100;
+    return (conf >= 1) ? "100%" : `${truncated.toFixed(2)}%`;
+}
 
 
 function AnalyzedFrames (props) {
@@ -68,10 +74,13 @@ function AFrame (props) {
                 for (const ident of frame.faces_identified) {
                     //we know they are the same person because only a single entity can occupy the same space
                     //in time..unless it's Brundle fly.
+
+                    let conf_str = format_confidence(ident.confidence);
+
                     if (face.bounding_box.x === ident.bbox.x && face.bounding_box.y === ident.bbox.y) {
                         info = {
                             name: ident.name,
-                            confidence: ident.confidence,
+                            confidence: conf_str,
                             status: ident.status,
                             kind: "I",
                             bbox: ident.bbox
@@ -178,7 +187,8 @@ function DetectedFaces (props) {
                 return ctx.getImageData(box.x , box.y , imgW, 175);
 
             }
-            return ctx.getImageData(box.x -35, box.y -15, imgW, 175);
+            //img: ctx.getImageData(box.x -45, box.y -25, imgW, 175),
+            return ctx.getImageData(box.x -45, box.y -25, imgW, 175);
             //return ctx.getImageData(box.x, box.y, 150, 150);
         });
 
@@ -221,10 +231,72 @@ function IdentifiedFace (props) {
 
     React.useEffect(() => { draw_face() }, [data])
 
-    return (
-        <>
-            {data ?
-                <div className="border-2 w-52 mr-4">
+    function info_color(face) {
+        if (face.name === "Unknown") {
+            return "yellow"
+        } else if (face.status === "FR WATCH") {
+           return "red"
+        }
+        else {
+            return "green"
+        }
+    }
+
+    function draw_card() {
+
+        //let color = info_color(data.face);
+
+        //console.log("HELLO MCFLY")
+        //console.log(color)
+        let color = "green";
+       return (
+           <div className="bg-gray-50 mr-2 shadow-xl flex flex-col flex-shrink-0 border border-green-700 rounded-md w-72">
+
+               <div className="flex justify-between items-baseline py-2 px-1 ">
+               <h1 className="ml-1 uppercase font-semibold text-lg flex-shrink-0 tracking-wider text-green-900 text-center">{data.face.name}</h1>
+           </div>
+
+        <div className="grid grid-cols-2 grid-rows-2 bg-white">
+
+            {/*
+            <img className="mt-0 w-44 h-52 object-cover object-center col-start-1 row-start-1 row-span-2"
+                 src={b64}
+            />
+            */}
+            <canvas ref={c_ref} className="col-start-1 row-start-1 row-span-2"/>
+
+            <div className="col-start-2 row-start-1 ">
+                <div className="mt-8 text-2xl text-center font-extrabold text-green-800 tracking-wide">{data.face.confidence}
+                </div>
+
+                {/*
+                <div className="justify-self-center pt-4 ">
+                    <div className="uppercase font-semibold mr-1.5 text-bgray-600 text-lg text-center "> </div>
+                </div>
+                */}
+            </div>
+
+        </div>
+
+        <div className="flex justify-between items-end items-center bg-bgray-100 h-12 rounded-b-md">
+
+            <div className="text-lg ml-2  font-semibold text-bgray-600 tracking-wide "></div>
+
+            <div
+                className="flex  space-x-1 mr-2 border border-green-900 uppercase text-sm font-extrabold bg-green-100 text-green-900 py-1 px-2 rounded-md flex-shrink-0 ">
+                <span>{data.face.status}</span>
+            </div>
+
+        </div>
+           </div> )
+    }
+
+    function draw_card2 () {
+
+            return (
+
+                <div className="bg-gray-50 mr-2 shadow-xl flex flex-col flex-shrink-0 border border-green-700 rounded-md">
+
                     <div className={`${data.face.name === "Unknown" ? "text-yellow-700" : "text-green-700"}
                      ml-2 uppercase font-semibold`}>{data.face.name}</div>
 
@@ -235,8 +307,11 @@ function IdentifiedFace (props) {
                     </div>
                 </div>
 
-                : <div>none</div>
-            }
+            )
+    }
+    return (
+        <>
+            {data ? draw_card() : <div>none</div> }
         </>
     )
 }
@@ -261,7 +336,7 @@ function IdentifiedFaces (props) {
                 }
             }
             return {
-                img: ctx.getImageData(box.x -35, box.y -15, imgW, 175),
+                img: ctx.getImageData(box.x -45, box.y -25, imgW, 175),
                 face: face
             }
 
@@ -305,8 +380,7 @@ function MyVideo (props) {
                 muted={true}
                 loop
                 ref={props.vidref}
-                width={800}
-                height={500}
+                width={640}
                 src={createObjectURL(props.video)}
                 onPlay={play}
                 onPause={pause}
@@ -321,8 +395,8 @@ export function VideoEditor(props) {
     const [video, set_video] = React.useState();
     //const [video_width, set_video_width] = React.useState(500);
     //const [video_height, set_video_height] = React.useState(200);
-    const video_height = 800;
-    const video_width = 500;
+    const video_height = 600;
+    const video_width = 800;
     //paths
     const canvasRef = React.useRef();
     const vidplayer = React.useRef();
@@ -473,20 +547,50 @@ export function VideoEditor(props) {
         capture_frame();
     }
 
+    function VideoQuadrant () {
+
+        if (video) {
+            return(
+            <div className="flex-shrink-0" onKeyDown={snap} >
+                <MemVid video={video} vidref={vidplayer} />
+            </div>
+            )
+        } else
+        return(
+            <div className="ml-20 mt-12 flex-shrink-0 transition md:text-4xl lg:text-7xl text-green-800 opacity-10 text-center" > Video</div>
+        )
+    }
+
+    function CaptureQuadrant() {
+
+        if (video) {
+            return (
+
+                <div className="w-[800px]">
+                    <canvas id="vid_capture" ref={canvasRef} className="ml-4 w-[800px] h-[360px]"/>
+                </div>
+            )
+        }
+        else {
+            return(
+                <div className="ml-20 mt-12 flex-shrink-0 transition md:text-4xl lg:text-7xl text-green-800 opacity-10 text-center" > Frame</div>
+            )
+
+        }
+    }
 // @ts-ignore
     return (
         <>
-            <div className="flex flex-shrink-0">
+            <div className="flex">
                 <div className="flex flex-col">
-                    <input type="file" accept="video/*"
+                    <input className="ml-4 mb-4 text-gray-900 text-lg" type="file" accept="video/*"
                            onChange={(e) => create_video(e.target.files?.item(0))} />
 
-                    <div className="flex flex-shrink-0">
+                    <div className="flex ml-4">
+                        {VideoQuadrant()}
 
-                        <div onKeyDown={snap} > {video && <MemVid video={video} vidref={vidplayer} /> } </div>
-
-                        <div className="">
-                            <canvas id="vid_capture" ref={canvasRef} className="w-[900px] ml-4"/>
+                        <div className=" w-[800px]">
+                            <canvas id="vid_capture" ref={canvasRef} className="ml-4 w-[800px] h-[360px]"/>
                         </div>
                     </div>
                 </div>
