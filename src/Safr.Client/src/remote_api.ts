@@ -1,10 +1,26 @@
-import {CallEndOutlined} from "@material-ui/icons";
 
+export function default_settings (is_prod:boolean) {
+    if (is_prod) {
+        return {
+            api_root: `${window.location.href}fr/`,
+            hub: `${window.location.href}frhub`
+        }
+    }
+    else {
+        return {
+            api_root: `http://localhost:8085/fr/`,
+            hub: `http://localhost:8085/frhub/`
+        }
+    }
+}
 
-export function RemoteApiBuilder() {
+export function RemoteApiBuilder(is_prod) {
 
-    let api_root = `${window.location.href}fr/`;
-    api_root = `http://localhost:8085/fr/`; //if dev server proxy..
+    //let api_root = `${window.location.href}fr/`;
+    //api_root = `http://localhost:8085/fr/`; //if dev server proxy..
+    let settings   = default_settings(is_prod);
+    let api_root = settings.api_root;
+    let hub = settings.hub;
 
     const create_json_post = (json) => {
         return {
@@ -48,6 +64,7 @@ export function RemoteApiBuilder() {
 
     return Object.freeze({
         root: api_root,
+        hub,
         validate_user,
         get_frlogs
     });

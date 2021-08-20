@@ -267,7 +267,7 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
              user = user
              password = password
              connection = $"rtsp://%s{user}:%s{password}@%s{cam.ipaddress}/axis-media/media.amp"
-             detect_frame_rate = 1
+             detect_frame_rate = 4
        }
 
 

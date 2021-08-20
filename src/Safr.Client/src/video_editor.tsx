@@ -440,7 +440,7 @@ export function VideoEditor(props) {
     let [image_comparison, set_image_comparison] = React.useState(undefined);
     let [frame_num, set_frame_num] = React.useState(0);
     let [state, dispatch] = React.useReducer(update, init_state()); //analysisState
-
+    let api = props.api;
     useEffect(() => {
         const timer = setInterval(() => {
                 capture_frame();
@@ -510,7 +510,7 @@ export function VideoEditor(props) {
     function build_post (endpoint) {
 
        return async function (b: Blob) {
-           let api_url = `http://localhost:8085/fr/`;
+           let api_url = api.root; //`http://localhost:8085/fr/`;
            let form_data = new FormData();
            form_data.append("image", b, "file.jpg");
            //fetch(`${api_url}recognize-frame`,
@@ -530,7 +530,7 @@ export function VideoEditor(props) {
 
     }
 
-
+/*
     async function verify_faces(face1: Blob, face2: Blob) {
 
         //TODO: url for runtime not devtime
@@ -556,7 +556,7 @@ export function VideoEditor(props) {
             console.log(e);
         }
     }
-
+    */
 
     //The boxes around the faces on a captured frame
     //TOOD: can we do this after we draw to the cropped context

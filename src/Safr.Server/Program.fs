@@ -387,7 +387,31 @@ let recognize_top5_handler =
                             bounding_box = id.bounding_box;
                             tpass_client = c;
                             }
-                    | TPassError e -> return Error e
+                    | TPassError e ->
+                        printfn $"TPASS ERR: %s{e.Message}"
+                        return Error e
+                    | ClientNotFound  e ->
+                        printfn $"Client not foound: %s{e}"
+                        return Error (Exception e)
+                    | InvalidTokenError ->
+                        printfn "invalid token"
+                        return Error (Exception "TPass Token is invalid")
+                    | PVNotRegisteredError e ->
+                        printfn $"NOT REG: %s{e}"
+                        return Error (Exception e)
+                    | ConnectionError e ->
+                        printfn $"Connection error: %s{e.Message}"
+                        return Error e
+                    | DownloadError e ->
+                        printfn $"Download error: %s{e.Message}"
+                        return Error e
+                    | JSonParseError ->
+                        printfn "Json Parse error...."
+                        return Error (Exception "Could not parse json values")
+                    | NotCheckedInError ->
+                        printfn "Not checked in error. should not see this here"
+                        return Error (Exception "Not checked in error. should not see this here")
+
                     //return res
                 }
 
@@ -403,7 +427,7 @@ let recognize_top5_handler =
                         |> Async.RunSynchronously
                     return! json x next ctx
                 | Error e ->
-                    return! json {| error="weird voodoo man" |} next ctx
+                    return! json {| error=e |} next ctx
 
 
                 (*

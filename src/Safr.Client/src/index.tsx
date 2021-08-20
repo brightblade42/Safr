@@ -53,10 +53,6 @@ function update_available_cams  (cam_info, dispatch)  {
             const is_running = streams.findIndex(s => cam.name === s.name)
             return (is_running > -1) ? {...cam, streaming: true} : {...cam, streaming: false}
         });
-        //test auto start
-       // if (streams.length < 1) { //no cameras are streaming at all.
-       //    console.log("No cameras currently connected....")
-       // }
     } else {
         console.log(s_res.errorValue);
     }
@@ -64,8 +60,6 @@ function update_available_cams  (cam_info, dispatch)  {
     let cam_state = { available_cameras: avail, streams_loading: false, starting_all_streams: false, stopping_all_streams:false }
     dispatch({action: "AvailableCamerasChanged", payload: cam_state });
     console.log(cam_info);
-    //auto_start any available cams that are not streaming...
-    //start_all or start_each avail in turn>
 }
 
 
@@ -78,17 +72,14 @@ function update_face (face: IdentifiedFace, dispatch) {
     }
 }
 
-
 function App (props) {
 
     let logout     = props.logout;
     const dispatch = props.dispatch;
     let [show_camsettings,set_show_camsettings] = React.useState(false);
+    const api = props.api
+    let endpoint = api.hub;
 
-    const api = RemoteApiBuilder();
-
-    let endpoint = `${window.location.href}frhub`;
-    endpoint = `http://localhost:8085/frhub`;
 
     function has_permission () {
         if (props.state.login_status.type === "LoggedIn") {
@@ -121,12 +112,10 @@ function App (props) {
         }
     }
 
-
     function start_streams() {
         console.log("start streams of available cameras that are not already streaming.")
 
     }
-
 
     useEffect(() => {
 
@@ -275,10 +264,10 @@ function App (props) {
                         <FRHistoryGrid state={props.state} funcs={fr_history_funcs} />
                     </Route>
                     <Route path="/videoedit">
-                       <VideoEditor />
+                       <VideoEditor api={api}/>
                     </Route>
                     <Route path="/lineup">
-                        <LineupPage />
+                        <LineupPage api={api}/>
                     </Route>
                 </Switch>
             </div>
@@ -293,8 +282,10 @@ interface AppProps {
 function Root () {
 
     let [state, dispatch] = React.useReducer(update, init_state());
-    console.log(state);
-    let api = RemoteApiBuilder();
+    //console.log(state);
+    let is_prod = false
+    is_prod = true
+    let api = RemoteApiBuilder(is_prod);
 
     function login (user, pwd) {
         dispatch({action: "LoginStateChanged", payload: {type: "InFlight"}});
@@ -323,7 +314,7 @@ function Root () {
             <div> {
                state.login_status.type !== "LoggedIn"
                     ? <LoginComponent model={state} onLogin={login}/>
-                    : <App  state={state} dispatch={dispatch} logout={logout}/>
+                    : <App  state={state} dispatch={dispatch} logout={logout} api={api}/>
             }
             </div>
 
