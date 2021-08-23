@@ -2,8 +2,8 @@
 export function default_settings (is_prod:boolean) {
     if (is_prod) {
         return {
-            api_root: `${window.location.href}fr/`,
-            hub: `${window.location.href}frhub`
+            api_root: `${window.location.origin}/fr/`,
+            hub: `${window.location.origin}/frhub`
         }
     }
     else {

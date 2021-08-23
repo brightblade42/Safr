@@ -98,6 +98,7 @@ module Identifier =
         }
         member self.detect_identity (face: FaceImage) = async {
             printfn "IDENTIFIER: identifying face"
+
             let! res       = REST.detect_identity client make_url face
             printfn "IDENT DATA"
             printfn $"%A{res}"
