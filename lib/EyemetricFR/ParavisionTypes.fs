@@ -41,12 +41,6 @@ module Streaming =
           })
         static member from json = Decode.fromString CameraStream.Decoder json
 
-    //TODO: consideration for a later feature where we use more than one server/service to process face data
-    type CameraGroup = {
-        name:     string
-        address:  string //machine address that handles the decoding of a set of camera streams.
-        streams:  CameraStream  list
-    }
 
     //MessageTypes representing json structures returned from Paravision api.
     ///Return from PV with info about out our request to Start a Camera stream
@@ -345,13 +339,11 @@ module Identification =
       {
       face_count: int
       identities: IdentityItem list
-      //bounding_box: Streaming.BoundingBox option
       }
       static member Decoder: Decoder<PossibleMatch> =
         Decode.object(fun get -> {
           face_count = get.Required.At ["face_count"] Decode.int
           identities = get.Required.At ["identities"] (Decode.list IdentityItem.Decoder)
-          //bounding_box = get.Optional.At ["bounding_box"]  Streaming.BoundingBox.Decoder
 
         })
 

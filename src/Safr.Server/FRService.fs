@@ -595,7 +595,6 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
 
     member self.enroll_clients(clients: TPassClientWithImage seq) = async {
 
-
         //TODO: What if tpass_reg fails? Should log that for later retry
         let svc = tpass_service.Value
         let! new_idents = Enrollment.create_enrollments identifier clients

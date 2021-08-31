@@ -4,7 +4,6 @@ open System
 open Thoth.Json
 open Thoth.Json.Net
 open EyemetricFR.Paravision.Types.Identification
-//open System.IdentityModel.Tokens.Jwt
 
 type CompID =  string
 type IDOrName = string  //a code or a name fragment for TPAss to use as a look up.
@@ -349,7 +348,6 @@ type TPassResult<'a> =
    | NotCheckedInError
    | PVNotRegisteredError of string
    | ClientNotFound of string
-//    | AuthTokenError of string
    | JSonParseError //sometimes we get junk json or no json...
    | TPassError of Exception //a generic TPass error. kind of a place holder atm.
 

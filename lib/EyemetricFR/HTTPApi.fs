@@ -70,6 +70,7 @@ module HTTPApi =
 
     type UriBuilder = string -> Uri  //function type
 
+    //Some helper functions for building HTTP requests
     module Requests =
 
         type FormContent =
@@ -211,7 +212,6 @@ module HTTPApi =
         }
 
 
-
         let post_b64image (client: HttpClient) (uri: Uri) (b64: string) = async {
             let req = request HttpMethod.Post uri
             try
@@ -252,6 +252,7 @@ module HTTPApi =
             | :? Exception as ex -> return UnhandledError ex
         }
 
+
         let post_json_with_tok (client: HttpClient) (uri: Uri) (body: string) (token_pair: Auth.TokenPair option) = async {
             let req =  request HttpMethod.Post uri
 
@@ -268,7 +269,6 @@ module HTTPApi =
                 | true  -> Ok res
                 | false -> Error resp.ReasonPhrase
         }
-
 
         let put_json (client: HttpClient) (uri: Uri) (body: string) (token_pair: Auth.TokenPair option) = async {
             let req = request HttpMethod.Put uri
@@ -361,7 +361,6 @@ module HTTPApi =
             //TODO: consider other available query string parameters. Max_Faces..
             match face with
             | B64Encoding bar -> return! post_b64image client (make_url "api/lookup ") bar
-            //| Binary bin      -> return! post_image client (make_url "api/lookup?num_faces=1") bin
             | Binary bin      -> return! post_image client (make_url "api/lookup?num_faces=5") bin
             | _               -> return  failwith "unsupported FaceImage"
         }
