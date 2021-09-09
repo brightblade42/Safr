@@ -283,16 +283,56 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
         let conf              = conf_agent.get_latest_config()
         let c = conf.Value
 
+        let mutable pv_api_addr = Environment.GetEnvironmentVariable("PVAPI_ADDR")
+        let mutable vid_streaming_addr = Environment.GetEnvironmentVariable("VIDEO_STREAM_ADDR")
+        let mutable detection_socket_addr = Environment.GetEnvironmentVariable("DETECTION_SOCKETIO_ADDR")
+
+        let is_empty env =
+            match env with
+            | null -> true
+            | "" -> true
+            | _ -> false
+
+        if is_empty pv_api_addr then pv_api_addr <- c.pv_api_addr
+
+        if is_empty pv_api_addr  then pv_api_addr <- c.pv_api_addr
+        if is_empty vid_streaming_addr  then vid_streaming_addr <- c.vid_streaming_addr
+        if is_empty detection_socket_addr then detection_socket_addr <- c.detection_socket_addr
+
+        printfn $"PVAPI: %s{pv_api_addr}"
+        printfn $"VIDSTREAM: %s{vid_streaming_addr}"
+        printfn $"DETECTION ADDR %s{detection_socket_addr}"
+
         let tpass_service = FRService.init_tpass(c) |> Async.RunSynchronously //check opt
-        let ident_agent   = FaceIdentification(c.pv_api_addr)
-        let det_agent     = FaceDetection(c.vid_streaming_addr.Trim(), c.detection_socket_addr)
+        let ident_agent   = FaceIdentification(pv_api_addr)
+        let det_agent     = FaceDetection(vid_streaming_addr.Trim(), detection_socket_addr)
 
         FRService(conf_agent, tpass_service, det_agent, ident_agent, fr_hub)
 
 
     static member init_tpass(conf: Configuration) = async {
 
-        let tpass_agent = TPassService(conf.tpass_api_addr.Trim(),UserPass (conf.tpass_user, conf.tpass_pwd),  false)
+        let mutable tpass_user = Environment.GetEnvironmentVariable("TPASS_USER")
+        let mutable tpass_pwd = Environment.GetEnvironmentVariable("TPASS_PWD")
+        let mutable tpass_api_addr = Environment.GetEnvironmentVariable("TPASS_ADDR")
+
+        let is_empty env =
+            match env with
+            | null -> true
+            | "" -> true
+            | _ -> false
+
+        if is_empty tpass_user then tpass_user <- conf.tpass_user
+        if is_empty tpass_pwd  then tpass_pwd <- conf.tpass_pwd
+        if is_empty tpass_api_addr then tpass_api_addr <- conf.tpass_api_addr
+
+        printfn $"TPASS USER: %s{tpass_user}"
+        printfn $"TPASS PWD: %s{tpass_pwd}"
+        printfn $"TPASS API ADDR: %s{tpass_api_addr}"
+
+
+        let tpass_agent = TPassService(tpass_api_addr.Trim(),UserPass (tpass_user, tpass_pwd),  false)
+
 
         let! is_init = tpass_agent.initialize()
         return
