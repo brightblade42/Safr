@@ -157,18 +157,54 @@ export function LineupPage (props) {
             try {
                 const rec_json = await recognize(b); //this should be a top 5 server thing. need a conf adjustment...
 
+               // https://173.220.177.75//tpassk12v2//Images/Photos/Students/127377_132757706325729428.jpg
+                //let skip = false;
+
                 let info = rec_json.map(function (x) {
+
                     if (x.case === "Ok") {
+                        let fields = x.fields;
+
+                        if (fields === undefined) {
+                            console.log("no fields")
+                            return undefined;
+                        }
+                        //shit fire work around.
+                        if (fields[0] === undefined) {
+
+                            console.log("no fields")
+                            return undefined;
+                        }
+                        if (fields[0].tpass_client === undefined) {
+                            console.log("no tpass client data")
+                            return undefined;
+                        }
+                        if (fields[0].tpass_client.fields[0] === undefined) {
+
+                            console.log("no tpass client data")
+                            return undefined;
+                        }
+
+                        let nurl = x.fields[0].tpass_client.fields[0].imgUrl;
+
+                        console.log(`regular url: ${nurl}`);
+                        if (nurl.includes("173.220.177.75")) {
+                            nurl = nurl.replace("173.220.177.75", "192.168.3.12")
+
+                            console.log(`replaced url: ${nurl}`);
+                        }
+
                         return {
                             confidence: x.fields[0].confidence,
                             name: x.fields[0].tpass_client.fields[0].name,
-                            url: x.fields[0].tpass_client.fields[0].imgUrl,
+                            url:  nurl, //x.fields[0].tpass_client.fields[0].imgUrl,
                             status: x.fields[0].tpass_client.fields[0].status,
                             bbox: x.fields[0].bounding_box
                         }
                     }
                 });
 
+                info = info.filter(function (x) { return x !== undefined});
                 set_lineup([...info, ...lineup]);
 
             } catch(e) {

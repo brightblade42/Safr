@@ -381,6 +381,7 @@ let recognize_top5_handler =
                     let! res = id |> fr.get_enrollment_by_id
                     match res with
                     | Success c ->
+
                         return Ok {
                             id= id.id;
                             confidence = id.confidence;
@@ -421,7 +422,7 @@ let recognize_top5_handler =
                 | Ok pm ->
                     let x =
                         pm.identities
-                        |> List.filter (fun i -> i.confidence >= 0.30)
+                        |> List.filter (fun i -> i.confidence >= 0.90)
                         |> List.map(fun i -> i |> get_client)
                         |> Async.Parallel
                         |> Async.RunSynchronously
