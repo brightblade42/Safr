@@ -20,6 +20,13 @@ module Types =
         static member from (json: string) =
           Decode.fromString DateRange.Decoder json
 
+    type FRError =
+        {
+            error: string
+            msg: string
+            timestamp: string
+        }
+
     [<CLIMutable>]
     type FRLog =
             {

@@ -285,7 +285,7 @@ function Root () {
     //console.log(state);
     console.log(state);
     let is_prod = false
-    is_prod = true
+    //is_prod = true
     let api = RemoteApiBuilder(is_prod);
 
     function login (user, pwd) {

@@ -147,6 +147,19 @@ module Queries =
             execute conn sql None
 
     module Logging =
+        let log_fr_error conn (item: FRError) =
+
+            let sql = """insert into Error (error, msg, timestamp)
+                         VALUES (@error, @msg, @timestamp) """
+
+            let data = [
+                        ("@error", box item.error)
+                        ("@msg", box item.msg)
+                        ("@timestamp", box item.timestamp)
+                        ]
+            let res = execute conn sql data
+            res
+
         let log_fr conn (item: FRLog ) =
 
             let sql = """insert into FRLog (

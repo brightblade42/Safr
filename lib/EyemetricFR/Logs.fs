@@ -16,6 +16,10 @@ module Logging  =
             let x = Logger.log_fr conn item
             ()
 
+        member self.log_error item =
+            printfn "logging fr error!"
+            let x = Logger.log_fr_error conn item
+            ()
         member self.get_by_daterange (startdate: Option<string>) (enddate: Option<string>) = async {
             printfn "getting latest fr log by date ranger"
             let startdate = Option.defaultValue "2021-06-28" startdate

@@ -68,6 +68,8 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
     let create_checkout_rec (compId: int) (ccode: int) =
           CheckOutRecord.create(pkid=0, compId= compId, ccode=bigint ccode, flag= "O", date=DateTime.Now, timeOut=DateTime.Now)
 
+    let new_timestamp () = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss")
+
     //TODO: Checkin / OUT for types other than students!
     let check_in (tpc: TPassClient) =
 
@@ -88,7 +90,13 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
             let res = check_fn () |> Async.RunSynchronously
             match res with
             | Success _ -> "Checked In" |> Some
-            | _ -> None //TODO: provide some other status? Unknown or something
+            | TPassError e ->
+                identified_logger.log_error { error="CHECK IN FAIL"; msg=e.Message; timestamp= new_timestamp()}
+                printfn $"**** CHECK IN FAIL: %s{e.Message}"
+                //log to error
+                None
+            | _ ->
+                None //TODO: provide some other status? Unknown or something
 
     let check_out (tpc: TPassClient) =
 
@@ -108,7 +116,12 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
             let res = check_fn () |> Async.RunSynchronously
             match res with
             | Success _-> "Checked Out" |> Some
-            | NotCheckedInError -> None
+            | TPassError e ->
+                identified_logger.log_error { error="CHECK OUT FAIL"; msg=e.Message; timestamp= new_timestamp()}
+                printfn $"**** CHECK OUT FAIL: %s{e.Message}"
+                //log to error
+                None
+            | NotCheckedInError -> None  //can't check out that which has not been checked in.
             | _ -> None
 
     let check_in_or_out (tcl: TPassClient) (cam_name: string) =
@@ -148,11 +161,18 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
 
         let tpa = tpass_service.Value
         match pmatch with
-        | Some pm when ((pm.identities.Head.id |> is_cached |> not) && pmatch |> is_confident) ->
+        | Some pm when (pmatch |> is_confident |> not) -> return None
+        | Some pm when (pm.identities.Head.id |> is_cached |> not) ->
+
               let! client = pm.identities.Head.id |> tpa.get_pv_client
               return client |> Some
 
-        | _ -> return None //skip, found in cache.
+        | Some pm ->
+            printfn $"CACHE HIT: %s{pm.identities.Head.id}"
+            return None
+
+        | None -> return None //confidence was too low
+
      }
 
 
@@ -170,6 +190,7 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
         return (res, pm)  //this is a damn weird way to get the pm out.
     }
 
+    //takes the cropped image from the streaming container and sends it to be identified
     let get_possible_match (cropped_face: string option) = async {
 
         match cropped_face with
@@ -178,7 +199,13 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
             let! pm =  (B64Encoding cropped) |> identifier.detect_identity
             return
                 match pm with
-                | Ok p ->  Some p
+                | Ok p ->
+                    if p.identities.Head.confidence < 0.7  then //don't even bother. def not the person.
+                        printfn $"Very Low Conf: %f{p.identities.Head.confidence} -- %s{p.identities.Head.id}"
+                        None
+                    else
+                        printfn $"\nPre-verified match : %f{p.identities.Head.confidence} -- %s{p.identities.Head.id}"
+                        Some p
                 | Error e ->
                     printfn $"couldn't get identification information: %s{e} "
                     //we'd log a thing here.
@@ -193,15 +220,16 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
               match enrolled_details with
               | Some (Success ed) ->
                     let pi = pm.Value
-                    let conf = pi.identities.Head.confidence //TODO: consider more than the Head.
-                    //TODO: using time from this machine, pv time is off #22.
+                    let conf = pi.identities.Head.confidence
                     let time =  String.Format("{0:hh:mm:ss tt}", time_stamp.ToLocalTime())
                     let tpc = ed
                     //TODO: if status is FR then don't do check in, call FRAlert
                     let check_res =  check_in_or_out tpc cam_name
 
                     match check_res with
-                    | _, None -> ()
+                    | _, None ->
+                        printfn "***** NONE RESULT from CHECK IN / OUT  "
+                        ()
                     | name, Some status ->
                         let frame =  Convert.FromBase64String expanded_image
 
@@ -217,7 +245,7 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
                                          Mask = mask_prob
                                      }
 
-                        printfn "FACE IDENTIFIED!"
+                        printfn $"FACE Verified: %s{name} --  %s{status} -- %s{time} -- %f{conf} -- %s{pi.identities.Head.id}"
                         hub_context.Clients.All.SendAsync("FaceIdentified", id_face) |> Async.AwaitTask |> Async.Start
                         log_matched_identity id_face pi expanded_image
                         ()
@@ -225,8 +253,6 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
               | Some (TPassError er) ->
                   printfn $"TPass Error %s{er.Message}"
                   ()
-              | Some (PVNotRegisteredError id) ->
-                  printfn $"ID not registered with TPass: %s{id}" //should we auto update this??
               | _ -> ()
     }
 
@@ -240,6 +266,10 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
     let handle_detection (detected: (string * DetectedFacesReply)) =
 
         let (cam_name, det_faces) = detected
+        //Bail if there are not faces. reduces the log stream
+        if det_faces.faces.Length = 0 then
+            ()
+
         printfn $"CAM: %s{cam_name} FACES in Frame: %i{det_faces.faces.Length}"
 
         let time_stamp = det_faces.timestamp
@@ -254,10 +284,12 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
                | _ -> ""
            let mask_prob = det_faces.faces.[i].mask_probability
            verify_tpass_async cam_name time_stamp exp_img mask_prob x)
+        //|> Async.Sequential
         |> Async.Parallel
         |> Async.RunSynchronously
         |> ignore
         ()
+
 
     let set_camera_defaults(cam: CameraStream): CameraStream  =
 

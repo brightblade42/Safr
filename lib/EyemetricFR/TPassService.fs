@@ -348,7 +348,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
     }
     member self.checkin_student (ch_rec: CheckInRecord) = async {
            let! res = try_checkin_client ch_rec
-           p_log res "try_checkin_client"
+           //p_log res "try_checkin_client"
            return
                match res with
                | Ok r    -> Success r
@@ -357,14 +357,14 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
     }
     member self.checkout_student (ch_rec: CheckOutRecord) = async  {
            let! recent_rec = (try_get_recent_checkin ch_rec.ccode ch_rec.compId ch_rec.date)
-           p_log recent_rec "recent_checkin"
+           //p_log recent_rec "recent_checkin"
 
            let CMatch (record:string) = async {
                match (CheckInRecord.from record) with
                | Ok r ->
                    let ch_rec = {ch_rec with pkid = r.pkid}
                    let! checkout_res = try_checkout_client ch_rec
-                   p_log checkout_res "try_checkout_client"
+                   //p_log checkout_res "try_checkout_client"
                    match checkout_res with
                    | Ok res -> return Success res
                    | Error e -> return TPassError (Exception e)

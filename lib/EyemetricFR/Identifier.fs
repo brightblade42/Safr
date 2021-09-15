@@ -97,11 +97,8 @@ module Identifier =
 
         }
         member self.detect_identity (face: FaceImage) = async {
-            printfn "IDENTIFIER: identifying face"
 
             let! res       = REST.detect_identity client make_url face
-            printfn "IDENT DATA"
-            printfn $"%A{res}"
             let poss_match = to_possible_match res
 
             face_identified_event.Trigger poss_match
