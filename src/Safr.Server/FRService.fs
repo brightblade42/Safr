@@ -267,10 +267,9 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
 
         let (cam_name, det_faces) = detected
         //Bail if there are not faces. reduces the log stream
-        if det_faces.faces.Length = 0 then
-            ()
-
-        printfn $"CAM: %s{cam_name} FACES in Frame: %i{det_faces.faces.Length}"
+        if det_faces.faces.Length > 0 then
+            printfn "========== Faces Detected ================"
+            printfn $"CAM: %s{cam_name} FACES in Frame: %i{det_faces.faces.Length}"
 
         let time_stamp = det_faces.timestamp
 

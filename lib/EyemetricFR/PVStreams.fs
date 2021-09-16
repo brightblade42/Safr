@@ -52,7 +52,7 @@ module PVStreams =
 
             let ns = se.Namespace.TrimStart [|'/'|] //name of the stream (cam_name)
 
-            printfn "=========== Faces Detected  ============="
+            //printfn "=========== Faces Detected  ============="
 
             let detect_info =
                 se.Value

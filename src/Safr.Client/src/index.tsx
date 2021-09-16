@@ -45,6 +45,7 @@ function update_available_cams  (cam_info, dispatch)  {
     let avail = cam_info.available_cams
     let s_res = cam_info.streams
     //NOTE: converted from F# ResultType. A bit nasty in javascript.
+    //check the secure bit?
     //TODO: make this a function
     if (s_res.isOk) {
         let streams = s_res.resultValue.streams
@@ -285,7 +286,7 @@ function Root () {
     //console.log(state);
     console.log(state);
     let is_prod = false
-    //is_prod = true
+    is_prod = true
     let api = RemoteApiBuilder(is_prod);
 
     function login (user, pwd) {

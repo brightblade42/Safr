@@ -104,6 +104,7 @@ export function AxVideo({cam}) {
             </div>
             <div className="h-80 bg-gray-100">
                 <media-stream-player
+                    secure={cam.secure}
                     autoplay
                     format="RTP_H264"
                     hostname={cam.ipaddress}
