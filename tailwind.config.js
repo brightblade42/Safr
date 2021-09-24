@@ -1,13 +1,18 @@
 const colors = require('tailwindcss/colors')
+const defaultTheme = require('tailwindcss/defaultTheme')
+
 module.exports = {
   mode:  'jit',
   purge: [
-    "src/Safr.Client/public/**/*.html",
-    "src/Safr.Client/src/**/*.{js,jsx,ts,tsx,vue}"
+    "src/multicam/public/**/*.html",
+    "src/multicam/src/**/*.{js,jsx,ts,tsx,vue}"
   ], //we gotta come back to this. tailwind css gets a biig.
   darkMode: false, // or 'media' or 'class'
   theme: {
     extend: {
+        fontFamily: {
+            sans: ['Inter var', ...defaultTheme.fontFamily.sans],
+        },
 
       colors: {
           bgray: colors.coolGray,

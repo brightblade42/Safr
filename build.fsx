@@ -41,12 +41,11 @@ module Tools =
 
 let publishPath = Path.getFullName "publish"
 let srcPath = Path.getFullName "src"
-let clientSrcPath = srcPath </> "Safr.Client"
+let clientSrcPath = srcPath </> "multicam"
 let serverSrcPath = srcPath </> "Safr.Server"
-let sharedSrcPath = srcPath </> "Safr.Shared"
 let appPublishPath = publishPath </> "app"
 //let fableBuildPath = clientSrcPath </> ".fable-build"
-let fableBuildPath = clientSrcPath </> "src/bin"
+//let fableBuildPath = clientSrcPath </> "src/bin"
 
 // Targets
 let clean proj = [ proj </> "bin"; proj </> "obj" ] |> Shell.cleanDirs
@@ -54,7 +53,6 @@ let clean proj = [ proj </> "bin"; proj </> "obj" ] |> Shell.cleanDirs
 Target.create "Clean" (fun _ ->
      clientSrcPath  |> clean
      serverSrcPath  |> clean
-     sharedSrcPath  |> clean
      [ appPublishPath ] |> Shell.cleanDirs
 )
 Target.create "InstallClient" (fun _ ->
@@ -73,8 +71,6 @@ Target.create "Publish" (fun _ ->
     Tools.dotnet publishArgs serverSrcPath
     [ appPublishPath </> "appsettings.Development.json" ] |> File.deleteAll
     Tools.yarn $"snowpack build" clientSrcPath
-    //not compiling any F# to JS at the moment.
-    //Tools.dotnet $"fable --outDir %s{fableBuildPath} --run yarn snowpack build" clientSrcPath
     Shell.mv "./build" $"%s{appPublishPath}/public"
 )
 
@@ -85,7 +81,8 @@ Target.create "Run" (fun _ ->
         Tools.dotnet "watch run" serverSrcPath
     }
     let client = async {
-        Tools.dotnet $"fable watch --outDir %s{fableBuildPath} --run yarn snowpack dev" clientSrcPath
+        //Tools.dotnet $"fable watch --outDir %s{fableBuildPath} --run yarn snowpack dev" clientSrcPath
+        Tools.yarn $"snowpack dev" clientSrcPath
     }
     [server;client]
     |> Async.Parallel

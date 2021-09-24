@@ -14,8 +14,8 @@ export default  {
  */
   mount: {
     /* ... */
-    "src/Safr.Client/public": "/",
-    "src/Safr.Client/src" : "/_dist_"
+    "src/multicam/public": "/",
+    "src/multicam/src" : "/_dist_"
   },
   plugins: [
     /* ... */
@@ -23,6 +23,7 @@ export default  {
     '@snowpack/plugin-dotenv',
     '@snowpack/plugin-postcss',
     '@snowpack/plugin-typescript',
+      'snowpack-plugin-relative-css-urls',
      //['./snowplug1.js'],
     '@jadex/snowpack-plugin-tailwindcss-jit' //temp fix for spack/jit issue
 

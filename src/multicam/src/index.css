@@ -1,3 +1,5 @@
+@import "./fonts/Inter-3.19/InterWeb/inter.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
