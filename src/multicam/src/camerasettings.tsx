@@ -26,7 +26,7 @@ import { FontAwesomeIcon as FAIcon } from "@fortawesome/react-fontawesome";
 import {CheckIn, CheckOut} from "./heroicons";
 import {DateTime} from 'luxon';
 import {OKCancelDialog} from "./dialogs";
-import {AppState} from "./AppState";
+import {AppState} from "./appstate";
 
 
 const getRowId = row => row.id

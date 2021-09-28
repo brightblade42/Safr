@@ -292,7 +292,14 @@ function Root () {
     function login (user, pwd) {
         dispatch({action: "LoginStateChanged", payload: {type: "InFlight"}});
 
+        //bypass tpass
+        let login_state: LoginState = {type: "LoggedIn", role: "admin"} ;
+        console.log(login_state)
+        dispatch({action: "LoginStateChanged", payload: login_state});
+
+        /*
         api.validate_user(user, pwd)
+
             .then(a => {
                     console.log("Login result");
                     console.log(a);
@@ -306,6 +313,8 @@ function Root () {
                 dispatch({action: "LoginStateChanged", payload: {type: "Failed", msg: err}});
             })
 
+
+         */
     }
 
     function logout () {

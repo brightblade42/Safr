@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import eye from "./images/eye_logo.png";
 import { FontAwesomeIcon as FAIcon } from "@fortawesome/react-fontawesome";
-import {AppState, LoginState} from './AppState';
+import {AppState, LoginState} from './appstate';
 
 export const LoginComponent = (props) => {
 

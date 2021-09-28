@@ -23,7 +23,7 @@ import {
 
 import {DateTime} from 'luxon';
 import { FontAwesomeIcon as FAIcon } from "@fortawesome/react-fontawesome";
-import {AppState} from "./AppState";
+import {AppState} from "./appstate";
 
 const ImageFormatter = ({value}) => {
     const imgf = "data:image/png;base64, " + value

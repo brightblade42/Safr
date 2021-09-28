@@ -2,6 +2,7 @@ import React from 'react';
 import { FontAwesomeIcon as FAIcon } from "@fortawesome/react-fontawesome";
 import {CheckIn, CheckOut} from "./heroicons";
 const InOut = ({direction}) => ( direction ? <CheckIn/> : <CheckOut/> )
+import {Player} from 'media-stream-player';
 
 export function DisabledVideo({cam})  {
     return (
@@ -95,18 +96,17 @@ export function AxVideo({cam}) {
         <div className="w-full max-w-lg flex-shrink-0 flex flex-col mr-1">
 
             <div className="uppercase
-                 rounded-t-md py-1 text-center transform translate translate-y-4 font-bold mt-2 text-md
-                 tracking-wide text-bgray-700 bg-bgray-300">
+                 rounded-t-md py-1  transform translate translate-y-4 font-bold mt-2 text-md
+                tracking-wide text-bgray-700 bg-bgray-300">
                 <div className="flex justify-center space-x-4">
                     <div>{cam.name}</div>
                     <InOut direction={cam.direction}/>
                 </div>
             </div>
             <div className="h-80 bg-gray-100">
-                <media-stream-player
-                    secure={cam.secure}
-                    autoplay
-                    format="RTP_H264"
+                <Player
+                    autoPlay
+                    initialFormat="RTP_H264"
                     hostname={cam.ipaddress}
                 />
             </div>
@@ -119,7 +119,6 @@ export function VideoList(props) {
 
    let app_state = props.state;
    console.log("==== prop aroni =====")
-  // console.log(props)
    let available_cams =app_state.available_cameras;
 
    const avail_cams = () => {
