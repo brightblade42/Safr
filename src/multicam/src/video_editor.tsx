@@ -1,5 +1,15 @@
 import React, {useEffect} from 'react';
-import {AnalysisState, Analysis, AnalyzedFrame, update, init_state, AnalysisMsg, VideoPlayState} from "./analysis_state";
+import {
+    AnalysisState,
+    Analysis,
+    AnalyzedFrame,
+    update,
+    init_state,
+    AnalysisMsg,
+    VideoPlayState,
+    Profile
+} from "./analysis_state";
+import EditDialog from './dlg_profile';
 import './index.css';
 import {info} from "autoprefixer";
 
@@ -10,6 +20,8 @@ function format_confidence (conf: number)  {
 
 function AnalyzedFrames (props) {
     const ctx = props.ctx;
+    const dispatch = props.dispatch;
+
     if (props.state === undefined) {
         return <div className="transition md:text-4xl lg:text-7xl text-green-800 opacity-10 text-center">Analyzed Frames</div>
     }
@@ -22,7 +34,7 @@ function AnalyzedFrames (props) {
         } else {
 
             return frames.map(frame => {
-                return  <AFrame ctx={ctx} frame={frame} />
+                return  <AFrame ctx={ctx} frame={frame} dispatch={dispatch} />
             })
         }
 
@@ -37,8 +49,8 @@ function AnalyzedFrames (props) {
 function AFrame (props) {
 
     const ctx = props.ctx;
-    const frame = props.frame
-
+    const frame = props.frame;
+    const dispatch = props.dispatch;
     //make detection and identification a single list.
     //detected but not identified are "unknowns"
     function combine_faces() {
@@ -48,7 +60,7 @@ function AFrame (props) {
 
                 <div className="m-auto ">
                     <div className="" >
-                        <DetectedFaces ctx={ctx} faces={frame.faces_detected} />
+                        <DetectedFaces ctx={ctx} faces={frame.faces_detected} dispatch={dispatch} />
                     </div>
 
                 </div>)
@@ -103,7 +115,7 @@ function AFrame (props) {
            return (
                <div className="m-auto">
                    <div className="p-4" >
-                       <IdentifiedFaces ctx={ctx} faces={sorted_by_x} />
+                       <IdentifiedFaces ctx={ctx} faces={sorted_by_x} dispatch={dispatch} />
                    </div>
                </div>
            )
@@ -119,7 +131,7 @@ function DetectedFace (props) {
 
     const c_ref  = React.useRef();
     const data = props.data
-
+    const dispatch = props.dispatch;
     function draw_face() {
         const cv = c_ref.current;
         if (cv === undefined) { return; }
@@ -134,7 +146,7 @@ function DetectedFace (props) {
 
     React.useEffect(() => { draw_face() }, [data])
 
-    return <UnknownFace c_ref={c_ref } />
+    return <UnknownFace c_ref={c_ref } dispatch={dispatch} />
 }
 
 
@@ -143,6 +155,7 @@ function DetectedFaces (props) {
     const ctx = props.ctx;
     const faces = props.faces;
     const [datas, set_datas] = React.useState([]);
+
 
     function build_faces() {
         if (faces === undefined) {
@@ -185,7 +198,7 @@ function DetectedFaces (props) {
     return (
         <div className="flex text-wgray-200 bg-wgray-100 ">
             {datas.map((d => {
-                return <DetectedFace data={d} />
+                return <DetectedFace data={d} dispatch={props.dispatch}/>
             }))}
         </div>
 
@@ -268,6 +281,14 @@ function KnownFace (props) {
 
 function UnknownFace (props) {
     let c_ref = props.c_ref
+    let dispatch = props.dispatch;
+
+    function edit_profile() {
+       console.log("id edit you if I knew how!");
+       dispatch({action: "ProfileActionChanged", payload: {type: "Editing"}});
+       //we'll be needing to manage the canvas ref to get at our images for saving the profile..
+
+    }
 
     return (
 
@@ -289,11 +310,14 @@ function UnknownFace (props) {
             <div className="flex justify-between items-end items-center bg-bgray-100 h-12 rounded-b-md opacity-80">
 
                 <div className="text-lg ml-2  font-semibold text-bgray-600 tracking-wide "></div>
-
+                <div>
+                    <button className="btn-indigo py-1" onClick={edit_profile}>Hello</button>
+                </div>
                 <div
                     className={`flex space-x-1 mr-2 border border-gray-900  uppercase text-sm font-extrabold bg-gray-100 text-gray-600 py-1 px-2 rounded-md flex-shrink-0 `}>
                     <span>None</span>
                 </div>
+
 
 
             </div>
@@ -307,6 +331,7 @@ function IdentifiedFace (props) {
 
     const c_ref  = React.useRef();
     const data = props.data
+    const dispatch = props.dispatch
 
     function draw_face() {
         const cv = c_ref.current;
@@ -341,11 +366,11 @@ function IdentifiedFace (props) {
     function draw_card () {
 
             if (data.face.name === "Unknown") {
-                return <UnknownFace c_ref={c_ref}  />
+                return <UnknownFace c_ref={c_ref} dispatch={dispatch}  />
             } else if (data.face.status === "FR Watch") {
-                return <FRWatchFace c_ref={c_ref} face={data.face} />
+                return <FRWatchFace c_ref={c_ref} face={data.face} dispatch={dispatch} />
             } else {
-                return <KnownFace c_ref={c_ref} face={data.face} />
+                return <KnownFace c_ref={c_ref} face={data.face} dispatch={dispatch} />
             }
 
     }
@@ -357,6 +382,7 @@ function IdentifiedFaces (props) {
 
     let ctx = props.ctx;
     let faces = props.faces;
+    let dispatch = props.dispatch;
     let [datas, set_datas] = React.useState([]);
 
     function build_faces() {
@@ -389,7 +415,7 @@ function IdentifiedFaces (props) {
     return (
         <div className="flex">
             {datas.map((d => {
-                return <IdentifiedFace data={d}  />
+                return <IdentifiedFace data={d} dispatch={dispatch}  />
             }))}
         </div>
     )
@@ -426,6 +452,9 @@ function MyVideo (props) {
 
 const MemVid = React.memo(MyVideo);
 
+
+
+
 export function VideoEditor(props) {
 
     const [video, set_video] = React.useState();
@@ -437,10 +466,10 @@ export function VideoEditor(props) {
     const canvasRef = React.useRef();
     const vidplayer = React.useRef();
     let [ctx, set_context] = React.useState(undefined); //hmmm
-    let [image_comparison, set_image_comparison] = React.useState(undefined);
     let [frame_num, set_frame_num] = React.useState(0);
     let [state, dispatch] = React.useReducer(update, init_state()); //analysisState
     let api = props.api;
+
     useEffect(() => {
         const timer = setInterval(() => {
                 capture_frame();
@@ -448,6 +477,8 @@ export function VideoEditor(props) {
         }, 1300);
         return () => clearInterval(timer)
     })
+
+
 
     function capture_frame() {
 
@@ -530,34 +561,6 @@ export function VideoEditor(props) {
 
     }
 
-/*
-    async function verify_faces(face1: Blob, face2: Blob) {
-
-        //TODO: url for runtime not devtime
-        let api_url = `http://localhost:8085/fr/`;
-        let endpoint = "verify_faces";
-        let form_data = new FormData();
-        form_data.append("image1", face1, "image1.jpg");
-        form_data.append("image2", face2, "image2.jpg");
-        try {
-            let res = await fetch(`${api_url}${endpoint}`,
-                {
-                    method: 'POST',
-                    body: form_data
-                });
-
-            let json = await res.json();
-            await set_image_comparison(json.confidence);
-
-            console.log(json);
-            console.log(image_comparison.image1_face);
-            return json;
-        } catch (e) {
-            console.log(e);
-        }
-    }
-    */
-
     //The boxes around the faces on a captured frame
     //TOOD: can we do this after we draw to the cropped context
     //don't need to see bboxes in cropped images
@@ -597,26 +600,26 @@ export function VideoEditor(props) {
         )
     }
 
-    function CaptureQuadrant() {
-
-        if (video) {
-            return (
-
-                <div className="w-[800px]">
-                    <canvas id="vid_capture" ref={canvasRef} className="ml-4 w-[800px] h-[360px]"/>
-                </div>
-            )
-        }
-        else {
-            return(
-                <div className="ml-20 mt-12 flex-shrink-0 transition md:text-4xl lg:text-7xl text-green-800 opacity-10 text-center" > Frame</div>
-            )
-
+    let profile_funcs = {
+        save_profile: async (p: Profile) => { //current_profile will already be set from edit_dlg..could do it here too.
+            console.log("in save_profile callback")
+            dispatch({action: "ProfileActionChanged", payload: { type: "Saving", msg: p }});
+            //call the remote api.
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            console.log("waited 2 seconds....");
+            dispatch({action: "ProfileActionChanged", payload: {type: "Completed"}})
+            console.log(p);
+            dispatch({action: "ProfileActionChanged", payload: {type: "None"}})
+        },
+        cancel: () => {
+            console.log("Cancel profile update");
+            dispatch({action: "ProfileActionChanged", payload: {type: "None"}});
         }
     }
 // @ts-ignore
     return (
         <>
+            <EditDialog  state={state} funcs={profile_funcs}/>
             <div className="flex">
                 <div className="flex flex-col">
                     <input className="ml-4 mb-4 text-gray-900 text-lg" type="file" accept="video/*"
@@ -633,7 +636,7 @@ export function VideoEditor(props) {
 
             </div>
 
-            <AnalyzedFrames ctx={ctx} state={state} />
+            <AnalyzedFrames ctx={ctx} state={state} dispatch={dispatch} />
         </>
     )
 }

@@ -20,6 +20,31 @@ export type Analysis = {
 //number of frames to scrub forward or backward.
 export type FrameStep =  { plus: number; minus: number }
 
+export type ProfileActionState =
+    | { type: "None"  | "Editing" |  "Completed" }
+    | { type: "Saving"; msg: Profile} //the actual profie we'll be changing
+    | { type: "Failed"; msg: string }
+
+export type Profile = {
+    ccode: number;
+    first: string;
+    middle: string;
+    last: string;
+    status: string;  //a list of options from TPass.
+    image: string;   //base64 or what else?
+}
+
+function init_profile() {
+    return {
+        ccode: -1,
+        first: "",
+        middle: "",
+        last: "",
+        status: "",  //a list of options from TPass.
+        image: ""  //base64 or what else?
+    }
+}
+
 export interface AnalysisState {
     name: string,
     snapshot_time: number, //when to copy a frame for analysis in milliseconds
@@ -31,6 +56,8 @@ export interface AnalysisState {
     is_detecting_faces: boolean;
     is_recognizing_faces: boolean;
     is_analyzing_frame: boolean;
+    profile_action_state: ProfileActionState;
+    current_profile: Profile;
     video_play_state: VideoPlayState;
     analysis: Analysis
 }
@@ -38,7 +65,10 @@ export interface AnalysisState {
 function assertUnreachable (x: never): never {
     throw new Error("UNREACHABLE MSG: Didn't expect to get here");
 }
-
+type ProfileActionChangedMsg = {
+    action: "ProfileActionChanged",
+    payload: ProfileActionState
+}
 type AnalyzedFrameChangedMsg = {
     action: "AnalyzedFrameChanged",
     payload: AnalyzedFrame
@@ -71,6 +101,7 @@ export type AnalysisMsg =
     | RecognizingFacesMsg
     | AnalyzingFrameMsg
     | VideoPlayStateChangedMsg
+    | ProfileActionChangedMsg
 
 function add_or_update_frame(state: AnalysisState, frame: AnalyzedFrame) {
     //TODO: finding the max frame_num might be better...
@@ -85,6 +116,32 @@ function add_or_update_frame(state: AnalysisState, frame: AnalyzedFrame) {
     }
 
 }
+
+
+//currently we are updating the current_profile when the profile action advances
+//to None or Saving.
+//Not sure if this should be it's own dispatched state change
+function update_profile_action(state: AnalysisState, action: ProfileActionState) {
+    switch(action.type) {
+        case "None" : {
+            return {...state, profile_action_state: action, current_profile: init_profile()}
+        }
+        case "Editing": {
+            return {...state, profile_action_state: action}
+        }
+        case "Saving": {
+            return {...state, profile_action_state: action, current_profile: action.msg }
+        }
+        case "Completed" : {
+            return {...state, profile_action_state: action  }
+        }
+        case "Failed": {
+            return {...state, profile_action_state: action  }
+        }
+    }
+
+}
+
 export function update(state: AnalysisState, msg: AnalysisMsg) {
     switch(msg.action) {
         case "AnalyzedFrameChanged": {
@@ -94,6 +151,10 @@ export function update(state: AnalysisState, msg: AnalysisMsg) {
             console.log("VideoPlayStateChanged Msg");
             //return state
             return {...state, video_play_state: msg.payload }
+        }
+        case "ProfileActionChanged": {
+            console.log("ProfileActionChanged Msg");
+            return update_profile_action(state, msg.payload)  //also updates the current_profile
         }
     }
 }
@@ -105,6 +166,8 @@ export function init_state () :AnalysisState {
         is_analyzing_frame: false,
         is_detecting_faces: false,
         is_recognizing_faces: false,
+        profile_action_state: {type: "None"},
+        current_profile: init_profile(), //no undefined or nulls please.
         video_play_state: {type: "Stopped"},
         name: "Analysis 1",
         snapshot_time: 2000, //milliseconds
