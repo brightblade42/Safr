@@ -643,6 +643,7 @@ let get_identity_handler =
                   return! json {| error=msg |} next ctx
         }
 
+
 let enroll_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
@@ -727,6 +728,25 @@ let get_enrollments_handler =
 
         }
 
+let create_profile_handler =
+    fun (next: HttpFunc) (ctx: HttpContext) ->
+        task {
+           return! json {| message="Profile Creation. Coming Soon!" |} next ctx
+
+        }
+let get_status_types_handler =
+    fun (next: HttpFunc) (ctx: HttpContext) ->
+        task {
+           return! json {| message="Statue types. Coming Soon!" |} next ctx
+
+        }
+let get_client_types_handler =
+    fun (next: HttpFunc) (ctx: HttpContext) ->
+        task {
+           return! json {| message="client types. Coming Soon!" |} next ctx
+
+        }
+
 let start_camera_streams_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
@@ -802,11 +822,14 @@ let webApp : HttpHandler =
                route "/fr/start-streams" >=> start_camera_streams_handler
                route "/fr/stop-streams" >=> stop_camera_streams_handler
                route "/fr/enrollment/delete-all" >=> delete_all_enrollments_handler
+               route "/fr/get-client-types" >=> get_client_types_handler
+               route "/fr/get-status-types" >=> get_status_types_handler
            ]
         POST >=>
             choose [
                 route "/fr/validate_user" >=> login_handler
                 route "/fr/logs" >=> frlog_handler
+                route "/fr/create-profile" >=> create_profile_handler
                 route "/fr/recognize" >=> recognize_handler
                 route "/fr/verify_faces" >=> verify_faces_handler
                 route "/fr/detect-frame" >=> detect_frame_handler
