@@ -695,6 +695,28 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
         return enroll_count
     }
 
+    member self.get_client_types () = async {
+        let svc = tpass_service.Value
+        let! res = svc.get_client_types ()
+        return
+            match res with
+            | Success t -> Ok t
+            | TPassError e -> Error e.Message
+            | _ -> Error "Could not retrieve client types from tpass"
+
+    }
+
+    member self.get_status_types () = async {
+        let svc = tpass_service.Value
+        let! res = svc.get_status_types ()
+        return
+            match res with
+            | Success t -> Ok t
+            | TPassError e -> Error e.Message
+            | _ -> Error "Could not retrieve status types from tpass"
+
+    }
+
     member self.get_identity (req: GetIdentityReq) = async { return! identifier.get_identity req }
     member self.get_enrollment (id:string)  = async { return enrollments.get_enrolled_details_by_id id  }
     member self.get_enrollment_by_id (id: IdentityItem) = async { return! get_enrolled_details_by_id id }
@@ -705,6 +727,15 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
     member self.add_face (req: AddFaceReq)  = async { return! identifier.add_face req }
     member self.delete_face (req: DeleteFaceReq) = async { return! identifier.delete_face req }
 
+    member self.create_profile(profile: NewClient) = async {
+        let svc = tpass_service.Value
+        let! res = svc.create_profile profile
+        return
+            match res with
+                | Success p -> Ok p
+                | TPassError e -> Error e.Message
+                | _ -> Error "There was an error creating tpass profile"
+    }
     member self.validate_user (user:string) (pass:string) =
             let svc = tpass_service.Value
             let res = svc.validate_user (UserPass (user, pass))  |> Async.RunSynchronously

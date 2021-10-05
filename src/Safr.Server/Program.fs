@@ -249,7 +249,7 @@ module Helpers =
 
 //HTTP Handlers
 
-let unescape_json (json_str: string) = json_str.Replace("\\","""""").Replace("\"{", "{").Replace("}\"", "}")
+let unescape_json (json_str: string) = json_str.Replace("\\","""""").Replace("\"{", "{").Replace("}\"", "}").Replace("[\"", "[").Replace("]\"", "]")
 
 let detect_frame_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
@@ -730,20 +730,58 @@ let get_enrollments_handler =
 
 let create_profile_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
-        task {
-           return! json {| message="Profile Creation. Coming Soon!" |} next ctx
 
+        task {
+            try
+
+                let img = ctx.Request.Form.Files.GetFile("image")
+                use mem = new MemoryStream()
+                img.OpenReadStream().CopyTo mem
+                let img_str = Convert.ToBase64String(mem.ToArray())
+                let profile = ctx.Request.Form.Item("profile").Item(0)
+                let  fr  = ctx.GetService<FRService>()
+
+                let nc = NewClient.from profile
+                printfn $"%A{nc}"
+                match nc with
+                 | Ok client ->
+                        let cc = { client with base64Image = img_str }
+                        let res = fr.create_profile cc|> Async.RunSynchronously
+                        //printfn $"%A{cc}"
+                        return! json {| message=res |} next ctx
+                 | Error e  ->
+                     return! json {| message=e |} next ctx
+                //let! res = fr.recognize face
+
+            with
+            | :? Exception as ex ->
+                printfn $"%A{ex}"
+                return! json {| msg=ex.Message |} next ctx
         }
 let get_status_types_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-           return! json {| message="Statue types. Coming Soon!" |} next ctx
+
+            let fr = ctx.GetService<FRService>()
+            let! status_types = fr.get_status_types()
+            match status_types with
+            | Ok json_str ->
+                let scaped = unescape_json json_str
+                return! text scaped next ctx
+              | Error e -> return! json {| error=e |} next ctx
 
         }
 let get_client_types_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
-           return! json {| message="client types. Coming Soon!" |} next ctx
+
+            let fr = ctx.GetService<FRService>()
+            let! client_types = fr.get_client_types()
+            match client_types with
+            | Ok json_str ->
+                let scaped = unescape_json json_str
+                return! text scaped next ctx
+              | Error e -> return! json {| error=e |} next ctx
 
         }
 
