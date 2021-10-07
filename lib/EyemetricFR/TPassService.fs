@@ -7,6 +7,7 @@ open EyemetricFR.TPass.Types   //NOTE: types override any types with same name f
 
 module REST = TPass
 
+
 module SearchHelper =
 
      //=================================================================================================== ===========
@@ -217,6 +218,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
                 None //failwith "could not parse"
         else  None
 
+
     let try_get_pv_client (id: PVID) = async {
         return!
             match token_pair with
@@ -240,6 +242,16 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
             | None -> async { return Error "Need a valid token to make TPass calls." }
     }
 
+    let try_create_profile (profile: NewClient) = async {
+        return!
+            match token_pair with
+            | Some tok ->
+                try
+                    REST.create_profile client tok make_url profile
+                with
+                | e -> async { return Error e.Message }
+            | None -> async { return Error "Need a valid token to make TPass calls." }
+    }
 
     let try_register_pv_id (ccode: string) (pv_id: string) = async {
         return!
@@ -253,6 +265,26 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
 
     }
 
+    let try_get_status_types () = async {
+        return!
+            match token_pair with
+            | Some tok ->
+                try
+                    REST.get_status_types client tok make_url
+                with
+                | e -> async { return Error e.Message }
+            | None -> async { return Error "Need a valid token to make TPass calls." }
+    }
+    let try_get_client_types () = async {
+        return!
+            match token_pair with
+            | Some tok ->
+                try
+                    REST.get_client_types client tok make_url
+                with
+                | e -> async { return Error e.Message }
+            | None -> async { return Error "Need a valid token to make TPass calls." }
+    }
     let try_update_pv_id  (ccode: string) (pv_id: string) = async {
         return!
             match token_pair with
@@ -285,6 +317,15 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
             return TPassError e
     }
 
+    member self.create_profile (profile: NewClient) = async {
+        let! res = try_create_profile profile
+        return
+           match res with
+           | Ok types  -> Success types
+           | Error e -> TPassError (Exception e)
+
+    }
+
     member self.validate_user (cred: Credential) = async {
         try
             printfn "==== Retrieving token for USER ==== "
@@ -305,6 +346,24 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
             error_evt.Trigger e.Message
             return TPassError e
     }
+
+    member self.get_client_types () = async {
+        let! res = try_get_client_types ()
+        return
+           match res with
+           | Ok types  -> Success types
+           | Error e -> TPassError (Exception e)
+
+    }
+
+    member self.get_status_types () = async {
+        let! res = try_get_status_types ()
+        return
+           match res with
+           | Ok types  -> Success types
+           | Error e -> TPassError (Exception e)
+    }
+
     member self.get_pv_client (id: PVID) = async {
            let! client_res = try_get_pv_client id
            return
@@ -398,6 +457,7 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
                    Success reg
                | Error e -> TPassError (Exception e)
     }
+
 
 
 

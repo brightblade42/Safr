@@ -247,7 +247,7 @@ module HTTPApi =
                     | true -> Success res
                     | false -> HTTPResponseError res
             with
-            | :? TaskCanceledException as ex -> return TimedOutError "Post json call Timed out after 60 seconds"
+            | :? TaskCanceledException as ex -> return TimedOutError "Post json call Timed out after 60 sseeconds"
             | :? AggregateException as ex -> return UnhandledError ex
             | :? Exception as ex -> return UnhandledError ex
         }
@@ -425,6 +425,13 @@ module HTTPApi =
            return!  get_with_tok client (make_url "companies/restricted?groups=Admin") (Some token_pair)
         }
 
+        let get_client_types (client: HttpClient) (token_pair: Auth.TokenPair) (make_url: UriBuilder) = async {
+                return! get_with_tok client (make_url "clienttypes/getclienttype") (Some token_pair)
+        }
+
+        let get_status_types (client: HttpClient) (token_pair: Auth.TokenPair) (make_url: UriBuilder) = async {
+                return! get_with_tok client (make_url "status") (Some token_pair)
+        }
 
         let search_client (client: HttpClient) (token_pair: Auth.TokenPair) (make_url: UriBuilder) id typ compid = async {
            let uri =
@@ -452,7 +459,10 @@ module HTTPApi =
         }
 
         let get_client_by_ccode (client: HttpClient) (token_pair: Auth.TokenPair) (make_url: UriBuilder) ccode = async {
-            return!  get_with_tok client (make_url $"clients/load?id=%s{ccode}") (Some token_pair)
+            let url =  (make_url $"clients/load?id=%s{ccode}")
+            //printfn "CCODE URL"
+            //printfn $"%A{url}"
+            return!  get_with_tok client url (Some token_pair)
         }
 
         let download_image (client: HttpClient) (url: string) = async {
@@ -465,6 +475,13 @@ module HTTPApi =
         let get_last_checkin_record (client: HttpClient) (token_pair: Auth.TokenPair) (make_url: UriBuilder) ccode compid (date: DateTime) = async {
             let dt = date.ToString("yyyy-MM-dd")
             return! get_with_tok client (make_url $"studentlog/recent?compid=%s{compid}&ccode=%s{ccode}&date=%s{dt}") (Some token_pair)
+        }
+
+        let create_profile(client: HttpClient) (token_pair: Auth.TokenPair) (make_url: UriBuilder) (profile: NewClient) = async {
+            let json = NewClient.to_str profile
+            //printfn $"%A{json}"
+
+            return! post_json_with_tok client (make_url "clients") json (Some token_pair)
         }
 
         let check_in_student (client:  HttpClient) (token_pair: Auth.TokenPair) (make_url: UriBuilder) (checkin_rec: CheckInRecord) = async {

@@ -40,12 +40,11 @@ module Tools =
 
 
 let publishPath = Path.getFullName "publish"
-let srcPath = Path.getFullName "src"
-let clientSrcPath = srcPath </> "multicam"
-let serverSrcPath = srcPath </> "Safr.Server"
+//let srcPath = Path.getFullName "src"
+let srcPath = "/Users/ryan/dev/web/eyemetric/"
+let clientSrcPath = srcPath </> "apps/multicam"
+let serverSrcPath = srcPath </> "services/Safr.Server"
 let appPublishPath = publishPath </> "app"
-//let fableBuildPath = clientSrcPath </> ".fable-build"
-//let fableBuildPath = clientSrcPath </> "src/bin"
 
 // Targets
 let clean proj = [ proj </> "bin"; proj </> "obj" ] |> Shell.cleanDirs
@@ -70,8 +69,9 @@ Target.create "Publish" (fun _ ->
     [ appPublishPath ] |> Shell.cleanDirs
     Tools.dotnet publishArgs serverSrcPath
     [ appPublishPath </> "appsettings.Development.json" ] |> File.deleteAll
-    Tools.yarn $"snowpack build" clientSrcPath
-    Shell.mv "./build" $"%s{appPublishPath}/public"
+    //Tools.yarn $"snowpack build" clientSrcPath
+    //Shell.cp_r "./build" $"%s{appPublishPath}/public"
+
 )
 
 
@@ -85,6 +85,17 @@ Target.create "Run" (fun _ ->
         Tools.yarn $"snowpack dev" clientSrcPath
     }
     [server;client]
+    |> Async.Parallel
+    |> Async.RunSynchronously
+    |> ignore
+)
+
+Target.create "fun" (fun _ ->
+    printfn "====== IN THE FUN TARGET ====="
+    let server = async {
+        Tools.dotnet "watch run" serverSrcPath
+    }
+    [server]
     |> Async.Parallel
     |> Async.RunSynchronously
     |> ignore

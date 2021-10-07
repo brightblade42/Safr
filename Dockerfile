@@ -8,7 +8,7 @@ ENV ENROLL_CONF="1.00"
 #not used yet
 ENV IDENT_CONF="0.92"
 WORKDIR /app
-COPY publish/app/ /app
+COPY .publish /app
 COPY extra/build_data /app/data
 RUN apt update && apt install -y sqlite3 vim
 EXPOSE 8085

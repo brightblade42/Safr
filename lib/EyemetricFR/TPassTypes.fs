@@ -64,6 +64,92 @@ type TokenResponse =
 type SearchKind = Student | All
 type SearchTerm = SearchTerm of string
 
+
+type NewClient =
+    {
+    clntTid: int  //Visitor client type (required)
+    sttsId: int //-- Active status (required)
+    fName: String //-- First name (required)
+    lName: string // Last name (required)
+    base64Image: string // base64string of the photo. This is optional
+    //-- Below are the address information which are all optional
+    typ: string
+    street1: string
+    city: string
+    state: string
+    zipcode: string
+    }
+    static member Decoder: Decoder<NewClient> =
+      Decode.object (fun get -> {
+          clntTid    = get.Required.At ["clntTid"]     Decode.int
+          sttsId     = get.Required.At [ "sttsId" ]    Decode.int
+          fName      = get.Optional.At [ "fName" ]     Decode.string  |> Option.defaultValue ""
+          lName      = get.Optional.At [ "lName" ]     Decode.string  |> Option.defaultValue ""
+          base64Image = get.Optional.At ["base64Image"] Decode.string |> Option.defaultValue ""
+          typ         = get.Required.At ["type"] Decode.string
+          street1     =  get.Optional.At ["street1"] Decode.string |> Option.defaultValue ""
+          city        =  get.Optional.At ["city"] Decode.string |> Option.defaultValue ""
+          state       = get.Optional.At ["state"] Decode.string |> Option.defaultValue ""
+          zipcode     = get.Optional.At ["zipcode"] Decode.string |> Option.defaultValue ""
+    })
+
+    static member from json = Decode.fromString NewClient.Decoder json
+    //static member to_str (new_client: NewClient) = Encode.Auto.toString(4, new_client)
+
+    static member to_str (new_client: NewClient) =
+     let enc = Encode.object [
+         "clntTid",        Encode.int   new_client.clntTid
+         "sttsId",         Encode.int      new_client.sttsId
+         "fName",          Encode.string   new_client.fName
+         "lName",          Encode.string   new_client.lName
+         "base64Image",    Encode.string new_client.base64Image
+         "type",           Encode.string new_client.typ
+         "street1",        Encode.string new_client.street1
+         "city",           Encode.string new_client.city
+         "state",          Encode.string new_client.state
+         "zipcode",        Encode.string new_client.zipcode
+     ]
+     enc.ToString()
+
+type NewClientResponse =
+    {
+    ccode: int
+    clntTid: int  //Visitor client type (required)
+    sttsId: int //-- Active status (required)
+    fName: String //-- First name (required)
+    lName: string // Last name (required)
+    base64Image: string // base64string of the photo. This is optional
+    //-- Below are the address information which are all optional
+    typ: string
+    street1: string
+    city: string
+    state: string
+    zipcode: string
+    amPkId: int
+    aptmnId: int
+    photoFilename: string
+    }
+    static member Decoder: Decoder<NewClientResponse> =
+      Decode.object (fun get -> {
+          ccode    = get.Required.At ["ccode"]     Decode.int
+          clntTid    = get.Required.At ["clntTid"]     Decode.int
+          sttsId     = get.Required.At [ "sttsId" ]    Decode.int
+          fName      = get.Optional.At [ "fName" ]     Decode.string  |> Option.defaultValue ""
+          lName      = get.Optional.At [ "lName" ]     Decode.string  |> Option.defaultValue ""
+          base64Image = get.Optional.At ["base64Image"] Decode.string |> Option.defaultValue ""
+          typ         = get.Required.At ["type"] Decode.string
+          street1     =  get.Optional.At ["street1"] Decode.string |> Option.defaultValue ""
+          city        =  get.Optional.At ["city"] Decode.string |> Option.defaultValue ""
+          state       = get.Optional.At ["state"] Decode.string |> Option.defaultValue ""
+          zipcode     = get.Optional.At ["zipcode"] Decode.string |> Option.defaultValue ""
+          amPkId    = get.Required.At ["amPkId"]     Decode.int
+          aptmnId    = get.Required.At ["aptmnId"]     Decode.int
+          photoFilename     = get.Required.At [ "photoFilename" ]  Decode.string
+    })
+
+    static member from json = Decode.fromString NewClientResponse.Decoder json
+    //static member to_str (new_client: NewClient) = Encode.Auto.toString(4, new_client)
+
 type EmployeeOrUser =
         {
             ccode: int
