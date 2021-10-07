@@ -1,1 +1,0 @@
-export default "/_dist_/images/eye_logo2.png";
