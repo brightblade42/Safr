@@ -34,6 +34,23 @@ type DeleteEnrollmentRequest =
     static member from json = Decode.fromString DeleteEnrollmentRequest.Decoder json
 
 
+
+type DeleteProfileRequest =
+    {
+        ccode: string
+        pv_id: string
+    }
+
+    static member Decoder: Decoder<DeleteProfileRequest> =
+        Decode.object(fun get -> {
+            ccode = get.Required.At ["ccode"] Decode.string
+            pv_id = get.Required.At ["pv_id"] Decode.string
+        })
+
+    static member from json = Decode.fromString DeleteProfileRequest.Decoder json
+
+
+
 type EnrollCandidate =
     {
         id_or_name: string

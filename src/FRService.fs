@@ -717,6 +717,7 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
 
     }
 
+    //we also need to make sure out local enrollment is clear . TPass may or may not do this
     member self.get_identity (req: GetIdentityReq) = async { return! identifier.get_identity req }
     member self.get_enrollment (id:string)  = async { return enrollments.get_enrolled_details_by_id id  }
     member self.get_enrollment_by_id (id: IdentityItem) = async { return! get_enrolled_details_by_id id }
@@ -735,6 +736,24 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
                 | Success p -> Ok p
                 | TPassError e -> Error e.Message
                 | _ -> Error "There was an error creating tpass profile"
+    }
+    member self.delete_profile (ccode: string) = async {
+        let svc = tpass_service.Value
+        let! res = svc.delete_profile ccode
+        return
+            match res with
+            | Success t -> Ok t
+            | TPassError e -> Error e.Message
+            | _ -> Error "Could not delete profile from TPass"
+    }
+    member self.edit_profile (req: EditProfileRequest) = async {
+        let svc = tpass_service.Value
+        let! res = svc.edit_profile req
+        return
+            match res with
+            | Success t -> Ok t
+            | TPassError e -> Error e.Message
+            | _ -> Error "Could not edit profile from TPass"
     }
     member self.validate_user (user:string) (pass:string) =
             let svc = tpass_service.Value

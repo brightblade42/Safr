@@ -774,6 +774,77 @@ let enroll_newclient (nc: Result<NewClientResponse, string>) (ctx: HttpContext) 
         | Error e ->  return  Error {| error=e |}
 }
 
+let edit_profile_handler =
+    fun (next: HttpFunc) (ctx: HttpContext) ->
+
+        task {
+
+            let fr = ctx.GetService<FRService>()
+           try
+               let! body_str  = read_request_body ctx
+               let edit_req = EditProfileRequest.from body_str
+               match edit_req with
+               | Ok ed ->
+                    printfn "The Json sent -------"
+                    printfn $"%A{ed}"
+
+                    //edit tpass profile
+                    let! prof_res =  fr.edit_profile ed
+
+                    match prof_res with //the tpass profile
+                    | Ok r -> return! json {| msg="profile edited!" |} next ctx
+                    | Error e -> return! json {| error=e |} next ctx
+
+                | Error e -> return! json {| error="could not parse json input. Looks invalid." |} next ctx
+           with
+           | :? Exception as ex ->
+                printfn $"%A{ex}"
+                return! json {| msg=ex.Message |} next ctx
+         }
+
+let delete_profile_handler =
+    fun (next: HttpFunc) (ctx: HttpContext) ->
+
+        task {
+
+            let fr = ctx.GetService<FRService>()
+
+            try
+
+                let! body_str = read_request_body ctx
+                let del_req = DeleteProfileRequest.from body_str
+
+                match del_req with
+                | Ok d ->
+                    printfn "The Json sent -------"
+                    printfn $"%A{d}"
+
+                    //delete tpass profile
+                    let! prof_res =  fr.delete_profile d.ccode
+
+                    match prof_res with //the tpass profile
+                    | Ok r ->
+                        printfn $"%A{r}"
+                        let! enr_res = fr.delete_enrollment d.pv_id
+                        match enr_res with
+                        Ok r ->
+                            printfn $"All good: %i{r}"
+                            return! json {| msg="profile deleted!" |} next ctx
+                        | Error e -> return! json {| error=e |} next ctx
+
+                    | Error e -> return! json {| error=e |} next ctx
+
+                    //delete local enrollment
+                | Error e -> return! json {| error="could not parse json input. Looks invalid." |} next ctx
+                //need the ID type
+            with
+            | :? Exception as ex ->
+                printfn $"%A{ex}"
+                return! json {| msg=ex.Message |} next ctx
+
+        }
+
+
 let create_profile_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
 
@@ -916,6 +987,8 @@ let webApp : HttpHandler =
                 route "/fr/validate_user" >=> login_handler
                 route "/fr/logs" >=> frlog_handler
                 route "/fr/create-profile" >=> create_profile_handler
+                route "/fr/delete-profile" >=> delete_profile_handler
+                route "/fr/edit-profile" >=> edit_profile_handler
                 route "/fr/recognize" >=> recognize_handler
                 route "/fr/verify_faces" >=> verify_faces_handler
                 route "/fr/detect-frame" >=> detect_frame_handler
