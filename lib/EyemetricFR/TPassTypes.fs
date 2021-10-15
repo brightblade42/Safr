@@ -64,6 +64,49 @@ type TokenResponse =
 type SearchKind = Student | All
 type SearchTerm = SearchTerm of string
 
+type EditProfileRequest =
+    {
+    ccode: bigint
+    clntTid: int  //Visitor client type (required)
+    sttsId: int //-- Active status (required)
+    fName: String //-- First name (required)
+    lName: string // Last name (required)
+    //base64Image: string // base64string of the photo. This is optional
+    //-- Below are the address information which are all optional
+    //typ: string
+    //street1: string
+    //city: string
+    //state: string
+    //zipcode: string
+    }
+    static member Decoder: Decoder<EditProfileRequest> =
+      Decode.object (fun get -> {
+          ccode    = get.Required.At ["ccode"]     Decode.bigint
+          clntTid    = get.Required.At ["clntTid"]     Decode.int
+          sttsId     = get.Required.At [ "sttsId" ]    Decode.int
+          fName      = get.Optional.At [ "fName" ]     Decode.string  |> Option.defaultValue ""
+          lName      = get.Optional.At [ "lName" ]     Decode.string  |> Option.defaultValue ""
+          //base64Image = get.Optional.At ["base64Image"] Decode.string |> Option.defaultValue ""
+          //typ         = get.Required.At ["type"] Decode.string
+          //street1     =  get.Optional.At ["street1"] Decode.string |> Option.defaultValue ""
+          //city        =  get.Optional.At ["city"] Decode.string |> Option.defaultValue ""
+          //state       = get.Optional.At ["state"] Decode.string |> Option.defaultValue ""
+          //zipcode     = get.Optional.At ["zipcode"] Decode.string |> Option.defaultValue ""
+    })
+
+    static member from json = Decode.fromString EditProfileRequest.Decoder json
+
+
+    static member to_str (req: EditProfileRequest) =
+     let enc = Encode.object [
+         "ccode",        Encode.bigint      req.ccode
+         "clntTid",        Encode.int      req.clntTid
+         "sttsId",         Encode.int      req.sttsId
+         "fName",          Encode.string   req.fName
+         "lName",          Encode.string   req.lName
+     ]
+     enc.ToString()
+
 
 type NewClient =
     {

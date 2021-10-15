@@ -1,6 +1,7 @@
 namespace EyemetricFR
 
 open System
+open System.ComponentModel
 open HTTPApi
 open Auth
 open EyemetricFR.TPass.Types   //NOTE: types override any types with same name from earlier defined modules
@@ -264,7 +265,29 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
             | None -> async { return Error "Need a valid token to make TPass calls." }
 
     }
+    let try_delete_profile (ccode: string) = async {
+        return!
+            match token_pair with
+            | Some tok ->
+                try
+                    REST.delete_profile client tok make_url ccode
+                with
+                | e -> async { return Error e.Message }
+            | None -> async { return Error "Need a valid token to make TPass calls." }
 
+    }
+
+    let try_edit_profile (req: EditProfileRequest) = async {
+        return!
+            match token_pair with
+            | Some tok ->
+                try
+                    REST.edit_profile client tok make_url req
+                with
+                | e -> async { return Error e.Message }
+            | None -> async { return Error "Need a valid token to make TPass calls." }
+
+    }
     let try_get_status_types () = async {
         return!
             match token_pair with
@@ -324,6 +347,22 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
            | Ok types  -> Success types
            | Error e -> TPassError (Exception e)
 
+    }
+
+    member self.delete_profile (ccode: string) = async {
+        let! res = try_delete_profile ccode
+        return
+           match res with
+           | Ok types  -> Success types
+           | Error e -> TPassError (Exception e)
+    }
+
+    member self.edit_profile (req: EditProfileRequest) = async {
+        let! res = try_edit_profile req
+        return
+           match res with
+           | Ok types  -> Success types
+           | Error e -> TPassError (Exception e)
     }
 
     member self.validate_user (cred: Credential) = async {

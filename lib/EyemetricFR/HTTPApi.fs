@@ -287,6 +287,21 @@ module HTTPApi =
                 | false -> Error resp.ReasonPhrase
         }
 
+        let delete_with_tok (client: HttpClient) (token_pair: Auth.TokenPair) (uri: Uri) = async {
+            let req = request HttpMethod.Delete uri
+            req.Headers.Authorization <- (token_pair |> fst |> Auth.to_auth_header)
+
+            let ctok = new CancellationTokenSource(60000) //nothing lives more than 60 seconds
+            let! resp = client.SendAsync(req, ctok.Token) |> Async.AwaitTask
+            let! res = resp.Content.ReadAsStringAsync() |> Async.AwaitTask
+
+            return
+                match resp.IsSuccessStatusCode with
+                | true  -> Ok res
+                | false -> Error resp.ReasonPhrase
+
+        }
+
 
     [<RequireQualifiedAccess>]
     module Paravision =
@@ -482,6 +497,16 @@ module HTTPApi =
             //printfn $"%A{json}"
 
             return! post_json_with_tok client (make_url "clients") json (Some token_pair)
+        }
+
+        let delete_profile(client: HttpClient) (token_pair: Auth.TokenPair)(make_url: UriBuilder) ccode = async {
+            let url = (make_url $"clients/delete?ccode=%s{ccode}")
+            return! delete_with_tok client token_pair url
+        }
+
+        let edit_profile(client: HttpClient) (token_pair: Auth.TokenPair)(make_url: UriBuilder) (req: EditProfileRequest) = async {
+            let json = EditProfileRequest.to_str req
+            return! (put_json client (make_url $"/client/{req.ccode}" ) json (Some token_pair))
         }
 
         let check_in_student (client:  HttpClient) (token_pair: Auth.TokenPair) (make_url: UriBuilder) (checkin_rec: CheckInRecord) = async {

@@ -322,6 +322,7 @@ let recognize_frame_handler =
                     let! res = id |> fr.get_enrollment_by_id
                     match res with
                     | Success c ->
+
                         return Ok {
                             id= id.id;
                             confidence = id.confidence;
