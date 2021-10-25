@@ -64,6 +64,34 @@ type TokenResponse =
 type SearchKind = Student | All
 type SearchTerm = SearchTerm of string
 
+
+type FRAlertRequest =
+    {
+    typ: string  //Visitor client type (required)
+    compid: int //-- Active status (required)
+    pinfo: bigint //-- First name (required)
+    image: string // base64string of the photo. This is optional
+    }
+    static member Decoder: Decoder<FRAlertRequest> =
+      Decode.object (fun get -> {
+          typ         = get.Required.At ["Type"] Decode.string
+          compid     =  get.Required.At ["CompId"] Decode.int //|> Option.defaultValue ""
+          pinfo     =  get.Required.At ["PInfo"] Decode.bigint //|> Option.defaultValue ""
+          image   = get.Required.At ["Image"] Decode.string //|> Option.defaultValue ""
+    })
+
+    static member from json = Decode.fromString FRAlertRequest.Decoder json
+
+    static member to_str (new_client: FRAlertRequest) =
+     let enc = Encode.object [
+         "Type",        Encode.string   new_client.typ
+         "CompId",         Encode.int      new_client.compid
+         "PInfo",          Encode.bigint   new_client.pinfo
+         "Image",    Encode.string new_client.image
+     ]
+     enc.ToString()
+
+
 type EditProfileRequest =
     {
     ccode: bigint
@@ -391,6 +419,11 @@ type TPassClient =
         | Visitor v -> v.ccode
         | EmployeeOrUser emp -> emp.ccode
 
+    static member compId tpass_client =
+        match tpass_client with
+        | Student s -> s.compId
+        | Visitor v -> -1
+        | EmployeeOrUser emp -> emp.compId
 type TPassClientWithImage = {
       client: TPassClient
       image: byte array option

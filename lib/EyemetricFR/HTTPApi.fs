@@ -499,6 +499,15 @@ module HTTPApi =
             return! post_json_with_tok client (make_url "clients") json (Some token_pair)
         }
 
+        let send_fr_alert(client: HttpClient) (token_pair: Auth.TokenPair) (make_url: UriBuilder) (alert: FRAlertRequest) = async {
+            let json = FRAlertRequest.to_str alert
+            printfn "JSON TO SERVER"
+            printfn $"%A{json}"
+            let! res = post_json_with_tok client (make_url "notification/sendalert") json (Some token_pair)
+            printfn $"%A{res}"
+            return res
+        }
+
         let delete_profile(client: HttpClient) (token_pair: Auth.TokenPair)(make_url: UriBuilder) ccode = async {
             let url = (make_url $"clients/delete?ccode=%s{ccode}")
             return! delete_with_tok client token_pair url

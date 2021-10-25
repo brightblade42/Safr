@@ -5,6 +5,8 @@ open Thoth.Json.Net
 type IdentifiedFace = {
 
     ID: string
+    CCode: int
+    CompId: int
     Name: string
     Cam: string
     Confidence: float

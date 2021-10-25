@@ -253,6 +253,16 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
                 | e -> async { return Error e.Message }
             | None -> async { return Error "Need a valid token to make TPass calls." }
     }
+    let try_send_fr_alert (fralert: FRAlertRequest) = async {
+        return!
+            match token_pair with
+            | Some tok ->
+                try
+                    REST.send_fr_alert client tok make_url fralert
+                with
+                | e -> async { return Error e.Message }
+            | None -> async { return Error "Need a valid token to make TPass calls." }
+    }
 
     let try_register_pv_id (ccode: string) (pv_id: string) = async {
         return!
@@ -349,13 +359,24 @@ type TPassService (url: string, cred: Credential, cert_check: bool) =
 
     }
 
-    member self.delete_profile (ccode: string) = async {
-        let! res = try_delete_profile ccode
+    member self.send_fr_alert (fralert: FRAlertRequest) = async {
+        let! res = try_send_fr_alert fralert
         return
            match res with
            | Ok types  -> Success types
            | Error e -> TPassError (Exception e)
+
     }
+
+    member self.delete_profile (ccode: string) = async {
+        let! res = try_delete_profile ccode
+        return
+           match res with
+           | Ok types  -> Success types //why is this called types?
+           | Error e -> TPassError (Exception e)
+    }
+
+
 
     member self.edit_profile (req: EditProfileRequest) = async {
         let! res = try_edit_profile req

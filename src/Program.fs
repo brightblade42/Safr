@@ -372,6 +372,14 @@ let recognize_top5_handler =
             try
 
                 let img = ctx.Request.Form.Files.GetFile("image")
+
+                let mutable min_conf =  0.90
+                if ctx.Request.Form.ContainsKey("min_confidence") then
+                    let sval = ctx.Request.Form.Item("min_confidence").Item(0)
+                    if sval.Contains(".") then
+                       min_conf <- float sval
+
+
                 use mem = new MemoryStream()
                 img.OpenReadStream().CopyTo mem
                 let face = FaceImage.Binary (mem.ToArray())
@@ -423,7 +431,7 @@ let recognize_top5_handler =
                 | Ok pm ->
                     let x =
                         pm.identities
-                        |> List.filter (fun i -> i.confidence >= 0.90)
+                        |> List.filter (fun i -> i.confidence >= min_conf)
                         |> List.map(fun i -> i |> get_client)
                         |> Async.Parallel
                         |> Async.RunSynchronously
@@ -845,6 +853,37 @@ let delete_profile_handler =
 
         }
 
+let send_fr_alert_handler =
+    fun (next: HttpFunc) (ctx: HttpContext) ->
+
+        task {
+
+           try
+
+               let  fr  = ctx.GetService<FRService>()
+               let! body_str  = read_request_body ctx
+               let alert_req = FRAlertRequest.from body_str
+
+               match alert_req with
+               | Ok ar ->
+                    printfn "The Json sent -------"
+                    //printfn $"%A{ar}"
+
+                    //edit tpass profile
+                    let! alert_res =  fr.send_fr_alert ar
+
+                    match alert_res with //the tpass profile
+                    | Ok r -> return! json {| msg="we sent an fr alert!" |} next ctx
+                    | Error e -> return! json {| error=e |} next ctx
+
+                | Error e -> return! json {| error=e |} next ctx
+                //| Error e -> return! json {| error="could not parse json input. Looks invalid." |} next ctx
+           with
+           | :? Exception as ex ->
+                printfn $"%A{ex}"
+                return! json {| msg=ex.Message |} next ctx
+        }
+
 
 let create_profile_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
@@ -878,6 +917,8 @@ let create_profile_handler =
                 printfn $"%A{ex}"
                 return! json {| msg=ex.Message |} next ctx
         }
+
+
 let get_status_types_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
@@ -988,6 +1029,7 @@ let webApp : HttpHandler =
                 route "/fr/validate_user" >=> login_handler
                 route "/fr/logs" >=> frlog_handler
                 route "/fr/create-profile" >=> create_profile_handler
+                route "/fr/send-alert" >=> send_fr_alert_handler
                 route "/fr/delete-profile" >=> delete_profile_handler
                 route "/fr/edit-profile" >=> edit_profile_handler
                 route "/fr/recognize" >=> recognize_handler

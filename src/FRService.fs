@@ -222,7 +222,7 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
                     let pi = pm.Value
                     let conf = pi.identities.Head.confidence
                     let time =  String.Format("{0:hh:mm:ss tt}", time_stamp.ToLocalTime())
-                    let tpc = ed
+                    let tpc: TPassClient = ed
                     //TODO: if status is FR then don't do check in, call FRAlert
                     let check_res =  check_in_or_out tpc cam_name
 
@@ -232,9 +232,14 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
                         ()
                     | name, Some status ->
                         let frame =  Convert.FromBase64String expanded_image
+                        //if I'm here I can hacky pull the client again,
+                        let ccode = TPassClient.ccode tpc
+                        let compId = TPassClient.compId tpc
 
                         let id_face = {
                                          ID=Guid.NewGuid().ToString()
+                                         CCode = ccode
+                                         CompId = compId
                                          Name = name
                                          Cam=cam_name
                                          Confidence=conf
@@ -728,6 +733,15 @@ type FRService(config_agent:Config, tpass_service:TPassService option,
     member self.add_face (req: AddFaceReq)  = async { return! identifier.add_face req }
     member self.delete_face (req: DeleteFaceReq) = async { return! identifier.delete_face req }
 
+    member self.send_fr_alert(fralert: FRAlertRequest) = async {
+        let svc = tpass_service.Value
+        let! res = svc.send_fr_alert fralert
+        return
+            match res with
+                | Success p -> Ok p
+                | TPassError e -> Error e.Message
+                | _ -> Error "There was an error sending fr alert to TPass"
+    }
     member self.create_profile(profile: NewClient) = async {
         let svc = tpass_service.Value
         let! res = svc.create_profile profile

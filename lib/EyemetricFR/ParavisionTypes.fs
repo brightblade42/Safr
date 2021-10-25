@@ -35,7 +35,7 @@ module Streaming =
                 password           = get.Required.Field "password"   Decode.string
                 direction          = get.Required.Field "direction"  Decode.int
                 streaming          = get.Optional.Field "streaming"  Decode.bool |> Option.defaultValue false
-                detect_frame_rate  = get.Optional.Field "detect_frame_rate"  Decode.int |> Option.defaultValue 1
+                detect_frame_rate  = get.Optional.Field "detect_frame_rate"  Decode.int |> Option.defaultValue 10
                 secure             = get.Optional.Field "enabled"    Decode.bool |> Option.defaultValue false
                 updating           = get.Optional.Field "updating"    Decode.bool |> Option.defaultValue false
           })
