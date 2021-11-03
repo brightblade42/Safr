@@ -963,6 +963,7 @@ let stop_camera_streams_handler =
             let! streams =  fr.stop_streams()
             return! json {| msg=streams |} next ctx
         }
+
 let add_camera_handler =
     fun (next: HttpFunc) (ctx: HttpContext) ->
         task {
